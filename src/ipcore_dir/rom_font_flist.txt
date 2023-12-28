@@ -1,0 +1,17 @@
+# Output products list for <rom_font>
+_xmsgs/pn_parser.xmsgs
+rom_font/blk_mem_gen_v7_3_readme.txt
+rom_font/doc/blk_mem_gen_v7_3_vinfo.html
+rom_font/doc/pg058-blk-mem-gen.pdf
+rom_font.asy
+rom_font.gise
+rom_font.mif
+rom_font.ngc
+rom_font.sym
+rom_font.v
+rom_font.veo
+rom_font.xco
+rom_font.xise
+rom_font_flist.txt
+rom_font_xmdf.tcl
+summary.log
