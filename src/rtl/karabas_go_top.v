@@ -56,8 +56,8 @@ module karabas_go_top (
    //---------------------------
    output wire SD_CS_N,
    output wire SD_CLK,
-   output wire SD_DI,
-   input wire SD_DO,
+   inout wire SD_DI,
+   inout wire SD_DO,
 	input wire SD_DET_N,
 
    //---------------------------
@@ -181,7 +181,7 @@ module karabas_go_top (
 	wire [7:0] joy_r;
 	wire [7:0] joy_usb;
 	wire [2:0] mouse_addr;
-	wire [7:0] mouse_data;
+	reg [7:0] mouse_data;
 	wire [15:8] keyboard_addr;
 	wire [4:0] keyboard_data;
 	wire [7:0] keyboard_scancode;
@@ -233,10 +233,10 @@ module karabas_go_top (
 
 	  .sdcs_n(SD_CS_N),
      .sdclk(SD_CLK),
-     .sddo(SD_DO),
-     .sddi(SD_DI),
+     .sddo(SD_DI),
+     .sddi(SD_DO),
 	  
-	  .joy_data (~joy_l),
+	  .joy_data (8'b0), // todo
 
 	  .mouse_addr(mouse_addr), // 2:0
 	  .mouse_data(mouse_data), // 7:0
@@ -255,6 +255,16 @@ module karabas_go_top (
 	 
 wire [7:0] rtc_do_mapped;
 assign rtc_do_mapped = (rtc_addr == 8'hF0 ? keyboard_scancode : (rtc_addr == 8'h0D ? 8'b10000000 : rtc_do));
+
+always @* begin
+	case (mouse_addr)
+		3'b010: mouse_data <= {5'b11111, ~ms_b[2:0]};
+		3'b011: mouse_data <= ms_x;
+		3'b110: mouse_data <= {5'b11111, ~ms_b[2:0]};
+		3'b111: mouse_data <= ms_y;
+		default: mouse_data <= 8'hFF;
+	endcase
+end
 	 
 assign VGA_R[7:0]   = video_r[7:0];
 assign VGA_G[7:0] = video_g[7:0];
@@ -353,6 +363,6 @@ PCM5102 PCM5102(
 	.bck(DAC_BCK),
 	.lrck(DAC_LRCK)
 );
-assign DAC_MUTE = 1'b1;
+assign DAC_MUTE = 1'b1; // soft mute, 0 = mute, 1 = unmute
 
 endmodule

@@ -370,6 +370,10 @@
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="234"/>
       <association xil_pn:name="Implementation" xil_pn:seqID="66"/>
     </file>
+    <file xil_pn:name="rtl/common/rtc/mc146818a.vhd" xil_pn:type="FILE_VHDL">
+      <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="296"/>
+      <association xil_pn:name="Implementation" xil_pn:seqID="0"/>
+    </file>
     <file xil_pn:name="ipcore_dir/pll.xise" xil_pn:type="FILE_COREGENISE">
       <association xil_pn:name="Implementation" xil_pn:seqID="0"/>
     </file>

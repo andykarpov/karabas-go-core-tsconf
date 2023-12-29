@@ -1066,6 +1066,19 @@ assign rtc_di = cpu_do_bus;
 assign mc146818a_do_bus = rtc_do;
 assign rtc_wr = wait_start_gluclock & ~cpu_wr_n;
 
+/*mc146818a SE9
+(
+	.RESET(rst),
+	.CLK(clk_28mhz),
+	.ENA(ena_0_4375mhz),
+	.CS(1'b1),
+	.KEYSCANCODE(keyboard_scancode),
+	.WR(wait_start_gluclock & ~cpu_wr_n),
+	.A(wait_addr),
+	.DI(cpu_do_bus),
+	.DO(mc146818a_do_bus)
+);*/
+
 wire ts_enable = ~cpu_iorq_n & cpu_a_bus[0] & cpu_a_bus[15] & ~cpu_a_bus[1];
 wire ts_we     = ts_enable & ~cpu_wr_n;
 
