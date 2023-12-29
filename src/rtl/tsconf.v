@@ -28,6 +28,14 @@ module tsconf
 	output wire sdclk,
 	output wire sddo,
 	input  wire sddi,
+	
+	// SPI FT812
+	output wire ftcs_n,
+	output wire ftclk,
+	output wire ftdo,
+	input wire ftdi,
+	input wire ftint,
+	output wire vdac2_sel,
 
 	// digital audio
 	output wire [15:0] audio_out_l,
@@ -559,6 +567,7 @@ BUFGCE U_BUFG (
     .vgrn_raw(vgrn_raw),
     .vblu_raw(vblu_raw),
     .vdac_mode(vdac_mode),
+	 .vdac2_msel(vdac2_sel),
     .hsync(hsync),
     .vsync(vsync),
     .csync(/*vcsync*/),
@@ -745,11 +754,11 @@ BUFGCE U_BUFG (
     .sd_dataout(spi_dout),
     .sd_datain(cpu_spi_din),
     .sdcs_n(sdcs_n),
-`ifdef SD_CARD2
-    .sd2cs_n(sd2cs_n),
-`endif
+//`ifdef SD_CARD2
+//    .sd2cs_n(sd2cs_n),
+//`endif
 //`ifdef IDE_VDAC2
-//    .ftcs_n(ftcs_n),
+    .ftcs_n(ftcs_n),
 //`endif
 /*`ifdef IDE_HDD
     .ide_in(ide_d),
@@ -897,7 +906,11 @@ BUFGCE U_BUFG (
     .wait_n(1'b1/*wait_n*/),
     .im2vect(im2vect),
     .intmask(intmask),
-    .int_start_lin(int_start_lin),
+//`ifdef IDE_VDAC2
+	 .int_start_lin(vdac2_sel ? int_start_ft : int_start_lin),
+//`else
+//    .int_start_lin(int_start_lin),
+//`endif
     .int_start_frm(int_start_frm),
     .int_start_dma(int_start_dma),
     .int_start_wtp(1'b0/*int_start_wtp*/),
@@ -969,11 +982,11 @@ BUFGCE U_BUFG (
     .clk(clk_28mhz),
     .sck(sdclk),
     .sdo(sddo),
-`ifdef IDE_VDAC2
+//`ifdef IDE_VDAC2
     .sdi(!ftcs_n ? ftdi : sddi),
-`else
-    .sdi(sddi),
-`endif
+//`else
+//    .sdi(sddi),
+//`endif
     .dma_req(dma_spi_req),
     .dma_din(dma_spi_din),
     .cpu_req(cpu_spi_req),
@@ -981,6 +994,18 @@ BUFGCE U_BUFG (
     .start(spi_start),
     .dout(spi_dout)
   );
+  
+ assign ftclk = sdclk;
+ assign ftdo = sddo;
+ // todo: ftint, vdac2_sel
+ reg [1:0] ftint_r;
+// wire ftcs_n;
+ wire ft_int = ftint;
+ wire int_start_ft = ftint_r[1] && !ftint_r[0];
+ 
+ always @(posedge clk_28mhz)
+	ftint_r <= {ftint_r[0], ft_int};
+ 
 
 `ifdef IDE_HDD
   ide ide

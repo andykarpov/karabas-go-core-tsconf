@@ -122,9 +122,9 @@ module zports
   // SPI
   output wire        sdcs_n,
   output wire        sd2cs_n,
-`ifdef IDE_VDAC2
+//`ifdef IDE_VDAC2
   output wire        ftcs_n,
-`endif
+//`endif
   output wire        sd_start,
   output wire [ 7:0] sd_datain,
   input  wire [ 7:0] sd_dataout,
@@ -202,13 +202,13 @@ module zports
   localparam FDR_VER = 1'b0;
 `endif
 
-`ifdef IDE_VDAC
-  localparam VDAC_VER = 3'h3;
-`elsif IDE_VDAC2
+//`ifdef IDE_VDAC
+//  localparam VDAC_VER = 3'h3;
+//`elsif IDE_VDAC2
   localparam VDAC_VER = 3'h7;
-`else
-  localparam VDAC_VER = 3'h0;
-`endif
+//`else
+//  localparam VDAC_VER = 3'h0;
+//`endif
 
   localparam PORTFE = 8'hFE;
   localparam PORTFD = 8'hFD;

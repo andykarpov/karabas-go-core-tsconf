@@ -71,10 +71,10 @@ module karabas_go_top (
 	//---------------------------
 	output wire FT_SPI_CS_N,
 	output wire FT_SPI_SCK,
-	inout wire FT_SPI_MISO,
-	inout wire FT_SPI_MOSI,
-	inout wire FT_INT_N,
-	inout wire FT_CLK,
+	input wire FT_SPI_MISO,
+	output wire FT_SPI_MOSI,
+	input wire FT_INT_N,
+	input wire FT_CLK,
 	output wire FT_OE_N,
 
 	//---------------------------
@@ -133,10 +133,6 @@ module karabas_go_top (
 	assign FDC_DRIVE = 2'b0;
 	assign FDC_MOTOR = 1'b0;
 
-	assign FT_SPI_CS_N = 1'b1;
-	assign FT_SPI_SCK = 1'b0;
-	assign FT_OE_N = 1'b1;
-
 	assign TAPE_OUT = 1'b0;
 	
 	assign ESP_RESET_N = 1'bZ;
@@ -147,8 +143,6 @@ module karabas_go_top (
 	
 	assign BEEPER = audio_beeper;
 	
-	assign V_CLK = ce_28m; // todo ODDR ?
-
 	wire clk_sys;
 	wire clk_8mhz;
    wire locked;
@@ -236,6 +230,13 @@ module karabas_go_top (
      .sddo(SD_DI),
      .sddi(SD_DO),
 	  
+	  .ftcs_n(ftcs_n),
+	  .ftclk(ftclk),
+	  .ftdo(ftdo),
+	  .ftdi(ftdi),
+	  .ftint(ftint),
+	  .vdac2_sel(vdac2_sel),
+	  
 	  .joy_data (8'b0), // todo
 
 	  .mouse_addr(mouse_addr), // 2:0
@@ -266,13 +267,21 @@ always @* begin
 	endcase
 end
 	 
-assign VGA_R[7:0]   = video_r[7:0];
-assign VGA_G[7:0] = video_g[7:0];
-assign VGA_B[7:0]  = video_b[7:0];
-assign VGA_HS = video_hsync;
-assign VGA_VS = video_vsync;
-
-// TODO: mcu, switches, dac
+wire ftcs_n, ftclk, ftdo, ftdi, ftint, vdac2_sel;
+	 
+// msel ????
+assign VGA_R[7:0] = vdac2_sel ? 8'bZZZZZZZZ : video_r[7:0];
+assign VGA_G[7:0] = vdac2_sel ? 8'bZZZZZZZZ : video_g[7:0];
+assign VGA_B[7:0] = vdac2_sel ? 8'bZZZZZZZZ : video_b[7:0];
+assign VGA_HS = vdac2_sel ? 1'bZ : video_hsync;
+assign VGA_VS = vdac2_sel ? 1'bZ : video_vsync;
+assign V_CLK = vdac2_sel ? FT_CLK : ce_28m;
+assign FT_SPI_CS_N = ftcs_n;
+assign FT_SPI_SCK = ftclk;
+assign FT_OE_N = vdac2_sel ? 1'b0 : 1'b1;
+assign ftdi = FT_SPI_MISO;
+assign FT_SPI_MOSI = ftdo;
+assign ftint = FT_INT_N;
 
 wire [7:0] ms_x, ms_y, ms_z, ms_b;
 

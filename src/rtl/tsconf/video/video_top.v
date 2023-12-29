@@ -21,9 +21,9 @@ module video_top
   output wire  [4:0] vgrn_raw,
   output wire  [4:0] vblu_raw,
   output wire  vdac_mode,
-`ifdef IDE_VDAC2
+//`ifdef IDE_VDAC2
   output wire vdac2_msel,
-`endif
+//`endif
 
   // video syncs
   output wire hsync,
@@ -128,9 +128,9 @@ module video_top
   wire v60hz;
   wire nogfx = vconf[5];
   wire notsu = vconf[4];
-`ifdef IDE_VDAC2
+//`ifdef IDE_VDAC2
   assign vdac2_msel = vconf[2];
-`endif
+//`endif
   wire tv_blank;
 
   // counters
