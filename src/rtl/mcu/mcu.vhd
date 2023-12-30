@@ -23,8 +23,9 @@ entity mcu is
 	 -- usb mouse
 	 MS_X 	 	: out std_logic_vector(7 downto 0) := "00000000";
 	 MS_Y 	 	: out std_logic_vector(7 downto 0) := "00000000";
-	 MS_BTNS 	: out std_logic_vector(2 downto 0) := "000";
+	 MS_B 	   : out std_logic_vector(2 downto 0) := "000";
 	 MS_Z 		: out std_logic_vector(3 downto 0) := "0000";
+	 MS_UPD		: buffer std_logic := '0'; -- todo: refactor it, move ms event to abs coord into a new module "cursor"
 	 
 	 -- usb keyboard
 	 KB_STATUS : out std_logic_vector(7 downto 0) := "00000000";
@@ -202,7 +203,7 @@ begin
 							when X"00" => MS_X(7 downto 0) <= spi_do(7 downto 0);
 							when X"01" => MS_Y(7 downto 0) <= spi_do(7 downto 0);
 							when X"02" => MS_Z(3 downto 0) <= spi_do(3 downto 0);
-							when X"03" => MS_BTNS(2 downto 0) <= spi_do(2 downto 0);
+							when X"03" => MS_B(2 downto 0) <= spi_do(2 downto 0); MS_UPD <= not(MS_UPD);
 							when others => null;
 						end case;
 					-- joy data

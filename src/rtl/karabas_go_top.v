@@ -145,6 +145,7 @@ module karabas_go_top (
 	
 	wire clk_sys;
 	wire clk_8mhz;
+	wire clk_bus;
    wire locked;
    pll pll (
 	  .CLK_IN1(CLK_50MHZ),
@@ -209,6 +210,7 @@ module karabas_go_top (
 	  .ce(ce_28m),
 	  .resetbtn_n(btn_reset_n),	  
 	  .locked(locked),
+	  .clk_bus(clk_bus),
 	  
 	  .sram_addr(MA),
 	  .sram_data(MD),
@@ -256,20 +258,9 @@ module karabas_go_top (
 	 
 wire [7:0] rtc_do_mapped;
 assign rtc_do_mapped = (rtc_addr == 8'hF0 ? keyboard_scancode : (rtc_addr == 8'h0D ? 8'b10000000 : rtc_do));
-
-always @* begin
-	case (mouse_addr)
-		3'b010: mouse_data <= {5'b11111, ~ms_b[2:0]};
-		3'b011: mouse_data <= ms_x;
-		3'b110: mouse_data <= {5'b11111, ~ms_b[2:0]};
-		3'b111: mouse_data <= ms_y;
-		default: mouse_data <= 8'hFF;
-	endcase
-end
 	 
 wire ftcs_n, ftclk, ftdo, ftdi, ftint, vdac2_sel;
 	 
-// msel ????
 assign VGA_R[7:0] = vdac2_sel ? 8'bZZZZZZZZ : video_r[7:0];
 assign VGA_G[7:0] = vdac2_sel ? 8'bZZZZZZZZ : video_g[7:0];
 assign VGA_B[7:0] = vdac2_sel ? 8'bZZZZZZZZ : video_b[7:0];
@@ -283,10 +274,10 @@ assign ftdi = FT_SPI_MISO;
 assign FT_SPI_MOSI = ftdo;
 assign ftint = FT_INT_N;
 
-wire [7:0] ms_x, ms_y, ms_z, ms_b;
+//---------- MCU ------------
 
 mcu mcu(
-	.CLK(clk_sys),
+	.CLK(clk_bus),
 	.N_RESET(1'b1), // todo: areset
 	
 	.MCU_MOSI(MCU_MOSI),
@@ -297,7 +288,8 @@ mcu mcu(
 	.MS_X(ms_x),
 	.MS_Y(ms_y),
 	.MS_Z(ms_z),
-	.MS_BTNS(ms_b),
+	.MS_B(ms_b),
+	.MS_UPD(ms_upd),
 	
 	.KB_STATUS(hid_kb_status),
 	.KB_DAT0(hid_kb_dat0),
@@ -326,8 +318,10 @@ mcu mcu(
 	.OSD_COMMAND(osd_command)
 );
 
+//---------- Keyboard parser ------------
+
 hid_parser hid_parser(
-	.CLK(clk_sys),
+	.CLK(clk_bus),
 	.RESET(1'b0), // todo areset
 
 	.KB_STATUS(hid_kb_status),
@@ -350,8 +344,10 @@ hid_parser hid_parser(
 	.KEYCODE(keyboard_scancode)
 );
 
+//---------- Soft switches ------------
+
 soft_switches soft_switches(
-	.CLK(clk_sys),
+	.CLK(clk_bus),
 	
 	.SOFTSW_COMMAND(softsw_command),
 	
@@ -364,8 +360,43 @@ soft_switches soft_switches(
 
 assign btn_reset_n = ~kb_reset;
 
+//---------- Mouse / cursor ------------
+
+wire [7:0] ms_x, ms_y, cursor_x, cursor_y;
+wire [3:0] ms_z, cursor_z;
+wire [2:0] ms_b, cursor_b;
+wire ms_upd;
+
+cursor cursor(
+	.CLK(clk_bus),
+	.RESET(1'b0),
+	
+	.MS_X(ms_x),
+	.MS_Y(ms_y),
+	.MS_Z(ms_z),
+	.MS_B(ms_b),
+	.MS_UPD(ms_upd),
+	
+	.OUT_X(cursor_x),
+	.OUT_Y(cursor_y),
+	.OUT_Z(),
+	.OUT_B(cursor_b)
+);
+
+always @* begin
+	case (mouse_addr)
+		3'b010: mouse_data <= {5'b11111, ~cursor_b[2:0]};
+		3'b011: mouse_data <= cursor_x;
+		3'b110: mouse_data <= {5'b11111, ~cursor_b[2:0]};
+		3'b111: mouse_data <= cursor_y;
+		default: mouse_data <= 8'hFF;
+	endcase
+end
+
+//---------- DAC ------------
+
 PCM5102 PCM5102(
-	.clk(clk_sys),
+	.clk(clk_bus),
 	.left(audio_out_l),
 	.right(audio_out_r),
 	.din(DAC_DAT),

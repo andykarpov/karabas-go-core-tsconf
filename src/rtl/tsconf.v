@@ -9,6 +9,7 @@ module tsconf
 	input wire ce,
 	input wire resetbtn_n,
 	input wire locked,
+	output wire clk_bus,
 
    // SRAM
    output wire [20:0] sram_addr,
@@ -363,6 +364,7 @@ BUFGCE U_BUFG (
 .CE(ce)
 );
 
+assign clk_bus = clk_28mhz;
 
   t80pa t80pa
   (
