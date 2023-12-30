@@ -66,3 +66,5 @@ xst/
 _ngo/
 _xmsgs/
 
+# special scripts
+make_core.py
