@@ -96,7 +96,7 @@ ARCHITECTURE simulation_arch OF fifo2_synth IS
     -- FIFO interface signal declarations
     SIGNAL clk_i	                  :   STD_LOGIC;
     SIGNAL data_count                     :   STD_LOGIC_VECTOR(12-1 DOWNTO 0);
-    SIGNAL rst	                          :   STD_LOGIC;
+    SIGNAL srst                           :   STD_LOGIC;
     SIGNAL wr_en                          :   STD_LOGIC;
     SIGNAL rd_en                          :   STD_LOGIC;
     SIGNAL din                            :   STD_LOGIC_VECTOR(8-1 DOWNTO 0);
@@ -125,6 +125,9 @@ ARCHITECTURE simulation_arch OF fifo2_synth IS
     SIGNAL rst_async_rd2                  :   STD_LOGIC := '0'; 
     SIGNAL rst_async_rd3                  :   STD_LOGIC := '0'; 
 
+    SIGNAL rst_sync_rd1                   :   STD_LOGIC := '0'; 
+    SIGNAL rst_sync_rd2                   :   STD_LOGIC := '0'; 
+    SIGNAL rst_sync_rd3                   :   STD_LOGIC := '0'; 
 
  BEGIN  
 
@@ -143,6 +146,16 @@ ARCHITECTURE simulation_arch OF fifo2_synth IS
        rst_async_rd1    <= RESET;
        rst_async_rd2    <= rst_async_rd1;
        rst_async_rd3    <= rst_async_rd2;
+     END IF;
+   END PROCESS;
+
+   --Synchronous reset generation for FIFO core
+   PROCESS(clk_i)
+   BEGIN
+     IF(clk_i'event AND clk_i='1') THEN
+       rst_sync_rd1    <= RESET;
+       rst_sync_rd2    <= rst_sync_rd1;
+       rst_sync_rd3    <= rst_sync_rd2;
      END IF;
    END PROCESS;
 
@@ -172,7 +185,7 @@ ARCHITECTURE simulation_arch OF fifo2_synth IS
   clk_i <= CLK;
    ------------------
      
-    rst                       <=   RESET OR rst_s_rd AFTER 12 ns;
+    srst                      <=   rst_sync_rd3 OR rst_s_rd AFTER 50 ns;
     din                       <=   wr_data;
     dout_i                    <=   dout;
     wr_en                     <=   wr_en_i;
@@ -254,7 +267,7 @@ ARCHITECTURE simulation_arch OF fifo2_synth IS
     PORT MAP (
            CLK                       => clk_i,
            DATA_COUNT                => data_count,
-           RST                       => rst,
+           SRST                      => srst,
            WR_EN 		     => wr_en,
            RD_EN                     => rd_en,
            DIN                       => din,

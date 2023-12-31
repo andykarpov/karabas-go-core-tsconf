@@ -1,7 +1,7 @@
 ##############################################################
 #
 # Xilinx Core Generator version 14.7
-# Date: Sun Dec 24 16:08:14 2023
+# Date: Sat Dec 30 18:01:32 2023
 #
 ##############################################################
 #
@@ -110,7 +110,7 @@ CSET fifo_implementation_rdch=Common_Clock_Block_RAM
 CSET fifo_implementation_wach=Common_Clock_Block_RAM
 CSET fifo_implementation_wdch=Common_Clock_Block_RAM
 CSET fifo_implementation_wrch=Common_Clock_Block_RAM
-CSET full_flags_reset_value=1
+CSET full_flags_reset_value=0
 CSET full_threshold_assert_value=4094
 CSET full_threshold_assert_value_axis=1023
 CSET full_threshold_assert_value_rach=1023
@@ -176,7 +176,7 @@ CSET register_slice_mode_wach=Fully_Registered
 CSET register_slice_mode_wdch=Fully_Registered
 CSET register_slice_mode_wrch=Fully_Registered
 CSET reset_pin=true
-CSET reset_type=Asynchronous_Reset
+CSET reset_type=Synchronous_Reset
 CSET ruser_width=1
 CSET synchronization_stages=2
 CSET synchronization_stages_axi=2
@@ -210,4 +210,4 @@ CSET wuser_width=1
 MISC pkg_timestamp=2012-11-19T12:39:56Z
 # END Extra information
 GENERATE
-# CRC: c80b1701
+# CRC: 317c0cef

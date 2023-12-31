@@ -20,8 +20,7 @@
 */
 
 // Wrapper to output only combined channels. Defaults to YM2203 mode.
-
-
+`default_nettype wire
 
 module jt03(
     input           rst,        // rst should be at least 6 clk&cen cycles long

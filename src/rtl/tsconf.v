@@ -59,7 +59,12 @@ module tsconf
 	output wire [7:0] rtc_addr,
 	output wire [7:0] rtc_di,
 	input wire [7:0] rtc_do,
-	output wire rtc_wr
+	output wire rtc_wr,
+	
+	// uart (zifi)
+	input wire uart_rx,
+	output wire uart_tx,
+	output wire uart_cts
 	
 	// TODO: others
 );
@@ -1197,11 +1202,35 @@ assign cpu_di_bus =
 		(csrom && ~cpu_mreq_n && ~cpu_rd_n) 						?	rom_do_bus			:	// BIOS
 		ena_ram    															?	dout_ram 			:	// SDRAM
 		(ts_enable && ~cpu_rd_n)										?	ts_do					:	// TurboSound
+		(~zifi_oe_n)														?  zifi_do_bus       :  // zifi
 		(ena_ports)															?	dout_ports			:
 		(intack)																?	im2vect 				:
 																					8'b11111111; 
 
 assign audio_out_l = audio_l;
 assign audio_out_r = audio_r;
+
+// zifi
+wire [7:0] zifi_do_bus;
+wire zifi_oe_n;
+
+zifi zifi(
+	.CLK(clk_28mhz),
+	.RESET(rst),
+	.DS80(1'b0),
+	
+	.A(cpu_a_bus),
+	.DI(cpu_do_bus),
+	.DO(zifi_do_bus),
+	.IORQ_N(cpu_iorq_n),
+	.RD_N(cpu_rd_n),
+	.WR_N(cpu_wr_n),
+	
+	.ZIFI_OE_N(zifi_oe_n),
+	.ENABLED(),
+	.UART_RX(uart_rx),
+	.UART_TX(uart_tx),
+	.UART_CTS(uart_cts)
+);
 
 endmodule

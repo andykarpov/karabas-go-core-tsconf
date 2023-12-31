@@ -1,5 +1,75 @@
 INFO:sim:172 - Generating IP...
 Applying current project options...
 Finished applying current project options.
-Cancelled executing Tcl generator.
-Wrote CGP file for project 'pll'.
+WARNING:sim - A core named 'fifo2' already exists in the project. Output
+   products for this core may be overwritten.
+Resolving generics for 'fifo2'...
+WARNING:sim - A core named 'fifo2' already exists in the project. Output
+   products for this core may be overwritten.
+Applying external generics to 'fifo2'...
+Delivering associated files for 'fifo2'...
+Delivering EJava files for 'fifo2'...
+Generating implementation netlist for 'fifo2'...
+INFO:sim - Pre-processing HDL files for 'fifo2'...
+WARNING:sim - BlackBox generator run option '-ifmt' found multiple times. Only
+   the first occurence is considered.
+Running synthesis for 'fifo2'
+Running ngcbuild...
+Writing VEO instantiation template for 'fifo2'...
+Writing Verilog behavioral simulation model for 'fifo2'...
+WARNING:sim - Overwriting existing file
+   /home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-cor
+   e-tsconf/src/ipcore_dir/tmp/_cg/fifo2/doc/fifo_generator_v9_3_vinfo.html with
+   file from view xilinx_documentation
+Delivered 3 files into directory
+/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
+sconf/src/ipcore_dir/tmp/_cg/fifo2
+Delivered 1 file into directory
+/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
+sconf/src/ipcore_dir/tmp/_cg/fifo2
+Generating ASY schematic symbol...
+INFO:sim:949 - Finished generation of ASY schematic symbol.
+Generating SYM schematic symbol for 'fifo2'...
+Generating metadata file...
+Regenerating ISE project file for 'fifo2'...
+Generating ISE project...
+XCO file found: fifo2.xco
+XMDF file found: fifo2_xmdf.tcl
+Adding
+/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
+sconf/src/ipcore_dir/tmp/_cg/fifo2.asy -view all -origin_type imported
+Adding
+/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
+sconf/src/ipcore_dir/tmp/_cg/fifo2.ngc -view all -origin_type created
+Checking file
+"/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-
+tsconf/src/ipcore_dir/tmp/_cg/fifo2.ngc" for project device match ...
+File
+"/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-
+tsconf/src/ipcore_dir/tmp/_cg/fifo2.ngc" device information matches project
+device.
+Adding
+/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
+sconf/src/ipcore_dir/tmp/_cg/fifo2.sym -view all -origin_type imported
+Adding
+/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
+sconf/src/ipcore_dir/tmp/_cg/fifo2.v -view all -origin_type created
+INFO:HDLCompiler:1845 - Analyzing Verilog file
+   "/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-co
+   re-tsconf/src/ipcore_dir/tmp/_cg/fifo2.v" into library work
+INFO:ProjectMgmt - Parsing design hierarchy completed successfully.
+Adding
+/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
+sconf/src/ipcore_dir/tmp/_cg/fifo2.veo -view all -origin_type imported
+INFO:TclTasksC:2116 - The automatic calculation of top has been turned-off.
+   Please set the new top explicitly by running the "project set top" command.
+   To re-calculate the new top automatically, set the "Auto Implementation Top"
+   property to true.
+Top level has been set to "/fifo2"
+Generating README file...
+Generating FLIST file...
+INFO:sim:948 - Finished FLIST file generation.
+Launching README viewer...
+Moving files to output directory...
+Finished moving files to output directory
+Wrote CGP file for project 'fifo2'.

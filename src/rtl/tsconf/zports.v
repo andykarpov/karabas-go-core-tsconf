@@ -248,7 +248,7 @@ module zports
   localparam SDCFG  = 8'h77;
   localparam SDDAT  = 8'h57;
 
-  localparam COMPORT = 8'hEF;     // F8EF..FFEF - rs232 ports
+  //localparam COMPORT = 8'hEF;     // F8EF..FFEF - rs232 ports
 
   reg [2:0] spi_cs_n;
   reg pwr_up_reg;
@@ -271,7 +271,7 @@ module zports
 `ifdef IDE_HDD
   || ide_all
 `endif
-  || ((vg_port || vgsys_port) && (dos || open_vg)) || ((loa==KJOY) && !dos && !open_vg) || (loa==KMOUSE) || ((loa==SDCFG) || (loa==SDDAT)) || (loa==COMPORT);
+  || ((vg_port || vgsys_port) && (dos || open_vg)) || ((loa==KJOY) && !dos && !open_vg) || (loa==KMOUSE) || ((loa==SDCFG) || (loa==SDDAT));
 
 `ifdef IDE_HDD
   wire ide_all = ide_even || ide_port11;
@@ -383,10 +383,10 @@ end
         dout = 8'hFF;
     end
 
-    COMPORT:
-    begin
-      dout = wait_read; // $F8EF..$FFEF
-    end
+    //COMPORT:
+    //begin
+    //  dout = wait_read; // $F8EF..$FFEF
+    //end
 
     default:
       dout = 8'hFF;
@@ -601,8 +601,8 @@ end
   assign gluclock_on = peff7[7] || dos;        // in dos mode EEF7 is not accessible, gluclock access is ON in dos mode.
 
   // comports
-  wire comport_wr   = ((loa == COMPORT) && port_wr);
-  wire comport_rd   = ((loa == COMPORT) && port_rd);
+  wire comport_wr   = 1'b0; // ((loa == COMPORT) && port_wr);
+  wire comport_rd   = 1'b0; //((loa == COMPORT) && port_rd);
 
   /*
   // write to wait registers

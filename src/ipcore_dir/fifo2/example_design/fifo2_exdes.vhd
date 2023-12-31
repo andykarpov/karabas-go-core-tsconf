@@ -75,7 +75,7 @@ entity fifo2_exdes is
    PORT (
            CLK                       : IN  std_logic;
      	   DATA_COUNT                : OUT std_logic_vector(12-1 DOWNTO 0);
-           RST                       : IN  std_logic;
+           SRST                      : IN  std_logic;
            WR_EN 		     : IN  std_logic;
            RD_EN                     : IN  std_logic;
            DIN                       : IN  std_logic_vector(8-1 DOWNTO 0);
@@ -97,7 +97,7 @@ architecture xilinx of fifo2_exdes is
    PORT (
            CLK                       : IN  std_logic;
      	   DATA_COUNT                : OUT std_logic_vector(12-1 DOWNTO 0);
-           RST                       : IN  std_logic;
+           SRST                      : IN  std_logic;
            WR_EN 		     : IN  std_logic;
            RD_EN                     : IN  std_logic;
            DIN                       : IN  std_logic_vector(8-1 DOWNTO 0);
@@ -121,7 +121,7 @@ begin
     PORT MAP (
            CLK                       => clk_i,
            DATA_COUNT                => data_count,
-           RST                       => rst,
+           SRST                      => srst,
            WR_EN 		     => wr_en,
            RD_EN                     => rd_en,
            DIN                       => din,

@@ -31,11 +31,11 @@ module karabas_go_top (
    input wire CLK_50MHZ,
 
 	//---------------------------
-	input wire UART_RX,
-	output wire UART_TX,
-	output wire UART_CTS,
-	output wire ESP_RESET_N,
-	output wire ESP_BOOT_N,
+	inout wire UART_RX,
+	inout wire UART_TX,
+	inout wire UART_CTS,
+	inout wire ESP_RESET_N,
+	inout wire ESP_BOOT_N,
 	
    //---------------------------
    output wire [20:0] MA,
@@ -136,10 +136,8 @@ module karabas_go_top (
 	assign TAPE_OUT = 1'b0;
 	
 	assign ESP_RESET_N = 1'bZ;
-	assign ESP_BOOT_N = 1'bZ;
-	
-	assign UART_TX = 1'b1;
-	assign UART_CTS = 1'b1;
+	assign ESP_BOOT_N = 1'bZ;	
+	assign UART_CTS = 1'bZ;
 	
 	assign BEEPER = audio_beeper;
 	
@@ -241,19 +239,23 @@ module karabas_go_top (
 	  
 	  .joy_data (8'b0), // todo
 
-	  .mouse_addr(mouse_addr), // 2:0
-	  .mouse_data(mouse_data), // 7:0
+	  .mouse_addr(mouse_addr),
+	  .mouse_data(mouse_data),
 		
-	  .keyboard_addr(keyboard_addr), // 15:8
-	  .keyboard_data(keyboard_data), // 4:0
-	  .keyboard_scancode(keyboard_scancode), // 7:0
+	  .keyboard_addr(keyboard_addr),
+	  .keyboard_data(keyboard_data),
+	  .keyboard_scancode(keyboard_scancode),
 		
-	  .rtc_addr(rtc_addr), // 7:0
+	  .rtc_addr(rtc_addr),
 	  .rtc_di(rtc_di),
 	  .rtc_do(rtc_do_mapped),
-	  .rtc_wr(rtc_wr)
+	  .rtc_wr(rtc_wr),
 	  
-	  // todo: cfg, FT, CF, VG, tape_in, tape_out, zifi
+	  .uart_rx(UART_RX),
+	  .uart_tx(UART_TX),
+	  .uart_cts()
+	  
+	  // todo: cfg, CF, VG, tape_in, tape_out, zifi
 	 );
 	 
 wire [7:0] rtc_do_mapped;

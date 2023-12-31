@@ -59,7 +59,7 @@
 //----------- Begin Cut here for INSTANTIATION Template ---// INST_TAG
 fifo2 your_instance_name (
   .clk(clk), // input clk
-  .rst(rst), // input rst
+  .srst(srst), // input srst
   .din(din), // input [7 : 0] din
   .wr_en(wr_en), // input wr_en
   .rd_en(rd_en), // input rd_en

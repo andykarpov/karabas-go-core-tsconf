@@ -65,7 +65,7 @@ gui_sg_create fifo2_Group
 gui_list_add_group -id Wave.1 {fifo2_Group}
 
 gui_sg_addsignal -group fifo2_Group /fifo2_tb/fifo2_synth_inst/fifo2_inst/CLK
-gui_sg_addsignal -group fifo2_Group /fifo2_tb/fifo2_synth_inst/fifo2_inst/RST
+gui_sg_addsignal -group fifo2_Group /fifo2_tb/fifo2_synth_inst/fifo2_inst/SRST
 gui_sg_addsignal -group fifo2_Group  WRITE -divider
 gui_sg_addsignal -group fifo2_Group /fifo2_tb/fifo2_synth_inst/fifo2_inst/WR_EN
 gui_sg_addsignal -group fifo2_Group /fifo2_tb/fifo2_synth_inst/fifo2_inst/FULL

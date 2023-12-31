@@ -38,7 +38,7 @@
 
 module fifo2(
   clk,
-  rst,
+  srst,
   din,
   wr_en,
   rd_en,
@@ -49,7 +49,7 @@ module fifo2(
 );
 
 input clk;
-input rst;
+input srst;
 input [7 : 0] din;
 input wr_en;
 input rd_en;
@@ -107,7 +107,7 @@ output [11 : 0] data_count;
     .C_ERROR_INJECTION_TYPE_WDCH(0),
     .C_ERROR_INJECTION_TYPE_WRCH(0),
     .C_FAMILY("spartan6"),
-    .C_FULL_FLAGS_RST_VAL(1),
+    .C_FULL_FLAGS_RST_VAL(0),
     .C_HAS_ALMOST_EMPTY(0),
     .C_HAS_ALMOST_FULL(0),
     .C_HAS_AXI_ARUSER(0),
@@ -145,9 +145,9 @@ output [11 : 0] data_count;
     .C_HAS_PROG_FLAGS_WRCH(0),
     .C_HAS_RD_DATA_COUNT(0),
     .C_HAS_RD_RST(0),
-    .C_HAS_RST(1),
+    .C_HAS_RST(0),
     .C_HAS_SLAVE_CE(0),
-    .C_HAS_SRST(0),
+    .C_HAS_SRST(1),
     .C_HAS_UNDERFLOW(0),
     .C_HAS_VALID(0),
     .C_HAS_WR_ACK(0),
@@ -253,7 +253,7 @@ output [11 : 0] data_count;
   )
   inst (
     .CLK(clk),
-    .RST(rst),
+    .SRST(srst),
     .DIN(din),
     .WR_EN(wr_en),
     .RD_EN(rd_en),
@@ -263,7 +263,7 @@ output [11 : 0] data_count;
     .DATA_COUNT(data_count),
     .BACKUP(),
     .BACKUP_MARKER(),
-    .SRST(),
+    .RST(),
     .WR_CLK(),
     .WR_RST(),
     .RD_CLK(),
