@@ -1,4 +1,4 @@
-`include "tune.v"
+`include "../../tune.v"
 
 // This module generates video raster signals
 

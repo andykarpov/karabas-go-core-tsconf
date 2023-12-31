@@ -21,7 +21,7 @@
 // 2. do fallback on 7mhz for external IO accesses
 // 3. clock switch 14-7-3.5 only at RFSH
 
-`include "tune.v"
+`include "../tune.v"
 
 module zclock
 (

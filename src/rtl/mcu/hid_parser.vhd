@@ -141,6 +141,7 @@ process (RESET, CLK)
 			
 		elsif CLK'event and CLK = '1' then
 				
+			-- TODO: add delay (counter?) between presses
 			if is_macros = '1' then 
 					case macros_state is 
 						when MACRO_START  => kb_data <= (others => '0'); macros_state <= MACRO_CS_ON;
@@ -168,7 +169,7 @@ process (RESET, CLK)
 				if KB_STATUS(4) = '1' then kb_data(ZX_K_SS) <= '1'; is_ctrl <= '1'; KEYCODE <= X"14"; end if;
 							
 				-- Alt -> SS+CS
-				if KB_STATUS(2) = '1' or KB_STATUS(6) = '1' then kb_data(ZX_K_CS) <= '1'; kb_data(ZX_K_SS) <= '1'; is_alt <= '1'; is_cs_used <= '1'; end if;
+				if KB_STATUS(2) = '1' or KB_STATUS(6) = '1' then kb_data(ZX_K_CS) <= '1'; kb_data(ZX_K_SS) <= '1'; is_alt <= '1'; is_cs_used <= '1'; KEYCODE <= X"11"; end if;
 				
 				-- Win
 				if KB_STATUS(7) = '1' then KEYCODE <= x"27"; end if;

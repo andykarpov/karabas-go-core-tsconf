@@ -1,6 +1,6 @@
 // This module serves direct DRAM-to-device data transfer
 
-`include "tune.v"
+`include "../../tune.v"
 
 module dma
 (

@@ -1,4 +1,4 @@
-`include "tune.v"
+`include "../../tune.v"
 
 // Reset from MCU must be long enough
 module resetter

@@ -3,27 +3,27 @@
 
 // PIO4 mode
 // (assuming that delay from internal FPGA's logics and sinals at HDD's edge connector is ~35ns, e.g. 28MHz clk period)
-// clk              |—__——__—|—__—|—__——__—|—__——__—|—__—|—__——__—|—__——__—|
+// clk              |____|__|____|____|__|____|____|
 // st[n]            |<--><00>|<01>|<02><03>|<04><00>|<01>|<02><03>|<04><-->|
-// go               |————____|____|________|————____|____|________|________|
-// rdy              |————____|____|________|————____|____|________|____————|
-// din_stb          |________|____|________|————____|____|________|________|
+// go               |____|____|________|____|____|________|________|
+// rdy              |____|____|________|____|____|________|____|
+// din_stb          |________|____|________|____|____|________|________|
 // ide_out          |xxxxxxxx|xxxx|xxxxxxxx|WWWWWWWW|WWWW|WWWWWWWW|WWWWWWWW|
 // ide_d            |xxxxxxxx|xxxx|xxxxxxxx|xxRRWWWW|WWWW|WWWWWWWW|zzzzzzzz|
 // ide_a            |xxxxAAAA|AAAA|AAAAAAAA|AAAAaaaa|aaaa|aaaaaaaa|aaaaxxxx|
-// ide_dir (rnw)    |————————|————|————————|————____|____|________|————————|
-// ide_cs_n         |————____|____|________|————____|____|________|————————|
-// ide_rd_n         |————————|____|____————|————————|————|————————|————————|
-// ide_wr_n         |————————|————|————————|————————|____|____————|————————|
+// ide_dir (rnw)    ||||____|____|________||
+// ide_cs_n         |____|____|________|____|____|________||
+// ide_rd_n         ||____|____|||||
+// ide_wr_n         |||||____|____||
 //
 //                  | t1 |   t2   |  teoc  | t1 |   t2   |  teoc  |
 // ide_d (hdd)      |zzzzzzzz|zzzz|zzzzzzRR|RRRRzzzz|WWWW|WWWWWWWW|WWWWzzzz|
 // ide_a (hdd)      |xxxxxxxx|AAAA|AAAAAAAA|AAAAAAAA|aaaa|aaaaaaaa|aaaaaaaa|
-// ide_cs_n  (hdd)  |————————|____|________|____————|____|________|____————|
-// ide_rd_n  (hdd)  |————————|————|________|————————|————|————————|————————|
-// ide_wr_n  (hdd)  |————————|————|————————|————————|————|________|————————|
+// ide_cs_n  (hdd)  ||____|________|____|____|________|____|
+// ide_rd_n  (hdd)  |||________|||||
+// ide_wr_n  (hdd)  ||||||________||
 
-`include "tune.v"
+`include "../../tune.v"
 
 module ide
 (

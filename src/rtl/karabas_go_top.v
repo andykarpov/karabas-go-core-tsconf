@@ -116,12 +116,6 @@ module karabas_go_top (
 	output wire MCU_MISO	
    );
 
-	assign WA = 2'b0;
-	assign WCS_N = 2'b1;
-	assign WRD_N = 1'b1;
-	assign WWR_N = 1'b1;
-	assign WRESET_N = 1'b1;
-
 	assign SDR_BA = 2'b0;
 	assign SDR_A = 13'b0;
 	assign SDR_CLK = 1'b0;
@@ -253,9 +247,19 @@ module karabas_go_top (
 	  
 	  .uart_rx(UART_RX),
 	  .uart_tx(UART_TX),
-	  .uart_cts()
+	  .uart_cts(),
 	  
-	  // todo: cfg, CF, VG, tape_in, tape_out, zifi
+	  .ide_d(WD),
+	  .ide_rs_n(WRESET_N),
+	  .ide_a(WA),
+	  .ide_dir(),
+	  .ide_cs0_n(WCS_N[0]),
+	  .ide_cs1_n(WCS_N[1]),
+	  .ide_rd_n(WRD_N),
+	  .ide_wr_n(WWR_N),
+	  .ide_rdy()
+	  
+	  // todo: cfg, VG, tape_in, tape_out, zifi
 	 );
 	 
 wire [7:0] rtc_do_mapped;

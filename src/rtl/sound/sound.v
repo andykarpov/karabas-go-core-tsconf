@@ -2,8 +2,6 @@
 // Pentevo project (c) NedoPC 2011
 // integrates sound features: tapeout, beeper and covox
 
-`include "tune.v"
-
 // `define SDM    // uncommented - sigma-delta, commented - PWM
 
 module sound

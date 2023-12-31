@@ -64,7 +64,18 @@ module tsconf
 	// uart (zifi)
 	input wire uart_rx,
 	output wire uart_tx,
-	output wire uart_cts
+	output wire uart_cts,
+	
+	// ide
+	inout wire [15:0] ide_d,
+	output wire ide_rs_n,
+	output wire [2:0] ide_a,
+	output wire ide_dir,
+	output wire ide_cs0_n,
+	output wire ide_cs1_n,
+	output wire ide_rd_n,
+	output wire ide_wr_n,
+	input wire ide_rdy 
 	
 	// TODO: others
 );
@@ -356,9 +367,9 @@ wire [7:0] clocktm;
 //  assign rompg3   =  rompg[3];
 //  assign rompg4   =  rompg[4];
 
-`ifdef IDE_HDD
+//`ifdef IDE_HDD
   assign ide_rs_n = rst_n;
-`endif
+//`endif
 
 // clock
 wire clk_28mhz;// = clk & ce;
@@ -761,13 +772,13 @@ assign clk_bus = clk_28mhz;
     .sd_dataout(spi_dout),
     .sd_datain(cpu_spi_din),
     .sdcs_n(sdcs_n),
-//`ifdef SD_CARD2
-//    .sd2cs_n(sd2cs_n),
-//`endif
+`ifdef SD_CARD2
+    .sd2cs_n(sd2cs_n),
+`endif
 //`ifdef IDE_VDAC2
     .ftcs_n(ftcs_n),
 //`endif
-/*`ifdef IDE_HDD
+//`ifdef IDE_HDD
     .ide_in(ide_d),
     .ide_out(z80_ide_out),
     .ide_cs0_n(z80_ide_cs0_n),
@@ -776,7 +787,7 @@ assign clk_bus = clk_28mhz;
     .ide_stb(ide_stb),
     .ide_ready(ide_ready),
     .ide_stall(ide_stall),
-`endif*/
+//`endif
     .border_wr(border_wr),
     .zborder_wr(zborder_wr),
     .zvpage_wr(zvpage_wr),
@@ -860,13 +871,13 @@ assign clk_bus = clk_28mhz;
     .wraddr(dma_wraddr),
     .cram_we(dma_cram_we),
     .sfile_we(dma_sfile_we),
-/*`ifdef IDE_HDD
+//`ifdef IDE_HDD
     .ide_in(ide_d),
     .ide_out(dma_ide_out),
     .ide_req(dma_ide_req),
     .ide_rnw(dma_ide_rnw),
     .ide_stb(ide_stb),
-`endif*/
+//`endif
     .spi_req(dma_spi_req),
     .spi_stb(spi_start),
     .spi_rddata(spi_dout),
@@ -1014,11 +1025,11 @@ assign clk_bus = clk_28mhz;
 	ftint_r <= {ftint_r[0], ft_int};
  
 
-`ifdef IDE_HDD
+//`ifdef IDE_HDD
   ide ide
   (
     .clk(clk_28mhz),
-    .reset(res),
+    .reset(rst),
     .rdy_stb(ide_stb),
     .rdy(ide_ready),
     .ide_out(ide_out),
@@ -1032,13 +1043,14 @@ assign clk_bus = clk_28mhz;
     .dma_req(dma_ide_req),
     .dma_rnw(dma_ide_rnw),
     .z80_out(z80_ide_out),
-    .z80_a(a[7:5]),
+    .z80_a(cpu_a_bus[7:5]),
     .z80_cs0_n(z80_ide_cs0_n),
     .z80_cs1_n(z80_ide_cs1_n),
     .z80_req(z80_ide_req),
-    .z80_rnw(!rd_n)            // this should be the direct Z80 signal
+    .z80_rnw(!cpu_rd_n)            // this should be the direct Z80 signal
   );
-`endif
+  assign ide_d = ide_dir ? 16'hZZZZ : ide_out;
+//`endif
 
   wire [7:0] covox_beeper_out;
   sound sound

@@ -30,7 +30,7 @@
 //
 // sdo emits last bit shifted out after the transfer end
 
-`include "tune.v"
+`include "../../tune.v"
 
 module spi
 (

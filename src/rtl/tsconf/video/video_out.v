@@ -2,7 +2,7 @@
 // This module generates video for DAC
 // (c)2015 TSL
 
-`include "tune.v"
+`include "../../tune.v"
 
 module video_out
 (
