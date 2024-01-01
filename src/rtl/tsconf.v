@@ -447,7 +447,7 @@ assign clk_bus = clk_28mhz;
     .dos_on(dos_on),
     .vdos_off(vdos_off),
     .cpu_stall(cpu_stall),
-    .ide_stall(1'b0),
+    .ide_stall(ide_stall),
     .external_port(external_port)
   );
 

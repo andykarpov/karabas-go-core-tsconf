@@ -195,6 +195,7 @@ module karabas_go_top (
 	wire kb_pause;
 	wire kb_reset;
 	wire kb_nmi;
+	wire mcu_busy;
 
 	tsconf tsconf (
      .clk(clk_sys),
@@ -321,7 +322,9 @@ mcu mcu(
 	.ROMLOAD_WR(loader_wr),
 	
 	.SOFTSW_COMMAND(softsw_command),	
-	.OSD_COMMAND(osd_command)
+	.OSD_COMMAND(osd_command),
+	
+	.BUSY(mcu_busy)
 );
 
 //---------- Keyboard parser ------------
@@ -364,7 +367,7 @@ soft_switches soft_switches(
 	.RESET(kb_reset)
 );
 
-assign btn_reset_n = ~kb_reset;
+assign btn_reset_n = ~kb_reset & ~mcu_busy;
 
 //---------- Mouse / cursor ------------
 

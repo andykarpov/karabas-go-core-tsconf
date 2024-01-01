@@ -58,7 +58,10 @@ entity mcu is
 	 ROMLOAD_WR : out std_logic := '0';
 
     -- osd command
-	 OSD_COMMAND: out std_logic_vector(15 downto 0)
+	 OSD_COMMAND: out std_logic_vector(15 downto 0);
+	 
+	 -- busy
+	 BUSY: buffer std_logic := '1'
 	 
 	);
     end mcu;
@@ -79,7 +82,9 @@ architecture rtl of mcu is
 
 	constant CMD_OSD 			: std_logic_vector(7 downto 0) := x"20";
 	constant CMD_RTC 			: std_logic_vector(7 downto 0) := x"FA";
-	
+
+	constant CMD_INIT_START	: std_logic_vector(7 downto 0) := x"FD";
+	constant CMD_INIT_DONE	: std_logic_vector(7 downto 0) := x"FE";	
 	constant CMD_NOPE			: std_logic_vector(7 downto 0) := x"FF";
 
 	 -- spi
@@ -87,6 +92,7 @@ architecture rtl of mcu is
 	 signal spi_di 			: std_logic_vector(23 downto 0);
 	 signal spi_do 			: std_logic_vector(23 downto 0);
 	 signal spi_di_req 		: std_logic;
+	 signal prev_spi_di_req : std_logic := '0';
 	 signal spi_miso 		 	: std_logic;
 	 
 	 -- rtc 2-port ram signals
@@ -100,6 +106,8 @@ architecture rtl of mcu is
 	 signal rtcr_d 			: std_logic_vector(7 downto 0);
 	 signal last_rtcr_a 		: std_logic_vector(7 downto 0);
 	 signal last_rtcr_d 		: std_logic_vector(7 downto 0);
+	 signal rtcr_command    : std_logic := '0';
+	 signal last_rtcr_command : std_logic := '0';
 	 
 	 -- romload addr
 	 signal tmp_romload_addr    : std_logic_vector(31 downto 0);
@@ -114,36 +122,11 @@ architecture rtl of mcu is
 	signal queue_do			: std_logic_vector(23 downto 0);
 	signal queue_rd_empty   : std_logic;
 	
-	signal queue_wr_size    : std_logic_vector(8 downto 0) := (others => '0');
-	signal queue_rd_size 	: std_logic_vector(8 downto 0) := (others => '0');
+	signal queue_data_count : std_logic_vector(9 downto 0) := (others => '0');
 	
 	--state machine for queue writes
 	type qmachine IS(idle, rtc_wr_req, rtc_wr_ack);
 	signal qstate : qmachine := idle;
-	
-	component queue is
-   PORT (
-	  CLK                       : IN  std_logic;
-	  WR_EN 		     				 : IN  std_logic;
-	  RD_EN                     : IN  std_logic;
-	  DIN                       : IN  std_logic_vector(24-1 DOWNTO 0);
-	  DOUT                      : OUT std_logic_vector(24-1 DOWNTO 0);
-	  FULL                      : OUT std_logic;
-	  EMPTY                     : OUT std_logic);
-  end component;
-  
-  
-  COMPONENT rtc IS
-  PORT (
-    WEA        : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
-    ADDRA      : IN STD_LOGIC_VECTOR(7 DOWNTO 0);  
-    DINA       : IN STD_LOGIC_VECTOR(7 DOWNTO 0);
-    CLKA       : IN STD_LOGIC;
-    ADDRB      : IN STD_LOGIC_VECTOR(7 DOWNTO 0);
-    DOUTB      : OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
-    CLKB       : IN STD_LOGIC
-  );
-  END COMPONENT;  
 		 
 begin
 	
@@ -164,7 +147,7 @@ begin
 
 		  di_req_o       => spi_di_req,
 		  di_i           => spi_di,
-		  wren_i         => not queue_rd_empty,
+		  wren_i         => '1',
 		  
 		  do_valid_o     => spi_do_valid,
 		  do_o           => spi_do,
@@ -176,9 +159,21 @@ begin
 		  state_dbg_o    => open
 	);
 
-	spi_di <= queue_do when queue_rd_empty = '0' else x"FFFFFF";
-	queue_rd_req <= spi_di_req;
+	spi_di <= queue_do; -- when queue_rd_empty = '0' else x"FFFFFF";
+--	queue_rd_req <= spi_di_req;
 	MCU_MISO	<= spi_miso when MCU_SS = '0' else 'Z';
+	
+	-- pull queue data  
+	process (CLK, spi_di_req)
+	begin 
+		if rising_edge(CLK) then 
+			queue_rd_req <= '0';
+			if (spi_di_req = '1' and prev_spi_di_req = '0') then 
+				queue_rd_req <= '1';
+			end if;
+			prev_spi_di_req <= spi_di_req;
+		end if;
+	end process;
 
 	process (CLK, spi_do_valid, spi_do)
 	begin
@@ -268,6 +263,10 @@ begin
 					when CMD_RTC =>						
 						rtcr_a <= spi_do(15 downto 8);
 						rtcr_d <= spi_do(7 downto 0);
+						rtcr_command <= not rtcr_command;
+
+					-- init done
+					when CMD_INIT_DONE => BUSY <= '0';
 
 					-- nope
 					when CMD_NOPE => null;
@@ -338,69 +337,43 @@ begin
 		
 		rd_en 	=> queue_rd_req,
 		dout 		=> queue_do,
-		empty 	=> queue_rd_empty
+		empty 	=> queue_rd_empty,
+		
+		data_count => queue_data_count
 	);
 	
 	-- fifo handling / queue commands to mcu side
-	process(CLK, N_RESET, RTC_WR_N, RTC_CS, queue_wr_full, RTC_A, RTC_DI, queue_wr_req, queue_rd_empty)
+	process(CLK, N_RESET, RTC_WR_N, RTC_CS, queue_wr_full, RTC_A, RTC_DI, queue_wr_req, queue_rd_empty, BUSY)
 	begin
-		if N_RESET = '0' then 
-			queue_wr_req <= '0';
-			qstate <= idle;
-			
-		elsif CLK'event and CLK = '1' then
-		
-			queue_wr_req <= '0';
-		
-			case qstate is
-
-				-- waiting for other events from mcu
-				when idle => 
-					queue_wr_req <= '0';
-					-- req to write RTC
-					if (RTC_WR_N = '0' AND RTC_CS = '1') then 
-						qstate <= rtc_wr_req;
-					-- idle
-					else 
-						qstate <= idle;
-					end if;
-					
-				-- RTC write request (sending a bank, then address + data)
-				when rtc_wr_req => 
-					queue_wr_req <= '1';
-					queue_di <= CMD_RTC & RTC_A & RTC_DI;
-					qstate <= rtc_wr_ack;
-				
-				-- RTC write request end
-				when rtc_wr_ack => 
-					queue_wr_req <= '0';
-					qstate <= idle;
-					
---				when others => 
---					qstate <= idle;
-	
-			end case;
+		if rising_edge(CLK) then		
+			queue_wr_req <= '0';			
+			if RTC_WR_N = '0' AND RTC_CS = '1' and BUSY = '0' then -- add rtc register write to queue
+				queue_wr_req <= '1';
+				queue_di <= CMD_RTC & RTC_A & RTC_DI;
+			elsif queue_rd_empty = '1' or queue_data_count < 10 then -- anti-empty queue
+				queue_wr_req <= '1';
+				queue_di <= CMD_NOPE & x"0000";
+			end if;
 						
 		end if;
 	end process;
 	
-	-- write RTC registers into ram from host / atmega
-	process (N_RESET, CLK, RTC_WR_N, RTC_CS, RTC_A, RTC_DI, rtcr_a, last_rtcr_a, rtcr_d, last_rtcr_d) 
+	-- write RTC registers into ram from host / mcu
+	process (N_RESET, CLK, RTC_WR_N, RTC_CS, RTC_A, RTC_DI, rtcr_a, rtcr_d, rtcr_command, last_rtcr_command, BUSY) 
 	begin 
-		if N_RESET = '0' then 
+		if rising_edge(CLK) then
 			rtcw_wr <= "0";
-		elsif rising_edge(CLK) then
-			rtcw_wr <= "0";
-			if RTC_WR_N = '0' AND RTC_CS = '1' then
+			if RTC_WR_N = '0' AND RTC_CS = '1' and BUSY = '0' then
 				-- rtc mem write by host
 				rtcw_wr <= "1";
 				rtcw_a <= RTC_A;
 				rtcw_di <= RTC_DI;
-			else 
+			elsif last_rtcr_command /= rtcr_command then
 				-- rtc mem write by mcu
 				rtcw_wr <= "1";
 				rtcw_a <= rtcr_a;
 				rtcw_di <= rtcr_d;
+				last_rtcr_command <= rtcr_command;
 			end if;
 		end if;
 	end process;
