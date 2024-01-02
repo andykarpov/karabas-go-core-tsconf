@@ -91,7 +91,7 @@ module video_top
 
   // video controls
   input wire cfg_60hz,
-  input wire vga_on
+  input wire vga_on  
 );
 
   // video config
@@ -646,4 +646,5 @@ module video_top
     video_vmem.wrcontrol_aclr = "OFF",
     video_vmem.wrcontrol_reg = "INCLOCK";
 */
+
 endmodule

@@ -75,7 +75,7 @@ module tsconf
 	output wire ide_cs1_n,
 	output wire ide_rd_n,
 	output wire ide_wr_n,
-	input wire ide_rdy 
+	input wire ide_rdy
 	
 	// TODO: others
 );

@@ -138,13 +138,18 @@ module karabas_go_top (
 	wire clk_sys;
 	wire clk_8mhz;
 	wire clk_bus;
+	wire clk_osd;
+	wire clk_25;
    wire locked;
    pll pll (
 	  .CLK_IN1(CLK_50MHZ),
 	  .CLK_OUT1(clk_sys),
 	  .CLK_OUT2(clk_8mhz),
+	  .CLK_OUT3(clk_25),
 	  .LOCKED(locked)
 	);
+	
+	assign clk_osd = clk_bus;
 	
 	reg ce_28m;
 	reg [1:0] div = 2'd0;
@@ -158,6 +163,9 @@ module karabas_go_top (
 	wire [7:0] video_r;
 	wire [7:0] video_g;
 	wire [7:0] video_b;
+	wire [7:0] osd_r;
+	wire [7:0] osd_g;
+	wire [7:0] osd_b;
 	wire video_hsync;
 	wire video_vsync;
 	wire btn_reset_n;
@@ -260,23 +268,25 @@ module karabas_go_top (
 	  .ide_wr_n(WWR_N),
 	  .ide_rdy()
 	  
-	  // todo: cfg, VG, tape_in, tape_out, zifi
+	  // todo: cfg, VG, tape_in, tape_out
 	 );
 	 
 wire [7:0] rtc_do_mapped;
 assign rtc_do_mapped = (rtc_addr == 8'hF0 ? keyboard_scancode : (rtc_addr == 8'h0D ? 8'b10000000 : rtc_do));
 	 
 wire ftcs_n, ftclk, ftdo, ftdi, ftint, vdac2_sel;
+
+wire osd_hs, osd_vs, osd_active;
 	 
-assign VGA_R[7:0] = vdac2_sel ? 8'bZZZZZZZZ : video_r[7:0];
-assign VGA_G[7:0] = vdac2_sel ? 8'bZZZZZZZZ : video_g[7:0];
-assign VGA_B[7:0] = vdac2_sel ? 8'bZZZZZZZZ : video_b[7:0];
-assign VGA_HS = vdac2_sel ? 1'bZ : video_hsync;
-assign VGA_VS = vdac2_sel ? 1'bZ : video_vsync;
-assign V_CLK = vdac2_sel ? FT_CLK : ce_28m;
+assign VGA_R[7:0] = osd_active ? osd_r[7:0] : (vdac2_sel ? 8'bZZZZZZZZ : video_r[7:0]);
+assign VGA_G[7:0] = osd_active ? osd_g[7:0] : (vdac2_sel ? 8'bZZZZZZZZ : video_g[7:0]);
+assign VGA_B[7:0] = osd_active ? osd_b[7:0] : (vdac2_sel ? 8'bZZZZZZZZ : video_b[7:0]);
+assign VGA_HS = osd_active ? osd_hs : (vdac2_sel ? 1'bZ : video_hsync);
+assign VGA_VS = osd_active ? osd_vs : (vdac2_sel ? 1'bZ : video_vsync);
+assign V_CLK = osd_active ? ce_28m : (vdac2_sel ? FT_CLK : ce_28m);
 assign FT_SPI_CS_N = ftcs_n;
 assign FT_SPI_SCK = ftclk;
-assign FT_OE_N = vdac2_sel ? 1'b0 : 1'b1;
+assign FT_OE_N = osd_active ? 1'b1 : (vdac2_sel ? 1'b0 : 1'b1);
 assign ftdi = FT_SPI_MISO;
 assign FT_SPI_MOSI = ftdo;
 assign ftint = FT_INT_N;
@@ -413,5 +423,19 @@ PCM5102 PCM5102(
 	.lrck(DAC_LRCK)
 );
 assign DAC_MUTE = 1'b1; // soft mute, 0 = mute, 1 = unmute
+
+//--------- OSD --------------
+wire [11:0] hcnt;
+wire [11:0] vcnt;
+
+overlay overlay(
+	.CLK_BUS(clk_bus),
+	.CLK_VGA(clk_osd),
+	.OSD_RGB({osd_r[7:0], osd_g[7:0], osd_b[7:0]}),
+	.OSD_HS(osd_hs),
+	.OSD_VS(osd_vs),
+	.OSD_ACTIVE(osd_active),
+	.OSD_COMMAND(osd_command)
+);
 
 endmodule
