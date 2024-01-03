@@ -7,21 +7,23 @@
 
 module Firefly_FDC (
 // clocks
-input           iCLK,
-input           iCLK16,
-input           iRESET,
+input          iCLK,
+input          iCLK16,
+input          iRESET,
 
 // cpu signals
 input	[15:0]	iADDR,
-input	[7:0]	iDATA,
-input			iM1,
-input			iWR,
-input			iRD,
-input			iIORQ,
-//input			iMREQ,
+input	[7:0]		iDATA,
+input				iM1,
+input				iWR,
+input				iRD,
+input				iIORQ,
 
 // DOS
 input           iDOS,
+input 			 iVDOS,
+input           iCSn,
+input           iWRFF,
 
 // controller output signals
 output          oCS,
@@ -29,10 +31,10 @@ output  [7:0]   oDATA,
 
 // Floppy signals
 output			oFDC_SIDE1,
-input			iFDC_RDATA,
-input			iFDC_WPRT,
-input			iFDC_TR00,
-input			iFDC_INDEX,
+input				iFDC_RDATA,
+input				iFDC_WPRT,
+input				iFDC_TR00,
+input				iFDC_INDEX,
 output			oFDC_WG,
 output			oFDC_WR_DATA,
 output			oFDC_STEP,
@@ -42,12 +44,16 @@ output	[1:0]	oFDC_DS
 
 );
 
+  localparam VGCOM  = 8'h1F;
+  localparam VGTRK  = 8'h3F;
+  localparam VGSEC  = 8'h5F;
+  localparam VGDAT  = 8'h7F;
+  localparam VGSYS  = 8'hFF;
+
 /////////////////////////////////////////////////////////////
 
 reg				rIOW, rIOW0;
 //
-//reg				rTRDOS;			// 0 - , 1 - BASIC
-//									<< D0-D4 -  , D5,7 -  , D6 -  
 wire rTRDOS;
 //
 reg		[7:0]	wOUTDATA;		//  
@@ -63,11 +69,7 @@ reg				r_BDI_INTRQ, r_BDI_INTRQ0;
 //
 wire			wROMADR;
 //
-wire			wIORM;
 wire			wIOR;
-//
-//wire			wDOS_SET;
-//wire			wDOS_RESET;
 //
 wire	[4:0]	wPORTSBits;
 //
@@ -114,41 +116,25 @@ assign wROMADR = iADDR[15] | iADDR[14];
 //
 assign oDATA = wOUTDATA;
 reg vgREQ;
-assign oCS = wIORM & vgREQ;
+assign oCS = (~wIOR) & vgREQ;
 //
-assign wIORM = iIORQ | ( iRD & iM1 );
 assign wIOR = iIORQ | iRD;
 //
 assign oFDC_SIDE1 = !r_BDI_FF[4];
-//assign oFDC_DS0 = r_BDI_FF[1:0] == 2'b00;
-assign oFDC_DS = r_BDI_FF[1:0];
+assign oFDC_DS[0] = r_BDI_FF[1:0] == 2'b00;
+assign oFDC_DS[1] = r_BDI_FF[1:0] == 2'b01;
+
 //
 assign wPORTSBits = { iADDR[15], iADDR[13], iADDR[7], iADDR[1], iADDR[0] };
 //
 //    BDI #1F-7F
-assign w_BDI_WR_EN = ( iIORQ | iWR | rTRDOS | iADDR[7] ) == 1'b0;
+assign w_BDI_WR_EN = ( iCSn | iWR ) == 1'b0;
 //
 assign oFDC_WG = wWG;
 //
-//
-//
 assign wVG_RESET_n = r_BDI_FF[2];
 //
-//assign	wDOS_SET = ( iADDR[15:8] == 8'b00111101 ) && ( ( iMREQ | iM1 ) == 1'b0 ); // jmp ROM ~ #3d13
-//assign	wDOS_RESET = ~wROMADR | iMREQ | iM1;	// jmp in RAM
-//
-
 assign rTRDOS = iDOS;
-//
-//
-//always @( posedge iCLK )	//  TRDOS
-//if ( iRESET )	// 
-//		rTRDOS <= 1'b1;
-//else
-//	if ( rTRDOS == 1'b1 )	//   TRDOS
-//		if ( wDOS_SET == 1'b1 ) rTRDOS <= 1'b0;
-//	else //   TRDOS
-//		if ( wDOS_RESET == 1'b0 ) rTRDOS <= 1'b1;
 //
 always @( posedge iCLK )
 begin
@@ -187,15 +173,47 @@ else
 		if ( r_BDI_DRQ == 1'b0 )
 			rDRQ_R_DREG <= 1'b0;
 //
-always @( wVG_RESET_n, w_BDI_INTRQ, w_BDI_DRQ, w_BDI_DO, rTRDOS, wIOR, wPORTSBits, iADDR[14] )	//     
-if ( wIOR == 1'b1 )
+always @( wVG_RESET_n, w_BDI_INTRQ, w_BDI_DRQ, w_BDI_DO, rTRDOS, wIOR, wPORTSBits, iADDR[14], iCSn )	//     
+if ( (wIOR == 1'b1) || (iVDOS == 1'b1) )
+begin
 	wOUTDATA = 8'hFF;
+    vgREQ = 1'b0;
+end
 else
-	casez ( wPORTSBits )
-		5'b??111:	begin wOUTDATA = rTRDOS ? 8'hFF : { w_BDI_INTRQ, w_BDI_DRQ, 6'h3F }; vgREQ = 1'b1; end
-		5'b??011:	begin wOUTDATA = rTRDOS | ~wVG_RESET_n ? 8'hFF : w_BDI_DO; vgREQ = 1'b1; end
-		default:	begin wOUTDATA = 8'hFF; vgREQ = 1'b0; end
-	endcase
+begin
+
+	if ((iADDR[7:0] == VGSYS))
+	begin
+		wOUTDATA = { w_BDI_INTRQ, w_BDI_DRQ, 6'b111111 };
+		vgREQ = 1'b1;
+	end
+	else if ( (iCSn == 1'b0) && ((iADDR[7:0] == VGCOM) || (iADDR[7:0] == VGTRK) || (iADDR[7:0] == VGSEC) || (iADDR[7:0] == VGDAT)) ) begin
+		wOUTDATA = w_BDI_DO;
+      vgREQ = 1'b1;
+	end
+	else 
+		vgREQ = 1'b0;
+	
+/*	casez ( wPORTSBits )
+		5'b??111:	begin 
+            if (rTRDOS == 1'b0) begin
+              wOUTDATA = { w_BDI_INTRQ, w_BDI_DRQ, 6'h3F }; 
+              vgREQ = 1'b1; 
+				end
+				else
+					vgREQ = 1'b0;
+        end
+		5'b??011:	begin 
+            if (iCSn == 1'b0) begin
+                wOUTDATA = w_BDI_DO; 
+                vgREQ = 1'b1; 
+				end
+				else
+					vgREQ = 1'b0;
+			end
+		default: vgREQ = 1'b0;
+	endcase*/
+end
 //
 always @( posedge iCLK )	//    #FF (TR-DOS)
 if ( iRESET )
@@ -203,11 +221,10 @@ if ( iRESET )
 		r_BDI_FF <= 5'b0;
 	end
 else
-	if ( ( rIOW | rIOW0 ) == 1'b0 )
-		casez ( wPORTSBits )	// 15,13,7,1,0
-			5'b??111:	if ( rTRDOS == 1'b0 )	r_BDI_FF <= iDATA[4:0];
-			default:	;
-		endcase
+	if (iWRFF) 
+	begin
+		r_BDI_FF <= iDATA[4:0];
+	end
 //
 //
 //

@@ -98,7 +98,7 @@ module tsconf
 	output wire fdc_step,
 	output wire fdc_dir,
 	output wire fdc_motor,
-	output wire [1:0] fdc_ds
+	output reg [1:0] fdc_ds
 	
 	// TODO: others
 );
@@ -788,7 +788,7 @@ assign clk_bus = clk_28mhz;
     .ay_bc1(/*ay_bc1*/),
     .vg_intrq(intrq),
     .vg_drq(drq),
-    .vg_cs_n(/*vg_cs_n*/),
+    .vg_cs_n(vg_cs_n),
     .vg_wrFF(vg_wrFF),
     .sd_start(cpu_spi_req),
     .sd_dataout(spi_dout),
@@ -850,7 +850,7 @@ assign clk_bus = clk_28mhz;
     .fdr_cnt_lat(fdr_cnt_lat),
 `endif*/
     .cfg_floppy_swap(cfg_floppy_swap),
-    //.drive_sel(vg_a),
+    .drive_sel(vg_a),
     .dos(dos),
     .vdos(vdos),
     .vdos_on(vdos_on),
@@ -1261,7 +1261,7 @@ assign cpu_di_bus =
 		(ts_enable && ~cpu_rd_n)										?	ts_do					:	// TurboSound
 		(~zifi_oe_n)														?  zifi_do_bus       :  // zifi
 		(fdc_oe)																?  fdc_do_bus 			:  // floppy
-		(ena_ports)															?	dout_ports			:
+		(ena_ports)															?	dout_ports			:  // zports
 		(intack)																?	im2vect 				:
 																					8'b11111111; 
 
@@ -1292,6 +1292,19 @@ zifi zifi(
 
 wire fdc_oe;
 wire [7:0] fdc_do_bus;
+wire [1:0] vg_a;
+wire vg_cs_n;
+//assign fdc_ds = vg_a;
+
+always @(vg_a)
+begin
+	case ({fdc_motor, vg_a}) 
+		3'b100: fdc_ds <= 2'b01;
+		3'b101: fdc_ds <= 2'b10;
+		default: fdc_ds <= 2'b00;
+	endcase
+end
+
 
 Firefly_FDC fdc
 (
@@ -1307,6 +1320,9 @@ Firefly_FDC fdc
 	.iIORQ(cpu_iorq_n),
 	
 	.iDOS(dos),
+	.iVDOS(vdos),
+   .iCSn(vg_cs_n),
+   .iWRFF(vg_wrFF),
 
 	.oCS(fdc_oe),		
 	.oDATA(fdc_do_bus), 
@@ -1321,7 +1337,7 @@ Firefly_FDC fdc
 	.oFDC_STEP(fdc_step),
 	.oFDC_DIR(fdc_dir),
 	.oFDC_MOTOR(fdc_motor),
-	.oFDC_DS(fdc_ds)
+	.oFDC_DS()
 );	
 
 endmodule
