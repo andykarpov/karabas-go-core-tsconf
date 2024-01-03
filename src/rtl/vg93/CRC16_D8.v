@@ -5,9 +5,9 @@
 //   * convention: the first serial bit is D[7]
 // Info : tools@easics.be
 //        http://www.easics.com
-// Перевел в удобный мне вид IanPo/zx-pk.ru, 2016
+//      IanPo/zx-pk.ru, 2016
 //
-`default_nettype none
+`default_nettype wire
 //
 module CRC16_D8 (
 input			iCLK,

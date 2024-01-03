@@ -1,8 +1,8 @@
 // IanPo/zx-pk.ru, 2016
-// Модуль восстановителя данных (ФАПЧ) для HDL-модели КР1818ВГ93/WD1793
-// Основан на схеме от Andromeda Systems из документа WD Corp. FD179X Application Notes Fig.12
+//    ()  HDL- 181893/WD1793
+//     Andromeda Systems   WD Corp. FD179X Application Notes Fig.12
 //
-`default_nettype none
+`default_nettype wire
 //
 module DPLL (
 input				iCLK,
@@ -14,7 +14,7 @@ input				iVFOE
 //
 reg					rRDDT1, rRDDT2;
 reg			[4:0]	rPLL_CNT;
-wire		[4:0]	w288;
+reg		[4:0]	w288;
 //
 initial
 begin
@@ -36,10 +36,14 @@ else
 //
 assign oRAWR = rRDDT1 & rRDDT2 & ~iVFOE;
 //
-ROMDPLL	U15 (
-.address ( { ~oRAWR, w288 } ),
-.clock ( iCLK ),
-.q ( w288 )
-);
+
+reg [5:0] mem[0:63];
+initial begin
+  $readmemh ("DPLL.hex", mem, 0);
+end
+always @(posedge iCLK) begin
+ w288 <= mem[{ ~oRAWR, w288 }];
+end
+
 //
 endmodule

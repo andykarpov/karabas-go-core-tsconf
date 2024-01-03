@@ -86,17 +86,17 @@ module karabas_go_top (
 	inout wire [15:0] WD,
 	
 	//---------------------------
-	inout wire FDC_INDEX,
+	input wire FDC_INDEX,
 	output wire [1:0] FDC_DRIVE,
 	output wire FDC_MOTOR,
-	inout wire FDC_DIR,
-	inout wire FDC_STEP,
-	inout wire FDC_WDATA,
-	inout wire FDC_WGATE,
-	inout wire FDC_TR00,
-	inout wire FDC_WPRT,
-	inout wire FDC_RDATA,
-	inout wire FDC_SIDE_N,
+	output wire FDC_DIR,
+	output wire FDC_STEP,
+	output wire FDC_WDATA,
+	output wire FDC_WGATE,
+	input wire FDC_TR00,
+	input wire FDC_WPRT,
+	input wire FDC_RDATA,
+	output wire FDC_SIDE_N,
 
    //---------------------------	
 	output wire TAPE_OUT,
@@ -125,10 +125,6 @@ module karabas_go_top (
 	assign SDR_CAS_N = 1'b1;
 	assign SDR_RAS_N = 1'b1;
 
-	// todo: fdc
-	assign FDC_DRIVE = 2'b0;
-	assign FDC_MOTOR = 1'b0;
-
 	// todo: esp control
 	assign ESP_RESET_N = 1'bZ;
 	assign ESP_BOOT_N = 1'bZ;	
@@ -140,13 +136,13 @@ module karabas_go_top (
 	wire clk_8mhz;
 	wire clk_bus;
 	wire clk_osd;
-	wire clk_25;
+	wire clk_16mhz;
    wire locked;
    pll pll (
 	  .CLK_IN1(CLK_50MHZ),
 	  .CLK_OUT1(clk_sys),
 	  .CLK_OUT2(clk_8mhz),
-	  .CLK_OUT3(clk_25),
+	  .CLK_OUT3(clk_16mhz),
 	  .LOCKED(locked)
 	);
 	
@@ -280,9 +276,21 @@ module karabas_go_top (
 	  
 	  .covox_en(covox_en),
 	  .psg_mix(psg_mix),
-	  .psg_type(psg_type)
+	  .psg_type(psg_type),
 	  
-	  // todo: cfg, VG, tape_in, tape_out
+	  .clk_16(clk_16mhz),
+	  .fdc_side(FDC_SIDE_N),
+	  .fdc_rdata(FDC_RDATA),
+	  .fdc_wprt(FDC_WPRT),
+	  .fdc_tr00(FDC_TR00),
+	  .fdc_index(FDC_INDEX),
+	  .fdc_wg(FDC_WGATE),
+	  .fdc_wr_data(FDC_WDATA),
+	  .fdc_step(FDC_STEP),
+	  .fdc_dir(FDC_DIR),
+	  .fdc_motor(FDC_MOTOR),
+	  .fdc_ds(FDC_DRIVE)
+	  
 	 );
 	 
 wire [7:0] rtc_do_mapped;

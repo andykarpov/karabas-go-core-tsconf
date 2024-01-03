@@ -1,15 +1,15 @@
 //
 // IanPo/zx-pk.ru, 2016
-// Модуль управления для HDL-модели КР1818ВГ93/WD1793
+//    HDL- 181893/WD1793
 //
-`default_nettype none
+`default_nettype wire
 //
 module Main_CTRL (
 input				iCLK,
 input				iRESETn,
 input				iWR_EN,
-input		[7:0]	iDATA,		// адрес записи
-input		[1:0]	iADR,		// адрес с шины процессора (для чтения)
+input		[7:0]	iDATA,		//  
+input		[1:0]	iADR,		//     ( )
 output		[7:0]	oDATA,
 //
 output				oSTEP,
@@ -23,12 +23,12 @@ output	reg			oWG,
 output 				oDRQ,
 output 				oINTRQ,
 //
-output	reg	[3:0]	oIP_CNT,	// счетчик индексных импульсов во время выполнения команд
+output	reg	[3:0]	oIP_CNT,	//       
 input		[7:0]	iBYTE_2_MAIN,
 input				iBYTE_2_READ,
 output	reg [7:0]	oMAIN_2_BYTE,
 output	reg			oBYTE_2_WRITE,
-output	reg			oTRANSLATE,	//  байт записывать с искажением (Адр.Мет.)
+output	reg			oTRANSLATE,	//      (..)
 input				iNEXT_BYTE,
 input				iSYNC,
 input		[10:0]	iBYTE_CNT,
@@ -36,8 +36,8 @@ input		[15:0]	iCRC16_D8,
 output	reg			oRESET_CRC,
 output				oVFOE,
 //
-input				iDRQ_R_DREG,	// сброс DRQ при обращении к регистру данных
-input				i2RQ_R_SREG		// сброс INTRQ и DRQ при чтении регистра статуса
+input				iDRQ_R_DREG,	//  DRQ     
+input				i2RQ_R_SREG		//  INTRQ  DRQ    
 );
 //
 reg				rDRQ_R_DREG, rDRQ_R_DREG0;
@@ -51,7 +51,7 @@ reg				rTR001, rTR002;
 reg				rIP1, rIP2, rIP3;
 reg				rWRPT1, rWRPT2;
 //
-reg		[3:0]	rIP_CNT_IDLE;	// счетчик импульсов IP в состоянии ожидания команд (чтобы выключить мотор после 15 оборотов)
+reg		[3:0]	rIP_CNT_IDLE;	//   IP     (    15 )
 //
 reg		[7:0]	rREG_CMD, rREG_TRK, rREG_SEC, rREG_DAT;	// 0, 1, 2, 3
 reg		[7:0]	REG_STA;	// 0
@@ -68,32 +68,32 @@ reg				rHLD;
 reg				rDRQ;
 reg				rINTRQ;
 //
-reg				rHEAD_IN_POS;	// 1 = головка спозиционирована и можно начинать считать индексные импульсы
+reg				rHEAD_IN_POS;	// 1 =        
 //
 reg		[7:0]	rREG_SHF;
 reg		[7:0]	rDATA_OUT;
 reg		[7:0]	rDATA_IN;
 reg		[2:0]	rCURR_STATE, rLAST_CURR_STATE;
-reg		[3:0]	rSTEP_CNT;		// (дисководу 3,5" достаточно 0.8 мкс) сечйяас 15 тактов
-reg				rSTEP_SET;		// изменение - загрузка счетчика, иначе - счет
+reg		[3:0]	rSTEP_CNT;		// ( 3,5"  0.8 )  15 
+reg				rSTEP_SET;		//  -  ,  - 
 reg				rSTEP_SET0;
-reg		[10:0]	rPREDELAY_CNT;	// 2048 тактов iCLK (предделитель)
-reg		[7:0]	rCNT_AMNT;		// сюда загружается задержка счетчика
-reg		[7:0]	rDELAY_CNT;		// задержка (30 мс)..(6 мс)
-reg				rDELAY_SET;		// изменение - загрузка счетчика, иначе - счет
+reg		[10:0]	rPREDELAY_CNT;	// 2048  iCLK ()
+reg		[7:0]	rCNT_AMNT;		//    
+reg		[7:0]	rDELAY_CNT;		//  (30 )..(6 )
+reg				rDELAY_SET;		//  -  ,  - 
 reg				rDELAY_SET0;
-reg		[5:0]	rSTAGE;		// этап прохождения команды
-reg		[7:0]	rREAD_H_CRC;	// сюда читается CRC с диска (из адресной метки, сектора)
-reg		[15:0]	rSAVED_CRC;		// сюда читается вычисленное значение CRC (КК) в определенный момент
-reg		[10:0]	rSEC_LEN;		// длина сектора в байтах
-reg				rLAST_MAIN_2_BYTE;	// последний байт был А1 (для сброса CRC)
+reg		[5:0]	rSTAGE;		//   
+reg		[7:0]	rREAD_H_CRC;	//   CRC   (  , )
+reg		[15:0]	rSAVED_CRC;		//     CRC ()   
+reg		[10:0]	rSEC_LEN;		//    
+reg				rLAST_MAIN_2_BYTE;	//    1 (  CRC)
 //
-reg				rINTRQ_R_CMD, rINTRQ_R_CMD1;	// сброс INTRQ при загрузке команды
-reg				rINTRQ_S_CMD, rINTRQ_S_CMD1;	// установка INTRQ при выполнении команды
-reg				rINTRQ_S_FINT, rINTRQ_S_FINT1;	// установка INTRQ при прерывании команды
+reg				rINTRQ_R_CMD, rINTRQ_R_CMD1;	//  INTRQ   
+reg				rINTRQ_S_CMD, rINTRQ_S_CMD1;	//  INTRQ   
+reg				rINTRQ_S_FINT, rINTRQ_S_FINT1;	//  INTRQ   
 //
-reg				rDRQ_S_CMD;		// установка DRQ командой (поступление/ожидание байта)
-reg				rDRQ_R_CMD;		// сброс DRQ командой
+reg				rDRQ_S_CMD;		//  DRQ  (/ )
+reg				rDRQ_R_CMD;		//  DRQ 
 //
 reg				rIPTRG, rIPTRG0;
 //
@@ -247,10 +247,10 @@ if ( ( rRESETn1 | rRESETn2 ) == 1'b0 )
 	end
 else
 	begin
-		r2RQ_R_SREG0 <= i2RQ_R_SREG;	// чтение регистра статуса
+		r2RQ_R_SREG0 <= i2RQ_R_SREG;	//   
 		r2RQ_R_SREG <= r2RQ_R_SREG0;
 		//
-		rDRQ_R_DREG0 <= iDRQ_R_DREG;	// чтение-запись регистра данных
+		rDRQ_R_DREG0 <= iDRQ_R_DREG;	// -  
 		rDRQ_R_DREG <= rDRQ_R_DREG0;
 	end
 //
@@ -323,30 +323,30 @@ else
 						rREG_CMD <= iDATA;
 						if ( iDATA[7] == 1'b0 )
 							begin
-								rCURR_STATE <= TYPE1;	// 0xxx_xxxx позиционирования
+								rCURR_STATE <= TYPE1;	// 0xxx_xxxx 
 								rLAST_CURR_STATE <= TYPE1;
 							end
 						else
 							if ( iDATA[6] == 1'b0 )
 								begin
-									rCURR_STATE <= TYPE2;	// 10xx_xxxx секторы - чтение, запись
+									rCURR_STATE <= TYPE2;	// 10xx_xxxx  - , 
 									rLAST_CURR_STATE <= TYPE2;
 								end
 							else
 								if ( iDATA[4] == 1'b0 )
 									begin
-										rCURR_STATE <= TYPE3RD;	// 11x0_xxxx  чтение адреса, дорожки
+										rCURR_STATE <= TYPE3RD;	// 11x0_xxxx   , 
 										rLAST_CURR_STATE <= TYPE3RD;
 									end
 								else
 									if ( iDATA[5] == 1'b0 )
 										begin
-											rCURR_STATE <= FRC_INT;	// 1101_xxxx прерывания
+											rCURR_STATE <= FRC_INT;	// 1101_xxxx 
 											rLAST_CURR_STATE <= FRC_INT;
 										end
 									else
 										begin
-											rCURR_STATE <= TYPE3WR;	// 1111_xxxx форматирование дорожки
+											rCURR_STATE <= TYPE3WR;	// 1111_xxxx  
 											rLAST_CURR_STATE <= TYPE3WR;
 										end
 //						casez ( iDATA[7:4] )
@@ -370,9 +370,9 @@ else
 					end
 			TYPE1:	case ( rSTAGE )
 						0:	begin
-								rBUSY <= 1'b1;	// установка ЗАНЯТО
-								rDRQ_R_CMD <= 1'b1;	// сброс DRQ
-								rINTRQ_R_CMD <= ~rINTRQ_R_CMD;	// сброс INTRQ
+								rBUSY <= 1'b1;	//  
+								rDRQ_R_CMD <= 1'b1;	//  DRQ
+								rINTRQ_R_CMD <= ~rINTRQ_R_CMD;	//  INTRQ
 								rSTAGE <= rSTAGE + 1'b1;
 							end
 						1:	begin
@@ -380,18 +380,18 @@ else
 								rHLD <= rREG_CMD[3];
 								rSTAGE <= rSTAGE + 1'b1;
 							end
-						2:	if ( rREG_CMD[6] == 1'b1 )	// шаг вперед или шаг назад
+						2:	if ( rREG_CMD[6] == 1'b1 )	//     
 								begin
 									rDIRC <= ~rREG_CMD[5];
 									rSTAGE <= 31;
 								end
 							else
 								rSTAGE <= rSTAGE + 1'b1;
-						3:	if ( rREG_CMD[7:5] == 3'b001 )	// шаг
+						3:	if ( rREG_CMD[7:5] == 3'b001 )	// 
 								rSTAGE <= 31;
 							else
 								rSTAGE <= rSTAGE + 1'b1;
-						4:	if ( rREG_CMD[7:4] == 4'b0001 )	// поиск
+						4:	if ( rREG_CMD[7:4] == 4'b0001 )	// 
 								rSTAGE <= 6;
 							else
 								rSTAGE <= rSTAGE + 1'b1;
@@ -420,7 +420,7 @@ else
 									rREG_TRK <= rREG_TRK - 1'b1;
 								rSTAGE <= rSTAGE + 1'b1;
 							end
-						10: if ( rTR002 == 1'b1 && rDIRC == 1'b0 )	// инверсия
+						10: if ( rTR002 == 1'b1 && rDIRC == 1'b0 )	// 
 								begin
 									rREG_TRK <= 8'b0;
 									rSTAGE <= 16;
@@ -445,7 +445,7 @@ else
 							end
 						14: if ( rDELAY_CNT == 8'd1 )
 								rSTAGE <= rSTAGE + 1'b1;
-						15: if ( rREG_CMD[7:5] != 3'b000 )	// не восстановление или поиск
+						15: if ( rREG_CMD[7:5] != 3'b000 )	//    
 								rSTAGE <= rSTAGE + 1'b1;
 							else
 								rSTAGE <= 6;
@@ -461,7 +461,7 @@ else
 								rSTAGE <= rSTAGE + 1'b1;
 							end
 						18: begin
-								rCNT_AMNT <= DELAY30;	// 30 мс на успокоение головок после всех перемещений
+								rCNT_AMNT <= DELAY30;	// 30       
 								rDELAY_SET <= ~rDELAY_SET;
 								rSTAGE <= rSTAGE + 1'b1;
 							end
@@ -488,29 +488,29 @@ else
 						22:	begin
 								oRESET_CRC <= 1'b0;
 								if ( iBYTE_CNT == 11'd4 )
-									if ( iCRC16_D8 == 16'hB230 )	// A1,A1,A1,FE - ИАМ
+									if ( iCRC16_D8 == 16'hB230 )	// A1,A1,A1,FE - 
 										rSTAGE <= rSTAGE + 1'b1;
 									else
 										rSTAGE <= 20;
 							end
 						23:	if ( iBYTE_2_READ == 1'b1 )
-								if ( rREG_TRK == iBYTE_2_MAIN )	// номер дорожки совпадает
+								if ( rREG_TRK == iBYTE_2_MAIN )	//   
 									rSTAGE <= rSTAGE + 1'b1;
 								else
 									rSTAGE <= 20;
-						24:	if ( iBYTE_2_READ == 1'b1 )	rSTAGE <= rSTAGE + 1'b1;	// пропустим номер стороны
-						25:	if ( iBYTE_2_READ == 1'b1 )	rSTAGE <= rSTAGE + 1'b1;	// пропустим номер сектора
-						26:	if ( iBYTE_2_READ == 1'b1 )	rSTAGE <= rSTAGE + 1'b1;	// пропустим код длины сектора
+						24:	if ( iBYTE_2_READ == 1'b1 )	rSTAGE <= rSTAGE + 1'b1;	//   
+						25:	if ( iBYTE_2_READ == 1'b1 )	rSTAGE <= rSTAGE + 1'b1;	//   
+						26:	if ( iBYTE_2_READ == 1'b1 )	rSTAGE <= rSTAGE + 1'b1;	//    
 						27:	begin
 								rSAVED_CRC <= iCRC16_D8;
 								rSTAGE <= rSTAGE + 1'b1;
 							end
-						28:	if ( iBYTE_2_READ == 1'b1 )	// сохраняет первый байт КК
+						28:	if ( iBYTE_2_READ == 1'b1 )	//    
 								begin
 									rREAD_H_CRC <= iBYTE_2_MAIN;
 									rSTAGE <= rSTAGE + 1'b1;
 								end
-						29:	if ( iBYTE_2_READ == 1'b1 )	// сразу сравниваем, считав второй байт КК
+						29:	if ( iBYTE_2_READ == 1'b1 )	//  ,    
 								if ( rSAVED_CRC == { rREAD_H_CRC, iBYTE_2_MAIN } )
 									begin
 										rCRC_ERROR <= 1'b0;
@@ -545,12 +545,12 @@ else
 					endcase
 			TYPE2:	case ( rSTAGE )
 						0:	begin
-								rBUSY <= 1'b1;					// установка ЗАНЯТО
-								rDRQ_R_CMD <= 1'b1;				// сброс DRQ
-								rINTRQ_R_CMD <= ~rINTRQ_R_CMD;	// сброс INTRQ
-								rLOST_DATA <= 1'b0;				// сброс Потеря данных
-								rREC_NOT_FOUND <= 1'b0;			// сброс Запись не найдена
-								rWRITE_FAULT <= 1'b0;			// сброс Ошибка записи
+								rBUSY <= 1'b1;					//  
+								rDRQ_R_CMD <= 1'b1;				//  DRQ
+								rINTRQ_R_CMD <= ~rINTRQ_R_CMD;	//  INTRQ
+								rLOST_DATA <= 1'b0;				//   
+								rREC_NOT_FOUND <= 1'b0;			//    
+								rWRITE_FAULT <= 1'b0;			//   
 								rSTAGE <= rSTAGE + 1'b1;
 							end
 						1:	begin
@@ -578,7 +578,7 @@ else
 						3:	rSTAGE <= rSTAGE + 1'b1;
 						4:	if ( rDELAY_CNT == 8'd1 )
 								rSTAGE <= rSTAGE + 1'b1;
-						5:	if ( rREG_CMD[5] == 1'b0 )	// чтение ?
+						5:	if ( rREG_CMD[5] == 1'b0 )	//  ?
 								rSTAGE <= 7;
 							else
 								rSTAGE <= rSTAGE + 1'b1;
@@ -607,23 +607,23 @@ else
 						9:	begin
 								oRESET_CRC <= 1'b0;
 								if ( iBYTE_CNT == 11'd4 )
-									if ( iCRC16_D8 == 16'hB230 )	// A1,A1,A1,FE - ИАМД
+									if ( iCRC16_D8 == 16'hB230 )	// A1,A1,A1,FE - 
 										rSTAGE <= rSTAGE + 1'b1;
 									else
 										rSTAGE <= 7;
 							end
 						10:	if ( iBYTE_2_READ == 1'b1 )
-								if ( rREG_TRK == iBYTE_2_MAIN )	// номер дорожки совпадает
+								if ( rREG_TRK == iBYTE_2_MAIN )	//   
 									rSTAGE <= rSTAGE + 1'b1;
 								else
 									rSTAGE <= 7;
 						11:	if ( iBYTE_2_READ == 1'b1 )
-								if ( ( rREG_CMD[3] == iBYTE_2_MAIN[0] ) || ( rREG_CMD[1] == 1'b0 ) )	// номер стороны совпадает или не проверяется (C==0)
+								if ( ( rREG_CMD[3] == iBYTE_2_MAIN[0] ) || ( rREG_CMD[1] == 1'b0 ) )	//       (C==0)
 									rSTAGE <= rSTAGE + 1'b1;
 								else
 									rSTAGE <= 7;									
 						12:	if ( iBYTE_2_READ == 1'b1 )
-								if ( rREG_SEC == iBYTE_2_MAIN )	// номер сектора совпадает
+								if ( rREG_SEC == iBYTE_2_MAIN )	//   
 									rSTAGE <= rSTAGE + 1'b1;
 								else
 									rSTAGE <= 7;
@@ -641,12 +641,12 @@ else
 								rSAVED_CRC <= iCRC16_D8;
 								rSTAGE <= rSTAGE + 1'b1;
 							end
-						15:	if ( iBYTE_2_READ == 1'b1 )	// сохраняет первый байт КК
+						15:	if ( iBYTE_2_READ == 1'b1 )	//    
 								begin
 									rREAD_H_CRC <= iBYTE_2_MAIN;
 									rSTAGE <= rSTAGE + 1'b1;
 								end
-						16:	if ( iBYTE_2_READ == 1'b1 )	// сразу сравниваем, считав второй байт КК
+						16:	if ( iBYTE_2_READ == 1'b1 )	//  ,    
 								if ( rSAVED_CRC == { rREAD_H_CRC, iBYTE_2_MAIN } )
 									begin
 										rCRC_ERROR <= 1'b0;
@@ -657,10 +657,10 @@ else
 										rCRC_ERROR <= 1'b1;
 										rSTAGE <= 7;
 									end
-						17:	if ( rREG_CMD[5] == 1'b0 )	// чтение сектора(ов)
+						17:	if ( rREG_CMD[5] == 1'b0 )	//  ()
 								rSTAGE <= rSTAGE + 1'b1;
 							else
-								rSTAGE <= 29;	// к записи сектора
+								rSTAGE <= 29;	//   
 						18:	if ( iSYNC == 1'b1 )
 								begin
 									oRESET_CRC <= 1'b1;
@@ -668,13 +668,13 @@ else
 								end
 						19:	begin
 								oRESET_CRC <= 1'b0;
-								if ( iCRC16_D8 == 16'hE295 )	// A1,A1,A1,FB - АМD
+								if ( iCRC16_D8 == 16'hE295 )	// A1,A1,A1,FB - D
 									begin
 										rREC_TYPE <= 1'b0;
 										rSTAGE <= rSTAGE + 1'b1;
 									end
 								else
-									if ( iCRC16_D8 == 16'hD2F6 )	// A1,A1,A1,F8 - АМD deleted type
+									if ( iCRC16_D8 == 16'hD2F6 )	// A1,A1,A1,F8 - D deleted type
 										begin
 											rREC_TYPE <= 1'b1;
 											rSTAGE <= rSTAGE + 1'b1;
@@ -707,12 +707,12 @@ else
 								rSAVED_CRC <= iCRC16_D8;
 								rSTAGE <= rSTAGE + 1'b1;
 							end
-						25:	if ( iBYTE_2_READ == 1'b1 )	// сохраняет первый байт КК
+						25:	if ( iBYTE_2_READ == 1'b1 )	//    
 								begin
 									rREAD_H_CRC <= iBYTE_2_MAIN;
 									rSTAGE <= rSTAGE + 1'b1;
 								end
-						26:	if ( iBYTE_2_READ == 1'b1 )	// сразу сравниваем, считав второй байт КК
+						26:	if ( iBYTE_2_READ == 1'b1 )	//  ,    
 								if ( rSAVED_CRC == { rREAD_H_CRC, iBYTE_2_MAIN } )
 									begin
 										rCRC_ERROR <= 1'b0;
@@ -724,7 +724,7 @@ else
 										rCRC_ERROR <= 1'b1;
 										rSTAGE <= 60;
 									end
-						27:	if ( rREG_CMD[4] == 1'b1 )	// M==1 несколько секторов
+						27:	if ( rREG_CMD[4] == 1'b1 )	// M==1  
 								rSTAGE <= rSTAGE + 1'b1;
 							else
 								begin
@@ -735,7 +735,7 @@ else
 								rREG_SEC <= rREG_SEC + 1'b1;
 								rSTAGE <= 5;
 							end
-						29:	begin	// запись сектора
+						29:	begin	//  
 								rDRQ_S_CMD <= 1'b1;
 								rSTAGE <= rSTAGE + 1'b1;
 							end
@@ -771,7 +771,7 @@ else
 							end
 						36:	begin
 								oRESET_CRC <= 1'b0;
-								oBYTE_2_WRITE <= 1'b1;	// только для подсчета кол-ва записанных байт
+								oBYTE_2_WRITE <= 1'b1;	//    -  
 								rSTAGE <= rSTAGE + 1'b1;
 							end
 						37:	begin
@@ -910,12 +910,12 @@ else
 					endcase
 			TYPE3RD:	case ( rSTAGE )
 							0:	begin
-									rBUSY <= 1'b1;					// установка ЗАНЯТО
-									rDRQ_R_CMD <= 1'b1;				// сброс DRQ
-									rINTRQ_R_CMD <= ~rINTRQ_R_CMD;	// сброс INTRQ
-									rLOST_DATA <= 1'b0;				// сброс Потеря данных
-									rREC_NOT_FOUND <= 1'b0;			// сброс Запись не найдена
-									rWRITE_FAULT <= 1'b0;			// сброс Ошибка записи
+									rBUSY <= 1'b1;					//  
+									rDRQ_R_CMD <= 1'b1;				//  DRQ
+									rINTRQ_R_CMD <= ~rINTRQ_R_CMD;	//  INTRQ
+									rLOST_DATA <= 1'b0;				//   
+									rREC_NOT_FOUND <= 1'b0;			//    
+									rWRITE_FAULT <= 1'b0;			//   
 									rSTAGE <= rSTAGE + 1'b1;
 								end
 							1:	begin
@@ -929,7 +929,7 @@ else
 									else
 										begin
 											rINTRQ_S_CMD <= ~rINTRQ_S_CMD;
-											rSTAGE <= 18;	// выход
+											rSTAGE <= 18;	// 
 										end
 								end
 							2:	if ( rREG_CMD[2] == 1'b1 )	// E==1
@@ -946,15 +946,15 @@ else
 							5:	if ( rREG_CMD[5] == 1'b1 )
 									begin
 										rIPTRG0 <= rIPTRG;
-										rSTAGE <= 14;	// чтение дорожки
+										rSTAGE <= 14;	//  
 									end
 								else
 									rSTAGE <= rSTAGE + 1'b1;
-							6:	if ( oIP_CNT >= 5 )	// чтение адреса
+							6:	if ( oIP_CNT >= 5 )	//  
 									begin
 										rINTRQ_S_CMD <= ~rINTRQ_S_CMD;
 										rREC_NOT_FOUND <= 1'b1;
-										rSTAGE <= 18;	// выход
+										rSTAGE <= 18;	// 
 									end
 								else
 									rSTAGE <= rSTAGE + 1'b1;
@@ -968,7 +968,7 @@ else
 							8:	begin
 									oRESET_CRC <= 1'b0;
 									if ( iBYTE_CNT == 11'd4 )
-										if ( iCRC16_D8 == 16'hB230 )	// A1,A1,A1,FE - ИАМД
+										if ( iCRC16_D8 == 16'hB230 )	// A1,A1,A1,FE - 
 											rSTAGE <= rSTAGE + 1'b1;
 										else
 											rSTAGE <= 6;
@@ -990,7 +990,7 @@ else
 									rSTAGE <= rSTAGE + 1'b1;
 								else
 									begin
-										if ( iBYTE_CNT == 11'd8 )	// перед 2-мя последними байтами CRC
+										if ( iBYTE_CNT == 11'd8 )	//  2-   CRC
 											rSAVED_CRC <= iCRC16_D8;
 										else
 											if ( iBYTE_CNT == 11'd9 )
@@ -1004,12 +1004,12 @@ else
 									rCRC_ERROR <= rSAVED_CRC != { rREAD_H_CRC, iBYTE_2_MAIN };
 									rSTAGE <= rSTAGE + 1'b1;
 								end
-							13:	if ( iBYTE_2_READ == 1'b1 )	//  ждем  еще 1 байт, иначе процессор не успеет считать шестой байт
+							13:	if ( iBYTE_2_READ == 1'b1 )	//     1 ,       
 									begin
 										rINTRQ_S_CMD <= ~rINTRQ_S_CMD;
-										rSTAGE <= 18;	// выход
+										rSTAGE <= 18;	// 
 									end
-							14: begin	// чтение дорожки
+							14: begin	//  
 									if ( rIPTRG0 != rIPTRG )
 										rSTAGE <= rSTAGE + 1'b1;
 								end
@@ -1032,7 +1032,7 @@ else
 									if ( rIPTRG0 == rIPTRG )
 										begin
 											rINTRQ_S_CMD <= ~rINTRQ_S_CMD;
-											rSTAGE <= rSTAGE + 1'b1;	// выход
+											rSTAGE <= rSTAGE + 1'b1;	// 
 										end
 									else
 										rSTAGE <= 15;
@@ -1045,12 +1045,12 @@ else
 						endcase
 			TYPE3WR:	case ( rSTAGE )
 							0:	begin
-									rBUSY <= 1'b1;					// установка ЗАНЯТО
-									rDRQ_R_CMD <= 1'b1;				// сброс DRQ
-									rINTRQ_R_CMD <= ~rINTRQ_R_CMD;	// сброс INTRQ
-									rLOST_DATA <= 1'b0;				// сброс Потеря данных
-									rREC_NOT_FOUND <= 1'b0;			// сброс Запись не найдена
-									rWRITE_FAULT <= 1'b0;			// сброс Ошибка записи
+									rBUSY <= 1'b1;					//  
+									rDRQ_R_CMD <= 1'b1;				//  DRQ
+									rINTRQ_R_CMD <= ~rINTRQ_R_CMD;	//  INTRQ
+									rLOST_DATA <= 1'b0;				//   
+									rREC_NOT_FOUND <= 1'b0;			//    
+									rWRITE_FAULT <= 1'b0;			//   
 									rSTAGE <= rSTAGE + 1'b1;
 								end
 							1:	begin
@@ -1064,7 +1064,7 @@ else
 									else
 										begin
 											rINTRQ_S_CMD <= ~rINTRQ_S_CMD;
-											rSTAGE <= 16;	// выход
+											rSTAGE <= 16;	// 
 										end
 								end
 							2:	if ( rREG_CMD[2] == 1'b1 )	// E==1
@@ -1081,7 +1081,7 @@ else
 							5:	if ( rWRPT2 == 1'b1 )	// WPRT 
 									begin
 										rINTRQ_S_CMD <= ~rINTRQ_S_CMD;
-										rSTAGE <= 17;	// выход
+										rSTAGE <= 17;	// 
 									end
 								else
 									rSTAGE <= rSTAGE + 1'b1;
@@ -1095,13 +1095,13 @@ else
 									rDRQ_S_CMD <= 1'b0;
 									rSTAGE <= rSTAGE + 1'b1;
 								end
-							8: if ( rPREDELAY_CNT == 11'b11000000000 )	// задержка 3 байта																 
+							8: if ( rPREDELAY_CNT == 11'b11000000000 )	//  3 																 
 									rSTAGE <= rSTAGE + 1'b1;
 							9:	if ( rDRQ != 1'b0 )
 									begin
 										rINTRQ_S_CMD <= ~rINTRQ_S_CMD;
 										rLOST_DATA <= 1'b1;
-										rSTAGE <= 17;	// выход
+										rSTAGE <= 17;	// 
 									end
 								else
 									begin
@@ -1185,7 +1185,7 @@ else
 									if ( rIPTRG0 == rIPTRG )
 										begin
 											rINTRQ_S_CMD <= ~rINTRQ_S_CMD;
-											rSTAGE <= 19;	// выход
+											rSTAGE <= 19;	// 
 										end
 									else
 										rSTAGE <= rSTAGE + 1'b1;

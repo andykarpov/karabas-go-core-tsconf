@@ -1,38 +1,38 @@
 // IanPo/zx-pk.ru, 2017
-// Модуль кодера MFM и записи для HDL-модели КР1818ВГ93/WD1793
+//   MFM    HDL- 181893/WD1793
 //
-`default_nettype none
+`default_nettype wire
 //
 module MFMCDR (
-input				iCLK,			// тактовая 16 МГц
-input				iRESETn,		// сброс ( пока не используется !!! )
+input				iCLK,			//  16 
+input				iRESETn,		//  (    !!! )
 input				iWG,			// WRITE GATE
-input	[7:0]		iMAIN_2_BYTE,	// следущий байт
-input				iBYTE_2_WRITE,	// следующий байт подан
-input				iTRANSLATE,		// флаг трансляции байта ( для C2, A1 )
-output	reg			oNEXT_BYTE,		// грузите следующий байт
+input	[7:0]		iMAIN_2_BYTE,	//  
+input				iBYTE_2_WRITE,	//   
+input				iTRANSLATE,		//    (  C2, A1 )
+output	reg			oNEXT_BYTE,		//   
 output	reg			oWDATA
 );
 //
-reg		[2:0]		rBIT_CNT;	// счетчик бит даных
-reg		[1:0]		rMFM_BIT;	// 2 бита MFM, полученные из 1 бита данных
-reg		[5:0]		rWDATA_CNT, rWDATA_CNT_MAX;	// счетчик 2-мкс интервалов
-reg					rMFM_CNT;	// счетчик битов ( 2 бита MFM )
-wire				wMFM_MSK;	// маска для кодирования C2, A1
-reg		[2:0]		rLASTBITS;	// для выработки сигналов Late, Early
+reg		[2:0]		rBIT_CNT;	//   
+reg		[1:0]		rMFM_BIT;	// 2  MFM,   1  
+reg		[5:0]		rWDATA_CNT, rWDATA_CNT_MAX;	//  2- 
+reg					rMFM_CNT;	//   ( 2  MFM )
+wire				wMFM_MSK;	//    C2, A1
+reg		[2:0]		rLASTBITS;	//    Late, Early
 reg		[7:0]		rMAIN_2_BYTE;
 //
 parameter
-	TWO_mks	= 6'd31,			//  2-мкс интервал (32 такта 16 МГц)
-	HLF_mks	= 6'd8,				// 500 нс - ширина импульса
-	NXT_byt = HLF_mks + 6'd2;	// положение флага NEXT_BYTE относительно импульса
+	TWO_mks	= 6'd31,			//  2-  (32  16 )
+	HLF_mks	= 6'd8,				// 500  -  
+	NXT_byt = HLF_mks + 6'd2;	//   NEXT_BYTE  
 //
 initial
 	begin
 		oWDATA 			= 1'b0;
 		rBIT_CNT		= 3'd7;
 		oNEXT_BYTE		= 1'b0;
-		rLASTBITS		= 3'b010;	// чтобы rWDATA_CNT_MAX = TWO_mks
+		rLASTBITS		= 3'b010;	//  rWDATA_CNT_MAX = TWO_mks
 		rMFM_BIT		= 2'b00;
 		rMFM_CNT		= 1'b0;
 		rWDATA_CNT		= TWO_mks;

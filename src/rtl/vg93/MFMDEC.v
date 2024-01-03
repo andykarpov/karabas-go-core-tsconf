@@ -1,7 +1,7 @@
 // IanPo/zx-pk.ru, 2016
-// Модуль декодера MFM для HDL-модели КР1818ВГ93/WD1793
+//   MFM  HDL- 181893/WD1793
 //
-`default_nettype none
+`default_nettype wire
 //
 module MFMDEC (
 input				iCLK,

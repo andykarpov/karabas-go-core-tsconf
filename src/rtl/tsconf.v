@@ -84,7 +84,21 @@ module tsconf
 	// osd switches
 	input wire covox_en,
 	input wire [1:0] psg_mix,
-	input wire psg_type
+	input wire psg_type,
+	
+	// fdc
+	input wire clk_16,
+	output wire fdc_side,
+	input wire fdc_rdata,
+	input wire fdc_wprt,
+	input wire fdc_tr00,
+	input wire fdc_index,
+	output wire fdc_wg,
+	output wire fdc_wr_data,
+	output wire fdc_step,
+	output wire fdc_dir,
+	output wire fdc_motor,
+	output wire [1:0] fdc_ds
 	
 	// TODO: others
 );
@@ -1246,6 +1260,7 @@ assign cpu_di_bus =
 		ena_ram    															?	dout_ram 			:	// SDRAM
 		(ts_enable && ~cpu_rd_n)										?	ts_do					:	// TurboSound
 		(~zifi_oe_n)														?  zifi_do_bus       :  // zifi
+		(fdc_oe)																?  fdc_do_bus 			:  // floppy
 		(ena_ports)															?	dout_ports			:
 		(intack)																?	im2vect 				:
 																					8'b11111111; 
@@ -1272,5 +1287,41 @@ zifi zifi(
 	.UART_TX(uart_tx),
 	.UART_CTS(uart_cts)
 );
+
+// fdc
+
+wire fdc_oe;
+wire [7:0] fdc_do_bus;
+
+Firefly_FDC fdc
+(
+	.iCLK(clk_28mhz),
+	.iCLK16(clk_16), 
+	.iRESET(rst),
+
+	.iADDR(cpu_a_bus),
+	.iDATA(cpu_do_bus),
+	.iM1(cpu_m1_n),
+	.iWR(cpu_wr_n),
+	.iRD(cpu_rd_n),
+	.iIORQ(cpu_iorq_n),
+	
+	.iDOS(dos),
+
+	.oCS(fdc_oe),		
+	.oDATA(fdc_do_bus), 
+
+	.oFDC_SIDE1(fdc_side),
+	.iFDC_RDATA(fdc_rdata),
+	.iFDC_WPRT(fdc_wprt),
+	.iFDC_TR00(fdc_tr00),
+	.iFDC_INDEX(fdc_index),
+	.oFDC_WG(fdc_wg),
+	.oFDC_WR_DATA(fdc_wr_data),
+	.oFDC_STEP(fdc_step),
+	.oFDC_DIR(fdc_dir),
+	.oFDC_MOTOR(fdc_motor),
+	.oFDC_DS(fdc_ds)
+);	
 
 endmodule
