@@ -75,7 +75,11 @@ module tsconf
 	output wire ide_cs1_n,
 	output wire ide_rd_n,
 	output wire ide_wr_n,
-	input wire ide_rdy
+	input wire ide_rdy,
+	
+	input wire covox_en,
+	input wire [1:0] psg_mix,
+	input wire psg_type
 	
 	// TODO: others
 );
@@ -1094,59 +1098,64 @@ assign key_scancode = keyboard_scancode;
 assign mouse_addr = cpu_a_bus[10:8];
 assign mouse_do = mouse_data;
   
-reg ena_0_4375mhz;
-reg ce_ym;
-reg [5:0] div;
-always @(posedge clk_28mhz) begin
-
-	div <= div + 1'd1;
-	ena_0_4375mhz <= !div; //28MHz/64
-	ce_ym <= !div[2] & !div[1] & !div[0];
-end
-
 // rtc
 assign rtc_addr = wait_addr;
 assign rtc_di = cpu_do_bus;
 assign mc146818a_do_bus = rtc_do;
 assign rtc_wr = wait_start_gluclock & ~cpu_wr_n;
 
-/*mc146818a SE9
-(
-	.RESET(rst),
-	.CLK(clk_28mhz),
-	.ENA(ena_0_4375mhz),
-	.CS(1'b1),
-	.KEYSCANCODE(keyboard_scancode),
-	.WR(wait_start_gluclock & ~cpu_wr_n),
-	.A(wait_addr),
-	.DI(cpu_do_bus),
-	.DO(mc146818a_do_bus)
-);*/
+// turbosound
 
 wire ts_enable = ~cpu_iorq_n & cpu_a_bus[0] & cpu_a_bus[15] & ~cpu_a_bus[1];
 wire ts_we     = ts_enable & ~cpu_wr_n;
+wire  [7:0] ts_do, ts_do0, ts_do1;
+wire ts_sel;
+wire [7:0] ts_ssg0_a, ts_ssg0_b, ts_ssg0_c, ts_ssg1_a, ts_ssg1_b, ts_ssg1_c;
 
-wire [11:0] ts_l, ts_r;
-wire  [7:0] ts_do;
+reg ce_ym;
+reg [5:0] div;
+always @(posedge clk_28mhz) begin
+	div <= div + 1'd1;
+	ce_ym <= !div[3] & !div[2] & !div[1] & !div[0]; // 1.75
+end
 
-turbosound SE12
+turbosound turbosound
 (
-	.RESET(rst),
-	.CLK(clk_28mhz),
-	.CE(ce_ym),
-	.BDIR(ts_we),
-	.BC(cpu_a_bus[14]),
-	.DI(cpu_do_bus),
-	.DO(ts_do),
-	.CHANNEL_L(ts_l),
-	.CHANNEL_R(ts_r)
+	.I_CLK(clk_28mhz),
+	.I_ENA(ce_ym),
+	.I_ADDR(cpu_a_bus),
+	.I_DATA(cpu_do_bus),
+	.I_WR_N(cpu_wr_n),
+	.I_IORQ_N(cpu_iorq_n),
+	.I_M1_N(cpu_m1_n),
+	.I_RESET_N(~rst),
+
+	.I_BDIR(ts_we),
+	.I_BC1(cpu_a_bus[14]),
+	.O_SEL(ts_sel),
+	.I_MODE(~psg_type), // todo: mode AY/YM from mcu
+	
+	.O_SSG0_DA(ts_do0),
+	.O_SSG1_DA(ts_do1),
+	
+	.O_SSG0_AUDIO_A(ts_ssg0_a),
+	.O_SSG0_AUDIO_B(ts_ssg0_b),
+	.O_SSG0_AUDIO_C(ts_ssg0_c),
+
+	.O_SSG1_AUDIO_A(ts_ssg1_a),
+	.O_SSG1_AUDIO_B(ts_ssg1_b),
+	.O_SSG1_AUDIO_C(ts_ssg1_c)	
 );
+
+assign ts_do = ts_sel ? ts_do1 : ts_do0;
+
+// SAA1099
 
 wire saa_wr_n;
 wire [7:0] saa_out_l;
 wire [7:0] saa_out_r;
 
-saa1099 SE99
+saa1099 saa1099
 (
 	.clk(clk8),
 	.rst_n(~rst),
@@ -1158,56 +1167,72 @@ saa1099 SE99
 	.out_r(saa_out_r)
 );
 
-// SAA1099
 assign saa_wr_n = cpu_iorq_n || cpu_wr_n || ~(cpu_a_bus[7:0] == 8'hFF);
 
-wire [7:0] tsound_do;
-//assign tsound_do = ssg_sel ? ssg_cn1_bus : ssg_cn0_bus;
-
-reg  [8:0] sum_ch_a,sum_ch_b,sum_ch_c;
-reg  [7:0] psg_a,psg_b,psg_c;
-reg [11:0] psg_l,psg_r;
-reg [15:0] audio_l, audio_r;
+// beeper / tape out
 
 reg [7:0] port_xxfe_reg;
-
 always @(posedge clk_28mhz) begin
 	if (rst) port_xxfe_reg <= 0;
 	else if (~cpu_iorq_n && ~cpu_wr_n && cpu_a_bus[7:0] == 8'hFE) port_xxfe_reg <= cpu_do_bus;
 end
 
-localparam [3:0] comp_f = 4;
-localparam [3:0] comp_a = 2;
-localparam       comp_x = ((32767 * (comp_f - 1)) / ((comp_f * comp_a) - 1)) + 1; // +1 to make sure it won't overflow
-localparam       comp_b = comp_x * comp_a;
+// covox
 
-function [15:0] compr; input [15:0] inp;
-	reg [15:0] v, v2;
-	begin
-		v  = inp[15] ? (~inp) + 1'd1 : inp;
-		v2 = (v < comp_x[15:0]) ? (v * comp_a) : (((v - comp_x[15:0])/comp_f) + comp_b[15:0]);
-		compr = inp[15] ? ~(v2-1'd1) : v2;
-	end
-endfunction
+wire [7:0] covox_a, covox_b, covox_c, covox_d, covox_fb;
 
-reg [15:0] pre_l, pre_r;
-always @(posedge clk_28mhz) begin
+covox covox
+(
+	.I_RESET(rst),
+	.I_CLK(clk_28mhz),
+	.I_CS(covox_en), // todo: switchable from osd
+	.I_ADDR(cpu_a_bus[7:0]),
+	.I_DATA(cpu_do_bus),
+	.I_WR_N(cpu_wr_n),
+	.I_IORQ_N(cpu_iorq_n),
+	
+	.I_DOS(dos), 
+	
+	.O_A(covox_a),
+	.O_B(covox_b),
+	.O_C(covox_c),
+	.O_D(covox_d),
+	.O_FB(covox_fb)
+);
 
-	pre_l <= {ts_l,4'd0} + 
-				{2'b00, saa_out_l, 6'b000000} + 
-				{2'b00, covox_beeper_out, 6'b000000} + 
-				{5'b00000, port_xxfe_reg[4], 6'b000000};
-	pre_r <= {ts_r,4'd0} + 
-				{2'b00, saa_out_r, 6'b000000} + 
-				{2'b00, covox_beeper_out, 6'b000000} + 
-				{5'b00000, port_xxfe_reg[4], 6'b000000};
+// audio mixer
 
-	audio_l <= compr(pre_l);
-	audio_r <= compr(pre_r);
-end 
+audio_mixer audio_mixer
+(
+	.clk(clk_28mhz),
 
+	.mute(1'b0), // todo: switchable from osd / on pause 
+	.mode(psg_mix), // todo: switchable from osd ABC (00) / ACB (01) / Mono (10)
+	
+	.speaker(port_xxfe_reg[4]),
+	.tape_in(1'b0), // todo: clocked tape_in here
+	
+	.ssg0_a(ts_ssg0_a),
+	.ssg0_b(ts_ssg0_b),
+	.ssg0_c(ts_ssg0_c),
+	.ssg1_a(ts_ssg1_a),
+	.ssg1_b(ts_ssg1_b),
+	.ssg1_c(ts_ssg1_c),
+	
+	.covox_a(covox_a),
+	.covox_b(covox_b),
+	.covox_c(covox_c),
+	.covox_d(covox_d),
+	.covox_fb(covox_fb),
+	
+	.saa_l(saa_out_l),
+	.saa_r(saa_out_r),
+	
+	.audio_l(audio_out_l),
+	.audio_r(audio_out_r)
+	
+);
 
-//assign n_reset = locked & !kb_f_bus[0];
 assign n_reset = locked & resetbtn_n;
 
 assign cpu_di_bus = 
@@ -1218,9 +1243,6 @@ assign cpu_di_bus =
 		(ena_ports)															?	dout_ports			:
 		(intack)																?	im2vect 				:
 																					8'b11111111; 
-
-assign audio_out_l = audio_l;
-assign audio_out_r = audio_r;
 
 // zifi
 wire [7:0] zifi_do_bus;

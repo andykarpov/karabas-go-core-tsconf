@@ -13,6 +13,9 @@ entity soft_switches is
 	CLK : in std_logic;	
 	SOFTSW_COMMAND : in std_logic_vector(15 downto 0);
 	
+	COVOX_EN : out std_logic;
+	PSG_MIX : out std_logic_vector(1 downto 0);
+	PSG_TYPE : out std_logic;
 	JOY_TYPE_L : out std_logic_vector(2 downto 0);
 	JOY_TYPE_R : out std_logic_vector(2 downto 0);
 	PAUSE : out std_logic;
@@ -31,11 +34,14 @@ begin
 		if (prev_command /= SOFTSW_COMMAND) then
 			prev_command <= SOFTSW_COMMAND;
 			case SOFTSW_COMMAND(15 downto 8) is
-				when x"00" => JOY_TYPE_L <= SOFTSW_COMMAND(2 downto 0);
-				when x"01" => JOY_TYPE_R <= SOFTSW_COMMAND(2 downto 0);
-				when x"02" => PAUSE <= SOFTSW_COMMAND(0);
-				when x"03" => NMI <= SOFTSW_COMMAND(0);
-				when x"04" => RESET <= SOFTSW_COMMAND(0);	
+				when x"00" => COVOX_EN <= SOFTSW_COMMAND(0);
+				when x"01" => PSG_MIX <= SOFTSW_COMMAND(1 downto 0);
+				when x"02" => PSG_TYPE <= SOFTSW_COMMAND(0);
+				when x"03" => JOY_TYPE_L <= SOFTSW_COMMAND(2 downto 0);
+				when x"04" => JOY_TYPE_R <= SOFTSW_COMMAND(2 downto 0);
+				when x"05" => PAUSE <= SOFTSW_COMMAND(0);
+				when x"06" => NMI <= SOFTSW_COMMAND(0);
+				when x"07" => RESET <= SOFTSW_COMMAND(0);	
 				when others => null;
 			end case;
 		end if;

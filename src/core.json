@@ -1,7 +1,7 @@
 {
     "id": "tsconf",
     "name": "TS-Conf",
-    "build": "24010103",
+    "build": "24010302",
     "bitstream": "karabas_go_top.bin",
     "visible": true,
     "type": "osd",
@@ -9,6 +9,9 @@
     "eeprom_bank": 0,
     "roms": [],
     "osd": [
+        {"type": "S", "bits": 1, "name": "Covox", "options": ["Off", "On"], "default": 1, "hotkey": "Menu+F6"},
+        {"type": "S", "bits": 2, "name": "PSG Mix", "options": ["ABC", "ACB", "Mono"], "default": 1, "hotkey": "Menu+F7"},
+        {"type": "S", "bits": 1, "name": "PSG Type", "options": ["AY3-8912", "YM2149F"], "default": 0, "hotkey": "Menu+F8"},
         {"type": "S", "bits": 3, "name": "Joystick L", "options": ["Kempston", "Sinclair1", "Sinclair2", "Cursor", "QAOPM", "QAOPS"], "default": 0, "hotkey": "Menu+J"},
         {"type": "S", "bits": 3, "name": "Joystick R", "options": ["Kempston", "Sinclair1", "Sinclair2", "Cursor", "QAOPM", "QAOPS"], "default": 1, "hotkey": "Menu+R"},
         {"type": "N", "bits": 1, "name": "Pause", "options": ["Off", "On"], "default": 0, "hotkey": "Menu+P"},

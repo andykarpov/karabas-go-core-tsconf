@@ -266,7 +266,11 @@ module karabas_go_top (
 	  .ide_cs1_n(WCS_N[1]),
 	  .ide_rd_n(WRD_N),
 	  .ide_wr_n(WWR_N),
-	  .ide_rdy()
+	  .ide_rdy(),
+	  
+	  .covox_en(covox_en),
+	  .psg_mix(psg_mix),
+	  .psg_type(psg_type)
 	  
 	  // todo: cfg, VG, tape_in, tape_out
 	 );
@@ -365,11 +369,18 @@ hid_parser hid_parser(
 
 //---------- Soft switches ------------
 
+wire covox_en;
+wire [1:0] psg_mix;
+wire psg_type;
+
 soft_switches soft_switches(
 	.CLK(clk_bus),
 	
 	.SOFTSW_COMMAND(softsw_command),
 	
+	.COVOX_EN(covox_en),
+	.PSG_MIX(psg_mix),
+	.PSG_TYPE(psg_type),
 	.JOY_TYPE_L(kb_joy_type_l),
 	.JOY_TYPE_R(kb_joy_type_r),
 	.PAUSE(kb_pause),
