@@ -116,6 +116,7 @@ module karabas_go_top (
 	output wire MCU_MISO	
    );
 
+	// todo: sdram
 	assign SDR_BA = 2'b0;
 	assign SDR_A = 13'b0;
 	assign SDR_CLK = 1'b0;
@@ -124,11 +125,11 @@ module karabas_go_top (
 	assign SDR_CAS_N = 1'b1;
 	assign SDR_RAS_N = 1'b1;
 
+	// todo: fdc
 	assign FDC_DRIVE = 2'b0;
 	assign FDC_MOTOR = 1'b0;
 
-	assign TAPE_OUT = 1'b0;
-	
+	// todo: esp control
 	assign ESP_RESET_N = 1'bZ;
 	assign ESP_BOOT_N = 1'bZ;	
 	assign UART_CTS = 1'bZ;
@@ -159,6 +160,12 @@ module karabas_go_top (
 		if(div == 2) div <= 0;
 		ce_28m <= !div;
 	end
+	
+	reg tape_in_r;
+	always @(posedge clk_bus)
+	begin
+		tape_in_r <= TAPE_IN;
+	end 
 	
 	wire [7:0] video_r;
 	wire [7:0] video_g;
@@ -267,6 +274,9 @@ module karabas_go_top (
 	  .ide_rd_n(WRD_N),
 	  .ide_wr_n(WWR_N),
 	  .ide_rdy(),
+	  
+	  .tape_in(tape_in_r),
+	  .tape_out(TAPE_OUT),
 	  
 	  .covox_en(covox_en),
 	  .psg_mix(psg_mix),

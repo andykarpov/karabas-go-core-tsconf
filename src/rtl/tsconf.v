@@ -77,6 +77,11 @@ module tsconf
 	output wire ide_wr_n,
 	input wire ide_rdy,
 	
+	// tape
+	input wire tape_in,
+	output wire tape_out,
+	
+	// osd switches
 	input wire covox_en,
 	input wire [1:0] psg_mix,
 	input wire psg_type
@@ -155,7 +160,6 @@ module tsconf
   wire clr_nmi;
   wire in_nmi;
 
-  wire tape_in;
   wire [7:0] zmem_dout;
   wire zmem_dataout;
   wire [7:0] received;
@@ -843,7 +847,7 @@ assign clk_bus = clk_28mhz;
     .keys_in(kb_do_bus),
     .mus_in(mouse_do),
     .kj_in(joy_data[7:0]),
-    .tape_read(tape_read),
+    .tape_read(tape_in),
     .beeper_wr(beeper_wr),
     .covox_wr(covox_wr),
     .wait_addr(wait_addr),
@@ -1177,6 +1181,8 @@ always @(posedge clk_28mhz) begin
 	else if (~cpu_iorq_n && ~cpu_wr_n && cpu_a_bus[7:0] == 8'hFE) port_xxfe_reg <= cpu_do_bus;
 end
 
+assign tape_out = port_xxfe_reg[3];
+
 // covox
 
 wire [7:0] covox_a, covox_b, covox_c, covox_d, covox_fb;
@@ -1185,7 +1191,7 @@ covox covox
 (
 	.I_RESET(rst),
 	.I_CLK(clk_28mhz),
-	.I_CS(covox_en), // todo: switchable from osd
+	.I_CS(covox_en),
 	.I_ADDR(cpu_a_bus[7:0]),
 	.I_DATA(cpu_do_bus),
 	.I_WR_N(cpu_wr_n),
@@ -1207,10 +1213,10 @@ audio_mixer audio_mixer
 	.clk(clk_28mhz),
 
 	.mute(1'b0), // todo: switchable from osd / on pause 
-	.mode(psg_mix), // todo: switchable from osd ABC (00) / ACB (01) / Mono (10)
+	.mode(psg_mix), 
 	
 	.speaker(port_xxfe_reg[4]),
-	.tape_in(1'b0), // todo: clocked tape_in here
+	.tape_in(tape_in), 
 	
 	.ssg0_a(ts_ssg0_a),
 	.ssg0_b(ts_ssg0_b),
