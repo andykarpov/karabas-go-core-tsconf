@@ -154,7 +154,7 @@ if ( wVG_RESET_n == 1'b0 )
 	r2RQ_R_SREG <= 1'b0;
 else
 	if ( r2RQ_R_SREG == 1'b0 )
-		if ( wIOR == 1'b0 && iADDR[7:5] == 3'b000 && rTRDOS == 1'b0 )	//    BDI (STATUS register)
+		if ( wIOR == 1'b0 && (iCSn == 1'b0) && (iADDR[7:0] == VGCOM) )	//    BDI (STATUS register)
 			r2RQ_R_SREG <= 1'b1;
 		else	;
 	else
@@ -166,7 +166,7 @@ if ( wVG_RESET_n == 1'b0 )
 	rDRQ_R_DREG <= 1'b0;
 else
 	if ( rDRQ_R_DREG == 1'b0 )
-		if ( ( iIORQ | ( iWR & iRD ) ) == 1'b0 && iADDR[7:5] == 3'b011 && rTRDOS == 1'b0 )	// -   BDI (DATA register)
+		if ( ( iIORQ | ( iWR & iRD ) ) == 1'b0 && (iCSn == 1'b0) && (iADDR[7:0] == VGDAT) )	// -   BDI (DATA register)
 			rDRQ_R_DREG <= 1'b1;
 		else	;
 	else

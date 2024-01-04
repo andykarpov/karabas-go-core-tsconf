@@ -1173,6 +1173,7 @@ wire saa_wr_n;
 wire [7:0] saa_out_l;
 wire [7:0] saa_out_r;
 
+
 saa1099 saa1099
 (
 	.clk(clk8),
@@ -1186,6 +1187,7 @@ saa1099 saa1099
 );
 
 assign saa_wr_n = cpu_iorq_n || cpu_wr_n || ~(cpu_a_bus[7:0] == 8'hFF);
+
 
 // beeper / tape out
 

@@ -456,7 +456,7 @@ assign DAC_MUTE = 1'b1; // soft mute, 0 = mute, 1 = unmute
 //--------- OSD --------------
 wire [11:0] hcnt;
 wire [11:0] vcnt;
-
+/*
 overlay overlay(
 	.CLK_BUS(clk_bus),
 	.CLK_VGA(clk_osd),
@@ -465,6 +465,6 @@ overlay overlay(
 	.OSD_VS(osd_vs),
 	.OSD_ACTIVE(osd_active),
 	.OSD_COMMAND(osd_command)
-);
+);*/
 
 endmodule
