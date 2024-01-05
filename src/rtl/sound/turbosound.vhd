@@ -35,8 +35,6 @@ entity turbosound is
 end turbosound;
  
 architecture rtl of turbosound is
-	signal bc1	: std_logic;
-	signal bdir	: std_logic;
 	signal ssg	: std_logic;
 	
 component ym2149 is
@@ -60,11 +58,6 @@ end component;
 	
 	
 begin
-
-bdir	<= '1' when (I_M1_N = '1' and I_IORQ_N = '0' and I_WR_N = '0' and I_ADDR(15) = '1' and I_ADDR(1) = '0') else '0';
-bc1	<= '1' when (I_M1_N = '1' and I_IORQ_N = '0' and I_ADDR(15) = '1' and I_ADDR(14) = '1' and I_ADDR(1) = '0') else '0';
---	bdir <= I_BDIR;
---	bc1 <= I_BC1;
 	
 	O_SEL	<= ssg;
 	
@@ -73,7 +66,7 @@ bc1	<= '1' when (I_M1_N = '1' and I_IORQ_N = '0' and I_ADDR(15) = '1' and I_ADDR
 		if (I_RESET_N = '0') then
 			ssg <= '0';
 		elsif (I_CLK'event and I_CLK = '1') then
-			if (I_DATA(7 downto 1) = "1111111" and bdir = '1' and bc1 = '1') then
+			if (I_DATA(7 downto 1) = "1111111" and I_BDIR = '1' and I_BC1 = '1') then
 				ssg <= I_DATA(0);
 			end if;
 		end if;
@@ -84,8 +77,8 @@ port map (
 	CLK		=> I_CLK,	
 	CE		=> I_ENA,
 	RESET		=> not I_RESET_N,
-	BDIR		=> bdir,
-	BC		=> bc1,
+	BDIR		=> I_BDIR,
+	BC		=> I_BC1,
 	DI		=> I_DATA,
 	DO		=> O_SSG0_DA,
 	CHANNEL_A	=> O_SSG0_AUDIO_A,
@@ -102,8 +95,8 @@ port map (
 	CLK		=> I_CLK,	
 	CE		=> I_ENA,
 	RESET		=> not I_RESET_N,
-	BDIR		=> bdir,
-	BC		=> bc1,
+	BDIR		=> I_BDIR,
+	BC		=> I_BC1,
 	DI		=> I_DATA,
 	DO		=> O_SSG1_DA,
 	CHANNEL_A	=> O_SSG1_AUDIO_A,

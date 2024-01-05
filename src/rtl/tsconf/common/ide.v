@@ -29,6 +29,7 @@ module ide
 (
   // clocks
   input wire         clk,
+  input wire 			clk_sys,
 
   // controls
   input  wire        reset,
@@ -47,7 +48,7 @@ module ide
 
   // DMA interface
   input wire [15:0]  dma_out,
-  input wire         dma_req,
+  input wire         dma_req, 
   input wire         dma_rnw,
 
   // Z80 interface
@@ -68,6 +69,8 @@ module ide
   wire cs1_n = dma_req ? 1'b1 : z80_cs1_n;
   wire rd_n = dma_req ? ~dma_rnw : ~z80_rnw;
   wire wr_n = dma_req ? dma_rnw : z80_rnw;
+  
+  reg r_rd_n, r_wr_n;
 
   wire go = (dma_req || z80_req) && rdy;
   assign rdy_stb = st[4];
@@ -96,12 +99,14 @@ module ide
       ide_dir   <= dir;
       ide_cs0_n <= cs0_n;
       ide_cs1_n <= cs1_n;
+		r_rd_n <= rd_n;
+		r_wr_n <= wr_n;
     end
 
     else if (st[0])
     begin
-      ide_rd_n  <= rd_n;
-      ide_wr_n  <= wr_n;
+      ide_rd_n  <= r_rd_n;
+      ide_wr_n  <= r_wr_n;
     end
 
     else if (st[2])

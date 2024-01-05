@@ -1051,6 +1051,7 @@ assign clk_bus = clk_28mhz;
   ide ide
   (
     .clk(clk_28mhz),
+	 .clk_sys(clk),
     .reset(rst),
     .rdy_stb(ide_stb),
     .rdy(ide_ready),
@@ -1124,7 +1125,11 @@ assign rtc_wr = wait_start_gluclock & ~cpu_wr_n;
 
 // turbosound
 
-wire ts_enable = ~cpu_iorq_n & cpu_a_bus[0] & cpu_a_bus[15] & ~cpu_a_bus[1];
+wire ay_hit = (cpu_a_bus[7:0] == 8'hFD) & cpu_a_bus[15];
+wire ay_bc1	= ay_hit & cpu_m1_n & !cpu_iorq_n & cpu_a_bus[14];
+wire ay_bdir = ay_hit & cpu_m1_n & !cpu_iorq_n & !cpu_wr_n;
+
+wire ts_enable = ~cpu_iorq_n & ay_hit;
 wire ts_we     = ts_enable & ~cpu_wr_n;
 wire  [7:0] ts_do, ts_do0, ts_do1;
 wire ts_sel;
@@ -1148,8 +1153,8 @@ turbosound turbosound
 	.I_M1_N(cpu_m1_n),
 	.I_RESET_N(~rst),
 
-	.I_BDIR(ts_we),
-	.I_BC1(cpu_a_bus[14]),
+	.I_BDIR(ay_bdir),
+	.I_BC1(ay_bc1),
 	.O_SEL(ts_sel),
 	.I_MODE(~psg_type), // todo: mode AY/YM from mcu
 	

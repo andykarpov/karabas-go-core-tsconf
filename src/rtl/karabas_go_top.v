@@ -138,6 +138,7 @@ module karabas_go_top (
 	wire clk_osd;
 	wire clk_16mhz;
    wire locked;
+	wire areset;
    pll pll (
 	  .CLK_IN1(CLK_50MHZ),
 	  .CLK_OUT1(clk_sys),
@@ -147,6 +148,7 @@ module karabas_go_top (
 	);
 	
 	assign clk_osd = clk_bus;
+	assign areset = ~locked;
 	
 	reg ce_28m;
 	reg [1:0] div = 2'd0;
@@ -317,7 +319,7 @@ assign ftint = FT_INT_N;
 
 mcu mcu(
 	.CLK(clk_bus),
-	.N_RESET(1'b1), // todo: areset
+	.N_RESET(~areset),
 	
 	.MCU_MOSI(MCU_MOSI),
 	.MCU_MISO(MCU_MISO),
@@ -363,7 +365,7 @@ mcu mcu(
 
 hid_parser hid_parser(
 	.CLK(clk_bus),
-	.RESET(1'b0), // todo areset
+	.RESET(areset),
 
 	.KB_STATUS(hid_kb_status),
 	.KB_DAT0(hid_kb_dat0),
@@ -417,7 +419,7 @@ wire ms_upd;
 
 cursor cursor(
 	.CLK(clk_bus),
-	.RESET(1'b0),
+	.RESET(areset),
 	
 	.MS_X(ms_x),
 	.MS_Y(ms_y),
@@ -454,9 +456,7 @@ PCM5102 PCM5102(
 assign DAC_MUTE = 1'b1; // soft mute, 0 = mute, 1 = unmute
 
 //--------- OSD --------------
-wire [11:0] hcnt;
-wire [11:0] vcnt;
-/*
+
 overlay overlay(
 	.CLK_BUS(clk_bus),
 	.CLK_VGA(clk_osd),
@@ -465,6 +465,6 @@ overlay overlay(
 	.OSD_VS(osd_vs),
 	.OSD_ACTIVE(osd_active),
 	.OSD_COMMAND(osd_command)
-);*/
+);
 
 endmodule
