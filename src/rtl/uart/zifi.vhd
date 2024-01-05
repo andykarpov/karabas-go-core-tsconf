@@ -128,21 +128,6 @@ port map(
 	 empty => fifo_rx_empty
 );
 
---UART_RXTX: uart
---port map (
---    clk_bus   => CLK,
---	 ds80      => DS80,
---    txdata    => fifo_tx_do,
---    txbegin   => tx_begin_req,
---    txbusy    => txbusy,
---    rxdata    => fifo_rx_di,
---    rxrecv    => data_received,
---    data_read => data_read,
---    rx        => UART_RX,
---    tx        => UART_TX,
---    rts       => UART_CTS    
---);
-
 UART_receiver: entity work.uart_rx
 port map(
 	i_Clk => CLK,
@@ -169,8 +154,6 @@ begin
 	 if RESET = '1' then 
 			fifo_tx_rd_req <= '0';
 			tx_begin_req <= '0';
-			--fifo_rx_wr_req <= '0';
-			--data_read <= '0';
 			txstate <= idle;
 			rxstate <= idle;
 			
@@ -212,33 +195,6 @@ begin
 			when others => null;
 		  end case;
 
---        -- uart rx -> fifo rx
---		  case rxstate is
---
---			when idle => 
---				data_read <= '0';
---				-- if data byte received by uart receiver and fifo allowed to be pushed into it
---				if (data_received = '1' and fifo_rx_used /= "111111111111") then 
---					rxstate <= push_rx_fifo;
---				end if;
---
---			-- push byte into rx fifo request
---			when push_rx_fifo => 
---				fifo_rx_wr_req <= '1';
---				rxstate <= end_push_rx_fifo;
---
---			-- push byte into rx fifo end request
---			when end_push_rx_fifo => 
---				fifo_rx_wr_req <= '0';
---				rxstate <= ack_uart_read;
---
---			-- confirm to uart receiver that byte was read successfully
---			when ack_uart_read => 
---				data_read <= '1';
---				rxstate <= idle;
---			
---			when others => null;
---		  end case;
     end if;
 end process;
 
@@ -258,7 +214,7 @@ begin
 		fifo_tx_clr_req <= '0';
 		fifo_rx_clr_req <= '0';
 	 
-        --       fifo_tx  write request
+        -- fifo_tx write request
         if IORQ_N = '0' and WR_N = '0' then 
 			 if A = zifi_command_port then 
 				if (wr_allow = '1' and new_command = '0') then 
@@ -281,7 +237,7 @@ begin
             fifo_tx_wr_req <= '0';
         end if;
 
-        --       fifo_rx read request
+        -- fifo_rx read request
         if IORQ_N = '0' and RD_N = '0' and A(7 downto 0) = zifi_data_port(7 downto 0) and A(15 downto 8) <= zifi_data_port(15 downto 8) and fifo_rx_empty = '0' then
 				if (fifo_rx_rd_req = '0' and rd_allow = '1') then
 					fifo_rx_rd_req <= '1';
@@ -324,7 +280,6 @@ DO <= "10111111"  when IORQ_N = '0' and RD_N = '0' and A = zifi_in_fifo_port and
    "11111111";
 
 fifo_tx_free <= std_logic_vector(unsigned(zifi_fifo_size) - unsigned(fifo_tx_used));
---fifo_rx_free <= std_logic_vector(unsigned(zifi_fifo_size) - unsigned(fifo_rx_used));
         
 ZIFI_OE_N <= '0' when IORQ_N = '0' and RD_N = '0' and (A = zifi_in_fifo_port or A = zifi_out_fifo_port or A = zifi_error_port or (A(7 downto 0) = zifi_data_port(7 downto 0) and A(15 downto 8) <= zifi_data_port(15 downto 8))  ) else '1';
 
