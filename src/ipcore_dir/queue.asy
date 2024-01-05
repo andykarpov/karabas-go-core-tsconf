@@ -32,6 +32,6 @@ PINATTR PinName empty
 PINATTR Polarity OUT
 LINE Wide 832 688 800 688
 PIN 832 688 RIGHT 36
-PINATTR PinName data_count[9:0]
+PINATTR PinName data_count[8:0]
 PINATTR Polarity OUT
 

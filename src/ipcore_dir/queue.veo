@@ -65,7 +65,7 @@ queue your_instance_name (
   .dout(dout), // output [23 : 0] dout
   .full(full), // output full
   .empty(empty), // output empty
-  .data_count(data_count) // output [9 : 0] data_count
+  .data_count(data_count) // output [8 : 0] data_count
 );
 // INST_TAG_END ------ End INSTANTIATION Template ---------
 

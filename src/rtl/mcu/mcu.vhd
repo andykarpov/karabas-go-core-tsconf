@@ -122,7 +122,7 @@ architecture rtl of mcu is
 	signal queue_do			: std_logic_vector(23 downto 0);
 	signal queue_rd_empty   : std_logic;
 	
-	signal queue_data_count : std_logic_vector(9 downto 0) := (others => '0');
+	signal queue_data_count : std_logic_vector(8 downto 0) := (others => '0');
 	
 	--state machine for queue writes
 	type qmachine IS(idle, rtc_wr_req, rtc_wr_ack);
@@ -350,7 +350,7 @@ begin
 			if RTC_WR_N = '0' AND RTC_CS = '1' and BUSY = '0' then -- add rtc register write to queue
 				queue_wr_req <= '1';
 				queue_di <= CMD_RTC & RTC_A & RTC_DI;
-			elsif queue_rd_empty = '1' or queue_data_count < 10 then -- anti-empty queue
+			elsif queue_rd_empty = '1' or queue_data_count < 5 then -- anti-empty queue
 				queue_wr_req <= '1';
 				queue_di <= CMD_NOPE & x"0000";
 			end if;

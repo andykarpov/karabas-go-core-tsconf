@@ -77,7 +77,7 @@ signal fifo_rx_do          : std_logic_vector(7 downto 0);
 signal fifo_rx_rd_req      : std_logic := '0';
 signal fifo_rx_wr_req      : std_logic := '0';
 signal fifo_rx_clr_req     : std_logic := '0';
-signal fifo_rx_used        : std_logic_vector(11 downto 0) := (others => '0');
+signal fifo_rx_used        : std_logic_vector(10 downto 0) := (others => '0');
 signal fifo_rx_full 			: std_logic;
 signal fifo_rx_empty       : std_logic;
 
@@ -316,7 +316,7 @@ begin
     end if;
 end process;
 
-DO <= "11111111"  when IORQ_N = '0' and RD_N = '0' and A = zifi_in_fifo_port and fifo_rx_used > 255  else 
+DO <= "10111111"  when IORQ_N = '0' and RD_N = '0' and A = zifi_in_fifo_port and fifo_rx_used > 191  else 
 	fifo_rx_used(7 downto 0)  when IORQ_N = '0' and RD_N = '0' and A = zifi_in_fifo_port  else 
    fifo_tx_free when IORQ_N = '0' and RD_N = '0' and A = zifi_out_fifo_port else 
    err_reg       when IORQ_N = '0' and RD_N = '0' and A = zifi_error_port    else 
