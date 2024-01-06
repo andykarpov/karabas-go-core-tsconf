@@ -291,7 +291,12 @@ module karabas_go_top (
 	  .fdc_step(FDC_STEP),
 	  .fdc_dir(FDC_DIR),
 	  .fdc_motor(FDC_MOTOR),
-	  .fdc_ds(FDC_DRIVE)
+	  .fdc_ds(FDC_DRIVE),
+	  
+	  .loader_act(loader_act),
+	  .loader_a(loader_addr[15:0]),
+	  .loader_d(loader_data),
+	  .loader_wr(loader_wr)
 	  
 	 );
 	 

@@ -265,6 +265,9 @@ begin
 						rtcr_d <= spi_do(7 downto 0);
 						rtcr_command <= not rtcr_command;
 
+					-- init start
+					when CMD_INIT_START => BUSY <= '1';
+
 					-- init done
 					when CMD_INIT_DONE => BUSY <= '0';
 

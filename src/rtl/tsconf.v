@@ -98,9 +98,14 @@ module tsconf
 	output wire fdc_step,
 	output wire fdc_dir,
 	output wire fdc_motor,
-	output reg [1:0] fdc_ds
+	output reg [1:0] fdc_ds,
 	
-	// TODO: others
+	// rom loader
+	input wire loader_act,
+	input wire [15:0] loader_a,
+	input wire [7:0] loader_d,
+	input wire loader_wr
+	
 );
 
   // cpu
@@ -1105,7 +1110,12 @@ assign clk_bus = clk_28mhz;
   (
     .clk (clk_28mhz),
     .a(rom_addr),
-    .dout(rom_do_bus)
+    .dout(rom_do_bus),
+	 
+	 .loader_act(loader_act),
+	 .loader_a(loader_a),
+	 .loader_d(loader_d),
+	 .loader_wr(loader_wr)
   );
   
 // keyboard

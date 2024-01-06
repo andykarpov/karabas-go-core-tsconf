@@ -7,7 +7,9 @@
     "type": "osd",
     "order": 3,
     "eeprom_bank": 0,
-    "roms": [],
+    "roms": [
+        {"filename": "roms/ts-bios.rom", "address": 0}
+    ],
     "osd": [
         {"type": "S", "bits": 1, "name": "Covox", "options": ["Off", "On"], "default": 1, "hotkey": "Menu+F6"},
         {"type": "S", "bits": 2, "name": "PSG Mix", "options": ["ABC", "ACB", "Mono"], "default": 1, "hotkey": "Menu+F7"},
