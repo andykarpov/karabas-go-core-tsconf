@@ -177,9 +177,9 @@ module karabas_go_top (
 	wire audio_beeper;
 	wire [15:0] audio_out_l;
 	wire [15:0] audio_out_r;
-	wire [7:0] joy_l;
-	wire [7:0] joy_r;
-	wire [7:0] joy_usb;
+	wire [11:0] joy_l;
+	wire [11:0] joy_r;
+	wire [11:0] joy_usb;
 	wire [2:0] mouse_addr;
 	reg [7:0] mouse_data;
 	wire [15:8] keyboard_addr;
@@ -245,7 +245,7 @@ module karabas_go_top (
 	  .ftint(ftint),
 	  .vdac2_sel(vdac2_sel),
 	  
-	  .joy_data (8'b0), // todo
+	  .joy_data (joy_bus),
 
 	  .mouse_addr(mouse_addr),
 	  .mouse_data(mouse_data),

@@ -37,9 +37,9 @@ entity mcu is
 	 KB_DAT5   : out std_logic_vector(7 downto 0) := "00000000";
 
 	 -- joysticks
-	 JOY_L			: out std_logic_vector(7 downto 0) := "00000000";
-	 JOY_R			: out std_logic_vector(7 downto 0) := "00000000";
-	 JOY_USB			: out std_logic_vector(7 downto 0) := "00000000";
+	 JOY_L			: out std_logic_vector(11 downto 0) := "000000000000";
+	 JOY_R			: out std_logic_vector(11 downto 0) := "000000000000";
+	 JOY_USB			: out std_logic_vector(11 downto 0) := "000000000000";
 
     -- rtc	 
 	 RTC_A 		: in std_logic_vector(7 downto 0);

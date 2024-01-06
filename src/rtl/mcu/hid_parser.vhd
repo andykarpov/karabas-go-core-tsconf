@@ -27,8 +27,8 @@ entity hid_parser is
 
 	 JOY_TYPE_L : in std_logic_vector(2 downto 0);
 	 JOY_TYPE_R : in std_logic_vector(2 downto 0);
-	 JOY_L : in std_logic_vector(7 downto 0);	
-	 JOY_R : in std_logic_vector(7 downto 0);	
+	 JOY_L : in std_logic_vector(11 downto 0);
+	 JOY_R : in std_logic_vector(11 downto 0);
 
 	 A : in std_logic_vector(15 downto 8);
 	 
@@ -53,6 +53,20 @@ architecture rtl of hid_parser is
 						 ZX_K_V, ZX_K_G, ZX_K_T, ZX_K_5,
 						 ZX_K_6, ZX_K_Y, ZX_K_H, ZX_K_B
 						 );
+
+	constant SC_CTL_ON : natural := 0;
+	constant SC_BTN_UP : natural := 1;
+	constant SC_BTN_DOWN: natural := 2;
+	constant SC_BTN_LEFT: natural := 3;
+   constant	SC_BTN_RIGHT: natural := 4;
+	constant SC_BTN_START: natural := 5;
+   constant SC_BTN_A : natural := 6;
+	constant SC_BTN_B : natural := 7;
+	constant SC_BTN_C : natural := 8;
+	constant SC_BTN_X : natural := 9;
+	constant SC_BTN_Y : natural := 10;
+	constant SC_BTN_Z : natural := 11;
+	constant SC_BTN_MODE : natural := 12;
 						 
 	type kb_matrix is array(matrix) of std_logic;						 
 	signal kb_data : kb_matrix := (others => '0'); -- 40 keys
@@ -313,11 +327,125 @@ process (RESET, CLK)
 				end case;
 				end loop;
 							
+				-- map joysticks to keyboard
+				-- sega joy:  Mode Z Y X C B A Start R L D U On
+				
+				-- sinclair 1
+				if joy_type_l = "001" then 
+					if (joy_l(SC_BTN_UP) = '1') then kb_data(ZX_K_4) <= '1'; end if; -- up
+					if (joy_l(SC_BTN_DOWN) = '1') then kb_data(ZX_K_3) <= '1'; end if; -- down
+					if (joy_l(SC_BTN_LEFT) = '1') then kb_data(ZX_K_1) <= '1'; end if; -- left
+					if (joy_l(SC_BTN_RIGHT) = '1') then kb_data(ZX_K_2) <= '1'; end if; -- right
+					if (joy_l(SC_BTN_B) = '1') then kb_data(ZX_K_5) <= '1'; end if; -- fire
+				end if;
+				if joy_type_r = "001" then
+					if (joy_r(SC_BTN_UP) = '1') then kb_data(ZX_K_4) <= '1'; end if; -- up
+					if (joy_r(SC_BTN_DOWN) = '1') then kb_data(ZX_K_3) <= '1'; end if; -- down
+					if (joy_r(SC_BTN_LEFT) = '1') then kb_data(ZX_K_1) <= '1'; end if; -- left
+					if (joy_r(SC_BTN_RIGHT) = '1') then kb_data(ZX_K_2) <= '1'; end if; -- right
+					if (joy_r(SC_BTN_B) = '1') then kb_data(ZX_K_5) <= '1'; end if; -- fire					
+				end if;
+				
+				-- sinclair 2
+				if joy_type_l = "010" then 
+					if (joy_l(SC_BTN_UP) = '1') then kb_data(ZX_K_9) <= '1'; end if; -- up
+					if (joy_l(SC_BTN_DOWN) = '1') then kb_data(ZX_K_8) <= '1'; end if; -- down
+					if (joy_l(SC_BTN_LEFT) = '1') then kb_data(ZX_K_6) <= '1'; end if; -- left
+					if (joy_l(SC_BTN_RIGHT) = '1') then kb_data(ZX_K_7) <= '1'; end if; -- right
+					if (joy_l(SC_BTN_B) = '1') then kb_data(ZX_K_0) <= '1'; end if; -- fire	
+				end if;
+				if joy_type_r = "010" then
+					if (joy_r(SC_BTN_UP) = '1') then kb_data(ZX_K_9) <= '1'; end if; -- up
+					if (joy_r(SC_BTN_DOWN) = '1') then kb_data(ZX_K_8) <= '1'; end if; -- down
+					if (joy_r(SC_BTN_LEFT) = '1') then kb_data(ZX_K_6) <= '1'; end if; -- left
+					if (joy_r(SC_BTN_RIGHT) = '1') then kb_data(ZX_K_7) <= '1'; end if; -- right
+					if (joy_r(SC_BTN_B) = '1') then kb_data(ZX_K_0) <= '1'; end if; -- fire					
+				end if;
+				
+				-- cursor
+				if joy_type_l = "011" then 
+					if (joy_l(SC_BTN_UP) = '1') then kb_data(ZX_K_7) <= '1'; end if; -- up
+					if (joy_l(SC_BTN_DOWN) = '1') then kb_data(ZX_K_6) <= '1'; end if; -- down
+					if (joy_l(SC_BTN_LEFT) = '1') then kb_data(ZX_K_5) <= '1'; end if; -- left
+					if (joy_l(SC_BTN_RIGHT) = '1') then kb_data(ZX_K_8) <= '1'; end if; -- right
+					if (joy_l(SC_BTN_B) = '1') then kb_data(ZX_K_0) <= '1'; end if; -- fire	
+				end if;
+				if joy_type_r = "011" then
+					if (joy_r(SC_BTN_UP) = '1') then kb_data(ZX_K_7) <= '1'; end if; -- up
+					if (joy_r(SC_BTN_DOWN) = '1') then kb_data(ZX_K_6) <= '1'; end if; -- down
+					if (joy_r(SC_BTN_LEFT) = '1') then kb_data(ZX_K_5) <= '1'; end if; -- left
+					if (joy_r(SC_BTN_RIGHT) = '1') then kb_data(ZX_K_8) <= '1'; end if; -- right
+					if (joy_r(SC_BTN_B) = '1') then kb_data(ZX_K_0) <= '1'; end if; -- fire					
+				end if;
+				
+				-- qaopm
+				if joy_type_l = "100" then 
+					if (joy_l(SC_BTN_UP) = '1') then kb_data(ZX_K_Q) <= '1'; end if; -- up
+					if (joy_l(SC_BTN_DOWN) = '1') then kb_data(ZX_K_A) <= '1'; end if; -- down
+					if (joy_l(SC_BTN_LEFT) = '1') then kb_data(ZX_K_O) <= '1'; end if; -- left
+					if (joy_l(SC_BTN_RIGHT) = '1') then kb_data(ZX_K_P) <= '1'; end if; -- right
+					if (joy_l(SC_BTN_B) = '1') then kb_data(ZX_K_M) <= '1'; end if; -- fire	
+				end if;
+				if joy_type_r = "100" then
+					if (joy_r(SC_BTN_UP) = '1') then kb_data(ZX_K_Q) <= '1'; end if; -- up
+					if (joy_r(SC_BTN_DOWN) = '1') then kb_data(ZX_K_A) <= '1'; end if; -- down
+					if (joy_r(SC_BTN_LEFT) = '1') then kb_data(ZX_K_O) <= '1'; end if; -- left
+					if (joy_r(SC_BTN_RIGHT) = '1') then kb_data(ZX_K_P) <= '1'; end if; -- right
+					if (joy_r(SC_BTN_B) = '1') then kb_data(ZX_K_M) <= '1'; end if; -- fire					
+				end if;
+
+				-- quaps
+				if joy_type_l = "101" then 
+					if (joy_l(SC_BTN_UP) = '1') then kb_data(ZX_K_Q) <= '1'; end if; -- up
+					if (joy_l(SC_BTN_DOWN) = '1') then kb_data(ZX_K_A) <= '1'; end if; -- down
+					if (joy_l(SC_BTN_LEFT) = '1') then kb_data(ZX_K_O) <= '1'; end if; -- left
+					if (joy_l(SC_BTN_RIGHT) = '1') then kb_data(ZX_K_P) <= '1'; end if; -- right
+					if (joy_l(SC_BTN_B) = '1') then kb_data(ZX_K_SP) <= '1'; end if; -- fire	
+				end if;
+				if joy_type_r = "101" then
+					if (joy_r(SC_BTN_UP) = '1') then kb_data(ZX_K_Q) <= '1'; end if; -- up
+					if (joy_r(SC_BTN_DOWN) = '1') then kb_data(ZX_K_A) <= '1'; end if; -- down
+					if (joy_r(SC_BTN_LEFT) = '1') then kb_data(ZX_K_O) <= '1'; end if; -- left
+					if (joy_r(SC_BTN_RIGHT) = '1') then kb_data(ZX_K_P) <= '1'; end if; -- right
+					if (joy_r(SC_BTN_B) = '1') then kb_data(ZX_K_SP) <= '1'; end if; -- fire					
+				end if;
+
+				
 				-- cleanup CS key when SS is marked
 				if (is_ss_used = '1' and is_cs_used = '0') then 
 					kb_data(ZX_K_CS) <= '0';
 				end if;
 							
+			end if;
+		end if;
+	end process;
+
+	-- map L/R joysticks to kempston joy bus 
+	process (RESET, CLK)
+	begin
+		if (RESET = '1') then 
+			joy_do <= (others => '0');
+		elsif rising_edge(CLK) then
+			if joy_type_l = "000" then 
+				joy_do(0) <= joy_l(SC_BTN_RIGHT);
+				joy_do(1) <= joy_l(SC_BTN_LEFT);
+				joy_do(2) <= joy_l(SC_BTN_DOWN);
+				joy_do(3) <= joy_l(SC_BTN_UP);
+				joy_do(4) <= joy_l(SC_BTN_B);
+				joy_do(5) <= joy_l(SC_BTN_A);
+				joy_do(6) <= joy_l(SC_BTN_X);
+				joy_do(7) <= joy_l(SC_BTN_Y);
+			elsif joy_type_r = "000" then
+				joy_do(0) <= joy_r(SC_BTN_RIGHT);
+				joy_do(1) <= joy_r(SC_BTN_LEFT);
+				joy_do(2) <= joy_r(SC_BTN_DOWN);
+				joy_do(3) <= joy_r(SC_BTN_UP);
+				joy_do(4) <= joy_r(SC_BTN_B);
+				joy_do(5) <= joy_r(SC_BTN_A);
+				joy_do(6) <= joy_r(SC_BTN_X);
+				joy_do(7) <= joy_r(SC_BTN_Y);
+			else
+				joy_do <= (others => '0');
 			end if;
 		end if;
 	end process;
