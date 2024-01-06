@@ -73,19 +73,11 @@ architecture rtl of hid_parser is
 	
 	signal data : std_logic_vector(47 downto 0);
 	
-	signal is_shift : std_logic := '0';
-	signal is_ctrl : std_logic := '0';
-	signal is_alt : std_logic := '0';
-	signal is_del : std_logic := '0';
-	signal is_cs_used : std_logic := '0';
-	signal is_ss_used : std_logic := '0';
-	signal is_esc : std_logic := '0';
-	signal is_bksp : std_logic := '0';
-	 
 	signal is_macros : std_logic := '0';
 	type macros_machine is (MACRO_START, MACRO_CS_ON, MACRO_SS_ON, MACRO_SS_OFF, MACRO_KEY, MACRO_CS_OFF, MACRO_END);
 	signal macros_key : matrix;
 	signal macros_state : macros_machine := MACRO_START;
+	signal macro_cnt : std_logic_vector(21 downto 0) := (others => '0');
 
 begin 
 
@@ -140,23 +132,26 @@ begin
 	end process;
 
 process (RESET, CLK)
+
+	variable is_shift : std_logic := '0';
+	variable is_cs_used : std_logic := '0';
+	variable is_ss_used : std_logic := '0';
+
 	begin
 		if RESET = '1' then
 			kb_data <= (others => '0');
-			is_shift <= '0';
-			is_ctrl <= '0';
-			is_alt <= '0';
-			is_del <= '0';
-			is_cs_used <= '0';
-			is_ss_used <= '0';
-			is_esc <= '0';
-			is_bksp <= '0';
+			is_shift := '0';
+			is_cs_used := '0';
+			is_ss_used := '0';
 			KEYCODE <= (others => '1');
+			macro_cnt <= (others => '0');
 			
 		elsif CLK'event and CLK = '1' then
 				
 			-- TODO: add delay (counter?) between presses
 			if is_macros = '1' then 
+					macro_cnt <= macro_cnt + 1;
+					if (macro_cnt = "1111111111111111111111") then 
 					case macros_state is 
 						when MACRO_START  => kb_data <= (others => '0'); macros_state <= MACRO_CS_ON;
 						when MACRO_CS_ON  => kb_data(ZX_K_CS) <= '1';    macros_state <= MACRO_SS_ON;
@@ -167,23 +162,27 @@ process (RESET, CLK)
 						when MACRO_END    => kb_data <= (others => '0'); is_macros <= '0';        macros_state <= MACRO_START;
 						when others => null;
 					end case;
+					end if;
 			else
-			
+				macro_cnt <= (others => '0');
 				kb_data <= (others => '0');
-				KEYCODE <= (others => '1');				
+				KEYCODE <= (others => '1');
+				is_shift := '0';
+				is_cs_used := '0';
+				is_ss_used := '0';
 				
 				-- L Shift -> CS
-				if KB_STATUS(1) = '1' then kb_data(ZX_K_CS) <= '1'; is_shift <= '1'; KEYCODE <= X"12"; end if;
+				if KB_STATUS(1) = '1' then kb_data(ZX_K_CS) <= '1'; is_shift := '1'; KEYCODE <= X"12"; end if;
 				-- R Shift -> CS
-				if KB_STATUS(5) = '1' then kb_data(ZX_K_CS) <= '1'; is_shift <= '1'; KEYCODE <= X"59"; end if;				
+				if KB_STATUS(5) = '1' then kb_data(ZX_K_CS) <= '1'; is_shift := '1'; KEYCODE <= X"59"; end if;				
 							
 				-- L Ctrl -> SS
-				if KB_STATUS(0) = '1' then kb_data(ZX_K_SS) <= '1'; is_ctrl <= '1'; KEYCODE <= X"14"; end if;
+				if KB_STATUS(0) = '1' then kb_data(ZX_K_SS) <= '1'; KEYCODE <= X"14"; end if;
 				-- R Ctrl -> SS
-				if KB_STATUS(4) = '1' then kb_data(ZX_K_SS) <= '1'; is_ctrl <= '1'; KEYCODE <= X"14"; end if;
+				if KB_STATUS(4) = '1' then kb_data(ZX_K_SS) <= '1'; KEYCODE <= X"14"; end if;
 							
 				-- Alt -> SS+CS
-				if KB_STATUS(2) = '1' or KB_STATUS(6) = '1' then kb_data(ZX_K_CS) <= '1'; kb_data(ZX_K_SS) <= '1'; is_alt <= '1'; is_cs_used <= '1'; KEYCODE <= X"11"; end if;
+				if KB_STATUS(2) = '1' or KB_STATUS(6) = '1' then kb_data(ZX_K_CS) <= '1'; kb_data(ZX_K_SS) <= '1'; is_cs_used := '1'; KEYCODE <= X"11"; end if;
 				
 				-- Win
 				if KB_STATUS(7) = '1' then KEYCODE <= x"27"; end if;
@@ -191,18 +190,18 @@ process (RESET, CLK)
 				for II in 0 to 5 loop		
 				case data((II+1)*8-1 downto II*8) is							
 					-- DEL -> SS + C
-					when X"4c" => kb_data(ZX_K_SS) <= '1'; kb_data(ZX_K_C) <= '1'; is_del <= '1';	KEYCODE <= x"71";				
+					when X"4c" => if (is_shift = '0') then kb_data(ZX_K_SS) <= '1'; kb_data(ZX_K_C) <= '1'; end if;	KEYCODE <= x"71";				
 					-- INS -> SS + A
-					when X"49" => kb_data(ZX_K_SS) <= '1'; kb_data(ZX_K_A) <= '1'; KEYCODE <= x"70";
+					when X"49" => if (is_shift = '0') then kb_data(ZX_K_SS) <= '1'; kb_data(ZX_K_A) <= '1'; end if; KEYCODE <= x"70";
 					-- Cursor -> CS + 5,6,7,8
-					when X"50" =>	kb_data(ZX_K_CS) <= '1'; kb_data(ZX_K_5) <= '1'; is_cs_used <= '1'; KEYCODE <= x"6b";
-					when X"51" =>	kb_data(ZX_K_CS) <= '1'; kb_Data(ZX_K_6) <= '1'; is_cs_used <= '1'; KEYCODE <= x"72";
-					when X"52" =>	kb_data(ZX_K_CS) <= '1'; kb_data(ZX_K_7) <= '1'; is_cs_used <= '1'; KEYCODE <= x"75";
-					when X"4f" =>	kb_data(ZX_K_CS) <= '1'; kb_data(ZX_K_8) <= '1'; is_cs_used <= '1'; KEYCODE <= x"74";
+					when X"50" =>	if (is_shift = '0') then kb_data(ZX_K_CS) <= '1'; kb_data(ZX_K_5) <= '1'; is_cs_used := '1'; end if; KEYCODE <= x"6b";
+					when X"51" =>	if (is_shift = '0') then kb_data(ZX_K_CS) <= '1'; kb_Data(ZX_K_6) <= '1'; is_cs_used := '1'; end if; KEYCODE <= x"72";
+					when X"52" =>	if (is_shift = '0') then kb_data(ZX_K_CS) <= '1'; kb_data(ZX_K_7) <= '1'; is_cs_used := '1'; end if; KEYCODE <= x"75";
+					when X"4f" =>	if (is_shift = '0') then kb_data(ZX_K_CS) <= '1'; kb_data(ZX_K_8) <= '1'; is_cs_used := '1'; end if; KEYCODE <= x"74";
 					-- ESC -> CS + Space 
-					when X"29" => kb_data(ZX_K_CS) <= '1'; kb_data(ZX_K_SP) <= '1'; is_cs_used <= '1'; is_esc <= '1'; KEYCODE <= x"76";					
+					when X"29" => kb_data(ZX_K_CS) <= '1'; kb_data(ZX_K_SP) <= '1'; is_cs_used := '1'; KEYCODE <= x"76";					
 					-- Backspace -> CS + 0
-					when X"2a" => kb_data(ZX_K_CS) <= '1'; kb_data(ZX_K_0) <= '1'; is_cs_used <= '1'; is_bksp <= '1'; KEYCODE <= x"66";
+					when X"2a" => kb_data(ZX_K_CS) <= '1'; kb_data(ZX_K_0) <= '1'; is_cs_used := '1'; KEYCODE <= x"66";
 					-- Enter
 					when X"28" =>	kb_data(ZX_K_ENT) <= '1'; KEYCODE <= x"5a"; -- normal
 					when X"58" =>  kb_data(ZX_K_ENT) <= '1'; KEYCODE <= x"5a"; -- keypad 					
@@ -259,33 +258,37 @@ process (RESET, CLK)
 					when X"62" =>	kb_data(ZX_K_0) <= '1'; KEYCODE <= x"45"; -- 0
 					-- Special keys 					
 					-- '/" -> SS+P / SS+7
-					when X"34" => kb_data(ZX_K_SS) <= '1'; KEYCODE <= x"52"; if is_shift = '1' then kb_data(ZX_K_P) <= '1'; else kb_data(ZX_K_7) <= '1'; end if; is_ss_used <= is_shift;					
+					when X"34" => kb_data(ZX_K_SS) <= '1'; KEYCODE <= x"52"; if is_shift = '1' then kb_data(ZX_K_P) <= '1'; else kb_data(ZX_K_7) <= '1'; end if; is_ss_used := is_shift;					
 					-- ,/< -> SS+N / SS+R
-					when X"36" => kb_data(ZX_K_SS) <= '1'; KEYCODE <= x"41"; if is_shift = '1' then kb_data(ZX_K_R) <= '1'; else kb_data(ZX_K_N) <= '1'; end if; is_ss_used <= is_shift;					
+					when X"36" => kb_data(ZX_K_SS) <= '1'; KEYCODE <= x"41"; if is_shift = '1' then kb_data(ZX_K_R) <= '1'; else kb_data(ZX_K_N) <= '1'; end if; is_ss_used := is_shift;					
 					-- ./> -> SS+M / SS+T
-					when X"37" => kb_data(ZX_K_SS) <= '1'; KEYCODE <= x"49"; if is_shift = '1' then kb_data(ZX_K_T) <= '1'; else kb_data(ZX_K_M) <= '1'; end if; is_ss_used <= is_shift;					
+					when X"37" => kb_data(ZX_K_SS) <= '1'; KEYCODE <= x"49"; if is_shift = '1' then kb_data(ZX_K_T) <= '1'; else kb_data(ZX_K_M) <= '1'; end if; is_ss_used := is_shift;					
 					-- ;/: -> SS+O / SS+Z
-					when X"33" => kb_data(ZX_K_SS) <= '1'; KEYCODE <= x"4c"; if is_shift = '1' then kb_data(ZX_K_Z) <= '1'; else kb_data(ZX_K_O) <= '1'; end if; is_ss_used <= is_shift;					
+					when X"33" => kb_data(ZX_K_SS) <= '1'; KEYCODE <= x"4c"; if is_shift = '1' then kb_data(ZX_K_Z) <= '1'; else kb_data(ZX_K_O) <= '1'; end if; is_ss_used := is_shift;					
+					
+					-- Macroses
 					-- [,{ -> SS+Y / SS+F
 					when X"2F" => is_macros <= '1'; KEYCODE <= x"54"; if is_shift = '1' then macros_key <= ZX_K_F; else macros_key <= ZX_K_Y; end if; 					
 					-- ],} -> SS+U / SS+G
 					when X"30" => is_macros <= '1'; KEYCODE <= x"5b"; if is_shift = '1' then macros_key <= ZX_K_G; else macros_key <= ZX_K_U; end if; 					
+					
 					-- /,? -> SS+V / SS+C
-					when X"38" => kb_data(ZX_K_SS) <= '1'; KEYCODE <= x"4a"; if is_shift = '1' then kb_data(ZX_K_C) <= '1'; else kb_data(ZX_K_V) <= '1'; end if; is_ss_used <= is_shift;					
+					when X"38" => kb_data(ZX_K_SS) <= '1'; KEYCODE <= x"4a"; if is_shift = '1' then kb_data(ZX_K_C) <= '1'; else kb_data(ZX_K_V) <= '1'; end if; is_ss_used := is_shift;					
 					-- \,| -> SS+D / SS+S
 					when X"31" => is_macros <= '1'; KEYCODE <= x"5d"; if is_shift = '1' then macros_key <= ZX_K_S; else macros_key <= ZX_K_D; end if; 					
 					-- =,+ -> SS+L / SS+K
-					when X"2E" => kb_data(ZX_K_SS) <= '1'; KEYCODE <= x"55"; if is_shift = '1' then kb_data(ZX_K_K) <= '1'; else kb_data(ZX_K_L) <= '1'; end if; is_ss_used <= is_shift;					
+					when X"2E" => kb_data(ZX_K_SS) <= '1'; KEYCODE <= x"55"; if is_shift = '1' then kb_data(ZX_K_K) <= '1'; else kb_data(ZX_K_L) <= '1'; end if; is_ss_used := is_shift;					
 					-- -,_ -> SS+J / SS+0
-					when X"2D" => kb_data(ZX_K_SS) <= '1'; KEYCODE <= x"4e"; if is_shift = '1' then kb_data(ZX_K_0) <= '1'; else kb_data(ZX_K_J) <= '1'; end if; is_ss_used <= is_shift;
+					when X"2D" => kb_data(ZX_K_SS) <= '1'; KEYCODE <= x"4e"; if is_shift = '1' then kb_data(ZX_K_0) <= '1'; else kb_data(ZX_K_J) <= '1'; end if; is_ss_used := is_shift;
 					-- `,~ -> SS+X / SS+A
 					when X"35" => 
 						KEYCODE <= x"0e";
 						if (is_shift = '1') then 
 							is_macros <= '1'; macros_key <= ZX_K_A; 
 						else
-							kb_data(ZX_K_SS) <= '1'; kb_data(ZX_K_X) <= '1'; is_ss_used <= '1';
+							kb_data(ZX_K_SS) <= '1'; kb_data(ZX_K_X) <= '1'; 
 						end if;
+						is_ss_used := '1';
 					-- Keypad * -> SS+B
 					when X"55" => kb_data(ZX_K_SS) <= '1'; kb_data(ZX_K_B) <= '1'; 					
 					-- Keypad - -> SS+J
@@ -293,13 +296,13 @@ process (RESET, CLK)
 					-- Keypad + -> SS+K
 					when X"57" => kb_data(ZX_K_SS) <= '1'; kb_data(ZX_K_K) <= '1';					
 					-- Tab -> CS + I
-					when X"2B" => kb_data(ZX_K_CS) <= '1'; kb_data(ZX_K_I) <= '1'; is_cs_used <= '1'; KEYCODE <= x"0d";				
+					when X"2B" => kb_data(ZX_K_CS) <= '1'; kb_data(ZX_K_I) <= '1'; is_cs_used := '1'; KEYCODE <= x"0d";				
 					-- CapsLock -> CS + SS
-					when X"39" => kb_data(ZX_K_SS) <= '1'; kb_data(ZX_K_CS) <= '1'; is_cs_used <= '1'; KEYCODE <= x"58";
+					when X"39" => kb_data(ZX_K_SS) <= '1'; kb_data(ZX_K_CS) <= '1'; is_cs_used := '1'; KEYCODE <= x"58";
 					-- PgUp -> CS+3 for ZX
-					when X"4B" => kb_data(ZX_K_CS) <= '1'; kb_data(ZX_K_3) <= '1'; is_cs_used <= '1'; KEYCODE <= x"7d";
+					when X"4B" => kb_data(ZX_K_CS) <= '1'; kb_data(ZX_K_3) <= '1'; is_cs_used := '1'; KEYCODE <= x"7d";
 					-- PgDown -> CS+4 for ZX
-					when X"4E" => kb_data(ZX_K_CS) <= '1'; kb_data(ZX_K_4) <= '1'; is_cs_used <= '1'; KEYCODE <= x"7a";
+					when X"4E" => kb_data(ZX_K_CS) <= '1'; kb_data(ZX_K_4) <= '1'; is_cs_used := '1'; KEYCODE <= x"7a";
 					
 					-- Fx keys
 					when X"3a" =>	KEYCODE <= x"05";	-- F1
