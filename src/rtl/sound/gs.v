@@ -1,4 +1,4 @@
-`default_nettype wire
+`default_nettype none
 /*
 
   -----------------------------------------------------------------------------
@@ -70,27 +70,27 @@
 
 module gs
 (
-	input         RESET,
-	input         CLK,
-	input         CE_N,
-	input         CE_P,
+	input wire        RESET,
+	input wire        CLK,
+	input wire        CE_N,
+	input wire        CE_P,
 
-	input         A,
-	input   [7:0] DI,
-	output  [7:0] DO,
-	input         CS_n, 
-	input         WR_n,
-	input         RD_n,
+	input wire        A,
+	input wire  [7:0] DI,
+	output wire [7:0] DO,
+	input wire        CS_n, 
+	input wire        WR_n,
+	input wire        RD_n,
 
-	output [20:0] MEM_ADDR,
-	output  [7:0] MEM_DI,
-	input   [7:0] MEM_DO,
-	output        MEM_RD,
-	output        MEM_WR,
-	input         MEM_WAIT,
+	output wire [20:0] MEM_ADDR,
+	output wire [7:0] MEM_DI,
+	input  wire [7:0] MEM_DO,
+	output wire       MEM_RD,
+	output wire       MEM_WR,
+	input  wire       MEM_WAIT,
 
-	output [14:0] OUTL,
-	output [14:0] OUTR
+	output wire [14:0] OUTL,
+	output wire [14:0] OUTR
 );
 
 parameter INT_DIV = 291;
@@ -214,8 +214,7 @@ always @(posedge CLK) begin
 	end
 end
 
-//wire [7:0] cpu_di_bus;
-assign cpu_di_bus =
+wire [7:0] cpu_di_bus =
 	mem_rd                                            ? MEM_DO  :
 	(~cpu_iorq_n && ~cpu_rd_n && cpu_a_bus[3:0] == 1) ? port_BB :
 	(~cpu_iorq_n && ~cpu_rd_n && cpu_a_bus[3:0] == 2) ? port_B3 :

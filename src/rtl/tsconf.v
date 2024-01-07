@@ -1289,7 +1289,7 @@ assign cpu_di_bus =
 		ena_ram    															?	dout_ram 			:	// SDRAM
 		(ts_enable && ~cpu_rd_n)										?	ts_do					:	// TurboSound
 		(~zifi_oe_n)														?  zifi_do_bus       :  // zifi
-        (gs_oe)                                                             ? gs_do_bus : // gs
+      (gs_oe)																?  gs_do_bus 			:  // gs
 		(fdc_oe)																?  fdc_do_bus 			:  // floppy
 		(ena_ports)															?	dout_ports			:  // zports
 		(intack)																?	im2vect 				:

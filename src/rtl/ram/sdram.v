@@ -1,4 +1,4 @@
-`default_nettype wire
+`default_nettype none
 //
 // sdram.v
 //
@@ -28,31 +28,31 @@ module sdram (
 	output reg        SDRAM_DQML, // two byte masks
 	output reg        SDRAM_DQMH, // two byte masks
 	output reg [1:0]  SDRAM_BA,   // two banks
-	output            SDRAM_nCS,  // a single chip select
-	output            SDRAM_nWE,  // write enable
-	output            SDRAM_nRAS, // row address select
-	output            SDRAM_nCAS, // columns address select
+	output wire           SDRAM_nCS,  // a single chip select
+	output wire           SDRAM_nWE,  // write enable
+	output wire           SDRAM_nRAS, // row address select
+	output wire           SDRAM_nCAS, // columns address select
 
 	// cpu/chipset interface
-	input             init_n,     // init signal after FPGA config to initialize RAM
-	input             clk,        // sdram clock
-	input             clkref,
+	input wire            init_n,     // init signal after FPGA config to initialize RAM
+	input wire            clk,        // sdram clock
+	input wire            clkref,
 
-	input             port1_req,
-	output            port1_ack,
-	input             port1_we,
-	input      [23:1] port1_a,
-	input       [1:0] port1_ds,
-	input      [15:0] port1_d,
-	output     [15:0] port1_q,
+	input wire            port1_req,
+	output wire           port1_ack,
+	input wire            port1_we,
+	input wire     [23:1] port1_a,
+	input wire      [1:0] port1_ds,
+	input wire     [15:0] port1_d,
+	output wire    [15:0] port1_q,
 
-	input             port2_req,
-	output            port2_ack,
-	input             port2_we,
-	input      [23:1] port2_a,
-	input       [1:0] port2_ds,
-	input      [15:0] port2_d,
-	output     [15:0] port2_q
+	input wire            port2_req,
+	output wire           port2_ack,
+	input wire            port2_we,
+	input wire     [23:1] port2_a,
+	input wire      [1:0] port2_ds,
+	input wire     [15:0] port2_d,
+	output wire    [15:0] port2_q
 );
 
 localparam RASCAS_DELAY   = 3'd3;   // tRCD=20ns -> 2 cycles@<=100MHz, 3 cycles@>100MHz
