@@ -116,15 +116,6 @@ module karabas_go_top (
 	output wire MCU_MISO	
    );
 
-	// todo: sdram
-	assign SDR_BA = 2'b0;
-	assign SDR_A = 13'b0;
-	assign SDR_CLK = 1'b0;
-	assign SDR_DQM = 2'b0;
-	assign SDR_WE_N = 1'b1;
-	assign SDR_CAS_N = 1'b1;
-	assign SDR_RAS_N = 1'b1;
-
 	// todo: esp control
 	assign ESP_RESET_N = 1'bZ;
 	assign ESP_BOOT_N = 1'bZ;	
@@ -294,9 +285,17 @@ module karabas_go_top (
 	  .fdc_ds(FDC_DRIVE),
 	  
 	  .loader_act(loader_act),
-	  .loader_a(loader_addr[15:0]),
+	  .loader_a(loader_addr),
 	  .loader_d(loader_data),
-	  .loader_wr(loader_wr)
+	  .loader_wr(loader_wr),
+
+      .sdram_ba(SDR_BA),
+      .sdram_a(SDR_A),
+      .sdram_dqm(SDR_DQM),
+      .sdram_we_n(SDR_WE_N),
+      .sdram_cas_n(SDR_CAS_N),
+      .sdram_ras_n(SDR_RAS_N),
+      .sdram_dq(SDR_DQ)
 	  
 	 );
 	 
@@ -470,6 +469,18 @@ overlay overlay(
 	.OSD_VS(osd_vs),
 	.OSD_ACTIVE(osd_active),
 	.OSD_COMMAND(osd_command)
+);
+
+ODDR2 ODDR2_inst
+(
+	.Q(SDR_CLK),
+	.C0(clk_sys),
+	.C1(~clk_sys),
+	.CE(1'b1),
+	.D0(1'b1),
+	.D1(1'b0),
+	.R(1'b0),
+	.S(1'b0)
 );
 
 endmodule

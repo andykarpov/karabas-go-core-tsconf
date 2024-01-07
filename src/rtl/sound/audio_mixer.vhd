@@ -32,6 +32,9 @@ entity audio_mixer is
 
         saa_l: in std_logic_vector(7 downto 0);
         saa_r: in std_logic_vector(7 downto 0);
+		  
+		  gs_l : in std_logic_vector(15 downto 0);
+		  gs_r : in std_logic_vector(15 downto 0);
 
         audio_l : out std_logic_vector(15 downto 0);
         audio_r : out std_logic_vector(15 downto 0)
@@ -61,7 +64,9 @@ begin
 				        ("0000"  & covox_d &       "0000") + 
 				        ("0000"  & covox_fb &      "0000") + 
 				        ("0000"  & saa_l &         "0000") + 				
-				        ("0000"  & saa_r &         "0000");
+				        ("0000"  & saa_r &         "0000") + 
+						  gs_l + 
+						  gs_r;
 						  
 		  -- mute
 		  if mute = '1' then 
@@ -84,7 +89,8 @@ begin
 				        ("000"  & covox_a &       "00000") + 
 				        ("000"  & covox_b &       "00000") + 
 				        ("000"  & covox_fb &      "00000") + 
-				        ("000"  & saa_l  &        "00000");
+				        ("000"  & saa_l  &        "00000") + 
+						  gs_l;
 			audio_r <= ("000" & speaker & "000000000000") + -- ACB: R = B + C/2
 				        ("00000" & tape_in & "0000000000") +	
 				        ("000"  & ssg0_b &        "00000") + 
@@ -94,7 +100,8 @@ begin
 				        ("000"  & covox_c &       "00000") + 
 				        ("000"  & covox_d &       "00000") + 
 				        ("000"  & covox_fb &      "00000") + 
-				        ("000"  & saa_r &         "00000");
+				        ("000"  & saa_r &         "00000") +
+						  gs_r;
 		  -- ABC
 		  else 
 		   audio_l <= ("000" & speaker & "000000000000") +  -- ABC: L = A + B/2
@@ -106,7 +113,8 @@ begin
 				        ("000"  & covox_a &       "00000") + 
 				        ("000"  & covox_b &       "00000") + 
 				        ("000"  & covox_fb &      "00000") + 
-				        ("000"  & saa_l  &        "00000");
+				        ("000"  & saa_l  &        "00000") +
+						  gs_l;
 			audio_r <= ("000" & speaker & "000000000000") + -- ABC: R = C + B/2
 				        ("00000" & tape_in & "0000000000") +	
 				        ("000"  & ssg0_c &        "00000") + 
@@ -116,7 +124,8 @@ begin
 				        ("000"  & covox_c &       "00000") + 
 				        ("000"  & covox_d &       "00000") + 
 				        ("000"  & covox_fb &      "00000") + 
-				        ("000"  & saa_r &         "00000");
+				        ("000"  & saa_r &         "00000") +
+						  gs_r;
 		  end if;
     end if;
 end process;

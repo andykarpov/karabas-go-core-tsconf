@@ -8,7 +8,8 @@
     "order": 3,
     "eeprom_bank": 0,
     "roms": [
-        {"filename": "roms/ts-bios.rom", "address": 0}
+        {"filename": "roms/ts-bios.rom", "address": 0},
+        {"filename": "roms/gs105a.rom", "address": 2147483648}
     ],
     "osd": [
         {"type": "S", "bits": 1, "name": "Covox", "options": ["Off", "On"], "default": 1, "hotkey": "Menu+F6"},
