@@ -1370,6 +1370,21 @@ Firefly_FDC fdc
 	.oFDC_DS()
 );	
 
+// gs cpu clock 14 mhz
+
+wire clk_gs;
+reg ce_14m;
+	always @(negedge clk) 
+	begin
+		ce_14m <= !ce_14m;
+	end
+
+BUFGCE U_BUFG21 (
+.O(clk_gs),
+.I(clk),
+.CE(ce_14m)
+);
+
 // gs
 
 wire gs_oe;
@@ -1380,6 +1395,7 @@ gs_top gs_top
 (
     .clk_sys(clk),
     .clk_bus(clk_bus),
+    .clk_gs(clk_gs),
     .reset(rst),
     .areset(~locked),
 
