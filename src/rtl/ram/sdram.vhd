@@ -40,6 +40,20 @@ entity sdram is
 end sdram;
 
 architecture rtl of sdram is
+
+  component ODDR2
+  port(
+          D0	: in std_logic;
+          D1	: in std_logic;
+          C0	: in std_logic;
+          C1	: in std_logic;
+          Q	: out std_logic;
+          CE    : in std_logic;
+          S     : in std_logic;
+          R	: in std_logic
+    );
+  end component;
+
 	signal state 		: unsigned(4 downto 0) := "00000";
 	signal address 		: std_logic_vector(24 downto 0);
 	signal rfsh_cnt 	: unsigned(9 downto 0) := "0000000000";
@@ -72,7 +86,7 @@ architecture rtl of sdram is
 begin
 	process (CLK)
 	begin
-		if CLK'event and CLK = '0' then
+		if CLK'event and CLK = '1' then
 			temp <= RD & WR & RFSH;
 			case state is
 				-- Init
@@ -162,7 +176,7 @@ begin
 	
 	process (CLK, state, DQ, data_reg, idle1)
 	begin
-		if CLK'event and CLK = '1' and idle1 = '0' then
+		if CLK'event and CLK = '0' and idle1 = '0' then
 			if state = "10100" then					-- s14
 				if address(0) = '0' then
 					data_reg <= DQ(7 downto 0);
@@ -176,7 +190,6 @@ begin
 	IDLE	<= idle1;
 	DO 		<= data_reg;
 	RFSHREQ	<= rfsh_req;
-	CK 		<= CLK;
 	RAS_n 	<= sdr_cmd(2);
 	CAS_n 	<= sdr_cmd(1);
 	WE_n 	<= sdr_cmd(0);
@@ -185,5 +198,17 @@ begin
 	BA	 	<= sdr_ba;
 	MA 		<= sdr_a;
 	DQ 		<= sdr_dq;
+	
+u_ddr: ODDR2 -- negative clock
+port map(
+	Q => CK,
+	C0 => CLK,
+	C1 => not(CLK),
+	CE => '1',
+	D0 => '0',
+	D1 => '1',
+	R => '0',
+	S => '0'
+);
 
 end rtl;

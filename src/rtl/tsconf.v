@@ -107,6 +107,7 @@ module tsconf
 	input wire loader_wr,
 
     // sdram
+	output wire        sdram_clk,
 	inout wire [15:0]  sdram_dq,
 	output wire [12:0] sdram_a,
 	output wire [1:0]  sdram_dqm,
@@ -1372,14 +1373,17 @@ Firefly_FDC fdc
 
 // gs cpu clock 14 mhz
 
-wire clk_gs;
 reg ce_14m;
-	always @(negedge clk) 
-	begin
-		ce_14m <= !ce_14m;
-	end
+wire clk_gs;
+reg [2:0] div14 = 3'd0;
+always @(negedge clk) 
+begin
+	div14 <= div14 + 1'd1;
+	if(div14 == 5) div14 <= 0;
+	ce_14m <= !div14;
+end
 
-BUFGCE U_BUFG21 (
+BUFGCE U_BUFG14 (
 .O(clk_gs),
 .I(clk),
 .CE(ce_14m)
@@ -1389,7 +1393,7 @@ BUFGCE U_BUFG21 (
 
 wire gs_oe;
 wire [7:0] gs_do_bus;
-wire [15:0] gs_out_l, gs_out_r;
+wire [8:0] gs_out_l, gs_out_r;
 
 gs_top gs_top
 (
@@ -1410,6 +1414,7 @@ gs_top gs_top
     .oe(gs_oe),
     .do_bus(gs_do_bus),
 
+	 .sdram_clk(sdram_clk),
     .sdram_dq(sdram_dq),
     .sdram_a(sdram_a),
     .sdram_dqm(sdram_dqm),

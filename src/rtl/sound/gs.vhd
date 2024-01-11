@@ -87,10 +87,10 @@ entity gs is
 		IORQ_n		: in std_logic;
 		M1_n		: in std_logic;
 
-		OUTA		: out std_logic_vector(13 downto 0);
-		OUTB		: out std_logic_vector(13 downto 0);
-		OUTC		: out std_logic_vector(13 downto 0);
-		OUTD		: out std_logic_vector(13 downto 0);
+		OUTA		: out std_logic_vector(7 downto 0);
+		OUTB		: out std_logic_vector(7 downto 0);
+		OUTC		: out std_logic_vector(7 downto 0);
+		OUTD		: out std_logic_vector(7 downto 0);
 
 		MA			: out std_logic_vector(20 downto 0);
 		MDI			: in std_logic_vector(7 downto 0);
@@ -118,10 +118,10 @@ architecture gs_unit of gs is
 	signal cnt				: std_logic_vector(9 downto 0);
 	signal int_n			: std_logic;
 	signal mem				: std_logic_vector(6 downto 0);
-	signal out_a			: std_logic_vector(13 downto 0);
-	signal out_b			: std_logic_vector(13 downto 0);
-	signal out_c			: std_logic_vector(13 downto 0);
-	signal out_d			: std_logic_vector(13 downto 0);
+	signal ch_a_u			: std_logic_vector(7 downto 0);
+	signal ch_b_u			: std_logic_vector(7 downto 0);
+	signal ch_c_u			: std_logic_vector(7 downto 0);
+	signal ch_d_u			: std_logic_vector(7 downto 0);
 	
 	-- CPU
 	signal cpu_m1_n			: std_logic;
@@ -273,15 +273,47 @@ cpu_di_bus <=	MDI when (cpu_mreq_n = '0' and cpu_rd_n = '0') else
 				port_xxb3_reg when (cpu_iorq_n = '0' and cpu_rd_n = '0' and cpu_a_bus(3 downto 0) = X"2") else
 				"11111111";
 
-process (CLK)
-begin
-    if rising_edge(CLK) then
-        OUTA 	<= ch_a_reg * port_xx06_reg;
-        OUTB 	<= ch_b_reg * port_xx07_reg;
-        OUTC 	<= ch_c_reg * port_xx08_reg;
-        OUTD 	<= ch_d_reg * port_xx09_reg;
-    end if;
-end process;
+-- signed => unsigned
+ch_a_u <= ch_a_reg when ch_a_reg(7) = '0' else '0' & not(ch_a_reg(6 downto 0)) + 1;
+ch_b_u <= ch_b_reg when ch_b_reg(7) = '0' else '0' & not(ch_b_reg(6 downto 0)) + 1;
+ch_c_u <= ch_c_reg when ch_c_reg(7) = '0' else '0' & not(ch_c_reg(6 downto 0)) + 1;
+ch_d_u <= ch_d_reg when ch_d_reg(7) = '0' else '0' & not(ch_d_reg(6 downto 0)) + 1;
+
+-- Channel A volume controlled output
+att_a: entity work.attenuator
+port map (
+	clk => CLK,
+	signal_in => ch_a_u,
+	att => port_xx06_reg,
+	att_out => OUTA
+);
+
+-- Channel B volume controlled output
+att_b: entity work.attenuator
+port map (
+	clk => CLK,
+	signal_in => ch_b_u,
+	att => port_xx07_reg,
+	att_out => OUTB
+);
+
+-- Channel C volume controlled output
+att_c: entity work.attenuator
+port map (
+	clk => CLK,
+	signal_in => ch_c_u,
+	att => port_xx08_reg,
+	att_out => OUTC
+);
+
+-- Channel D volume controlled output
+att_d: entity work.attenuator
+port map (
+	clk => CLK,
+	signal_in => ch_d_u,
+	att => port_xx09_reg,
+	att_out => OUTD
+);
 
 MA		<= mem & cpu_a_bus(13 downto 0);
 MDO 	<= cpu_do_bus;

@@ -26,10 +26,11 @@ module gs_top (
     output wire [7:0]      do_bus,
 
 	// interface to the MT48LC16M16 chip
-	inout  wire [15:0]     sdram_dq,
-	output wire [12:0]     sdram_a,
-	output wire [1:0]      sdram_dqm,
-	output wire [1:0]      sdram_ba,
+	output wire 			 sdram_clk,
+	inout  wire [15:0]    sdram_dq,
+	output wire [12:0]    sdram_a,
+	output wire [1:0]     sdram_dqm,
+	output wire [1:0]     sdram_ba,
 	output wire           sdram_we_n,
 	output wire           sdram_ras_n,
 	output wire           sdram_cas_n,
@@ -41,8 +42,8 @@ module gs_top (
 	input wire            loader_wr,
 
     // sound output
-	output wire [15:0] out_l,
-	output wire [15:0] out_r
+	output wire [8:0] out_l,
+	output wire [8:0] out_r
 
 );
 
@@ -54,8 +55,8 @@ wire  [7:0] gs_mem_din;
 wire        gs_mem_rd_n;
 wire        gs_mem_wr_n;
 
-wire [14:0] gs_l, gs_r;
-wire [14:0] out_a, out_b, out_c, out_d;
+wire [8:0] gs_l, gs_r;
+wire [7:0] out_a, out_b, out_c, out_d;
 
 gs gs 
 (
@@ -99,26 +100,6 @@ assign sdr_a = (loader_act & loader_a[31]) ? {10'b0000000000, loader_a[14:0]} : 
 assign sdr_di = (loader_act & loader_a[31]) ? loader_d : gs_mem_dout;
 assign gs_mem_din = sdr_do;
 
-// does not fit :(
-
-/*assign sdr_wr = ~gs_mem_wr_n;
-assign sdr_rd = ~gs_mem_rd_n;
-assign sdr_a = {4'b0000, gs_mem_addr};
-assign sdr_di = gs_mem_dout;
-assign gs_mem_din = gs_mem_addr[20:15] == 6'b000000 ? gs_rom_dout : sdr_do;
-
-gsrom gsrom
-(
-	.clka(clk_bus),
-	.wea(loader_act & loader_wr & loader_a[31]),
-	.addra(loader_a[14:0]),
-	.dina(loader_d),
-	
-	.clkb(clk_gs),
-	.addrb(gs_mem_addr[14:0]),
-	.doutb(gs_rom_dout)
-);*/
-
 sdram sdram
 (
     .CLK(clk_sys),
@@ -132,7 +113,7 @@ sdram sdram
     .RFSHREQ(),
     .IDLE(),
     
-    .CK(),
+    .CK(sdram_clk),
     .RAS_n(sdram_ras_n),
     .CAS_n(sdram_cas_n),
     .WE_n(sdram_we_n),
@@ -147,7 +128,7 @@ sdram sdram
 assign gs_l = out_a + out_b;
 assign gs_r = out_c + out_d;
 
-assign out_l = {1'b0, ~gs_l[14], gs_l[13:0]};
-assign out_r = {1'b0, ~gs_r[14], gs_r[13:0]};
+assign out_l = gs_l;
+assign out_r = gs_r;
 
 endmodule

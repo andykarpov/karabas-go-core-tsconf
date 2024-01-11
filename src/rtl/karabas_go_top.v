@@ -289,6 +289,7 @@ module karabas_go_top (
 	  .loader_d(loader_data),
 	  .loader_wr(loader_wr),
 
+		.sdram_clk(SDR_CLK),
       .sdram_ba(SDR_BA),
       .sdram_a(SDR_A),
       .sdram_dqm(SDR_DQM),
@@ -469,18 +470,6 @@ overlay overlay(
 	.OSD_VS(osd_vs),
 	.OSD_ACTIVE(osd_active),
 	.OSD_COMMAND(osd_command)
-);
-
-ODDR2 ODDR2_inst
-(
-	.Q(SDR_CLK),
-	.C0(clk_sys),
-	.C1(~clk_sys),
-	.CE(1'b1),
-	.D0(1'b1),
-	.D1(1'b0),
-	.R(1'b0),
-	.S(1'b0)
 );
 
 endmodule
