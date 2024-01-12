@@ -6,6 +6,7 @@
 -- V1.0.0	31.03.2014	Первая версия SDRAM 8 Meg x  8 x 4 banks
 -- V2.0.0	23.07.2014	Доработано до SDRAM 4 Meg x 16 x 4 banks
 -- V2.1.0	24.07.2014	Убран temp
+--          12.01.2024  Removed auto-refresh
 
 -- CLK		= 84 MHz	= 11,9047619047619 ns
 -- WR/RD	= 6T		= 71,42857142857143 ns
@@ -111,7 +112,7 @@ begin
 					sdr_dq <= (others => 'Z');
 					idle1 <= '1';
 					if temp(2) /= RD and RD = '1' then					
---					if RD = '1' then
+					--if RD = '1' then
 						idle1 <= '0';
 						address <= A;
 						sdr_cmd <= SdrCmd_ac;		-- ACTIVE
@@ -120,7 +121,7 @@ begin
 						state <= "10101";			-- s15 Read
 
 					elsif temp(1) /= WR and WR = '1' then
---					elsif WR = '1' then
+					--elsif WR = '1' then
 						idle1 <= '0';
 						address <= A;
 						data <= DI;
@@ -130,7 +131,7 @@ begin
 						state <= "10111";			-- s17 Write
 
 					elsif temp(0) /= RFSH and RFSH = '1' then
---					elsif RFSH = '1' then
+					--elsif RFSH = '1' then
 						idle1 <= '0';
 						rfsh_req <= '0';
 						sdr_cmd <= SdrCmd_re;		-- REFRESH
@@ -164,12 +165,12 @@ begin
 			end case;
 
 			-- Providing a distributed AUTO REFRESH command every 7.81us
-			if rfsh_cnt = "1010010001" then			-- (CLK MHz * 1000 * 64 / 8192) = 657 %10 1001 0001
-				rfsh_cnt <= (others => '0');
-				rfsh_req <= '1';
-			else
-				rfsh_cnt <= rfsh_cnt + 1;
-			end if;
+			--if rfsh_cnt = "1010010001" then			-- (CLK MHz * 1000 * 64 / 8192) = 657 %10 1001 0001
+			--	rfsh_cnt <= (others => '0');
+			--	rfsh_req <= '1';
+			--else
+			--	rfsh_cnt <= rfsh_cnt + 1;
+			--end if;
 		
 		end if;
 	end process;

@@ -1375,17 +1375,14 @@ Firefly_FDC fdc
 
 reg ce_14m;
 wire clk_gs;
-reg [2:0] div14 = 3'd0;
-always @(negedge clk) 
+always @(negedge clk_bus)
 begin
-	div14 <= div14 + 1'd1;
-	if(div14 == 5) div14 <= 0;
-	ce_14m <= !div14;
+	ce_14m <= !ce_14m;
 end
 
 BUFGCE U_BUFG14 (
 .O(clk_gs),
-.I(clk),
+.I(clk_bus),
 .CE(ce_14m)
 );
 
