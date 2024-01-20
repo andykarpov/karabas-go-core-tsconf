@@ -119,7 +119,6 @@ module karabas_go_top (
 	// todo: esp control
 	assign ESP_RESET_N = 1'bZ;
 	assign ESP_BOOT_N = 1'bZ;	
-	assign UART_CTS = 1'bZ;
 	
 	assign BEEPER = audio_beeper;
 	
@@ -252,7 +251,7 @@ module karabas_go_top (
 	  
 	  .uart_rx(UART_RX),
 	  .uart_tx(UART_TX),
-	  .uart_cts(),
+	  .uart_cts(UART_CTS),
 	  
 	  .ide_d(WD),
 	  .ide_rs_n(WRESET_N),

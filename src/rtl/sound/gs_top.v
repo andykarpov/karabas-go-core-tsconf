@@ -8,7 +8,7 @@ module gs_top (
     // clocks
     input wire            clk_sys,
     input wire            clk_bus,
-    input wire            clk_gs,
+    input wire            ce,
     input wire            reset,
     input wire            areset,
 
@@ -62,7 +62,7 @@ gs gs
 (
     .RESET(reset),
     .CLK(clk_bus),
-    .CLKGS(clk_gs), 
+    .CE(ce), 
     
     .A(a),
     .DI(di),

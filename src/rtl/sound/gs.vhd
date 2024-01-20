@@ -76,7 +76,7 @@ entity gs is
 	Port ( 
 		RESET		: in std_logic;
 		CLK			: in std_logic;
-		CLKGS		: in std_logic;
+		CE				: in std_logic;
 
 		A			: in std_logic_vector(15 downto 0);
 		DI			: in std_logic_vector(7 downto 0);
@@ -143,8 +143,8 @@ generic map (
 	IOWait		=> 1)	-- 0 => Single cycle I/O, 1 => Std I/O cycle
 port map(
 	RESET_n		=> not RESET,
-	CLK		=> CLKGS,
-	CEN 		=> '1',
+	CLK		=> CLK,
+	CEN 		=> CE,
 	WAIT_n		=> '1',
 	INT_n		=> int_n,
 	NMI_n		=> '1',
@@ -161,9 +161,9 @@ port map(
 	DI			=> cpu_di_bus,
 	DO			=> cpu_do_bus);
 	
-process (CLKGS, cnt)
+process (CLK, CE, cnt)
 begin
-	if CLKGS'event and CLKGS = '1' then
+	if CLK'event and CLK = '1' and CE = '1' then
 		cnt <= cnt + 1;
 		if cnt = "0101110101" then	-- 14MHz / 373 = 0.0375MHz = 37.5kHz
 			cnt <= (others => '0');
@@ -172,37 +172,37 @@ begin
 end process;
 
 -- INT#
-process (CLKGS, cpu_iorq_n, cpu_m1_n, cnt)
+process (CLK, CE, cpu_iorq_n, cpu_m1_n, cnt)
 begin
 	if cpu_iorq_n = '0' and cpu_m1_n = '0' then
 		int_n <= '1';
-	elsif CLKGS'event and CLKGS = '1' then
+	elsif CLK'event and CLK = '1' and CE = '1' then
 		if cnt = "0101110101" then
 			int_n <= '0';
 		end if;
 	end if;
 end process;
 
-process (CLKGS, cpu_iorq_n, cpu_m1_n, cpu_a_bus, IORQ_n, RD_n, A, WR_n)
+process (CLK, CE, cpu_iorq_n, cpu_m1_n, cpu_a_bus, IORQ_n, RD_n, A, WR_n)
 begin
 	if (cpu_iorq_n = '0' and cpu_m1_n = '1' and cpu_a_bus(3 downto 0) = X"2") or (IORQ_n = '0' and RD_n = '0' and A(7 downto 0) = X"B3") then
 		bit7_flag <= '0';
 	elsif (cpu_iorq_n = '0' and cpu_m1_n = '1' and cpu_a_bus(3 downto 0) = X"3") or (IORQ_n = '0' and WR_n = '0' and A(7 downto 0) = X"B3") then
 		bit7_flag <= '1';
-	elsif CLKGS'event and CLKGS = '1' then
+	elsif CLK'event and CLK = '1' and CE = '1' then
 		if (cpu_iorq_n = '0' and cpu_m1_n = '1' and cpu_a_bus(3 downto 0) = X"A") then
 			bit7_flag <= not port_xx00_reg(0);
 		end if;
 	end if;
 end process;
 
-process (CLKGS, cpu_iorq_n, cpu_m1_n, cpu_a_bus, IORQ_n, RD_n, A, WR_n)
+process (CLK, CE, cpu_iorq_n, cpu_m1_n, cpu_a_bus, IORQ_n, RD_n, A, WR_n)
 begin
 	if cpu_iorq_n = '0' and cpu_m1_n = '1' and cpu_a_bus(3 downto 0) = X"5" then
 		bit0_flag <= '0';
 	elsif IORQ_n = '0' and WR_n = '0' and A(7 downto 0) = X"BB" then
 		bit0_flag <= '1';
-	elsif CLKGS'event and CLKGS = '1' then
+	elsif CLK'event and CLK = '1' and CE = '1' then
 		if (cpu_iorq_n = '0' and cpu_m1_n = '1' and cpu_a_bus(3 downto 0) = X"B") then
 			bit0_flag <= port_xx06_reg(5);
 		end if;
@@ -231,7 +231,7 @@ begin
 	end if;
 end process;
 
-process (CLKGS, RESET, cpu_a_bus, cpu_m1_n, port_xx00_reg)
+process (CLK, CE, RESET, cpu_a_bus, cpu_m1_n, port_xx00_reg)
 begin
 	if RESET = '1' then
 		port_xx00_reg <= (others => '0');
@@ -245,7 +245,7 @@ begin
 		ch_c_reg <= (others => '0');
 		ch_d_reg <= (others => '0');
 		
-	elsif CLKGS'event and CLKGS = '1' then
+	elsif CLK'event and CLK = '1' and CE = '1' then
 		if cpu_iorq_n = '0' and cpu_wr_n = '0' and cpu_a_bus(3 downto 0) = X"0" then port_xx00_reg <= cpu_do_bus; end if;
 		if cpu_iorq_n = '0' and cpu_wr_n = '0' and cpu_a_bus(3 downto 0) = X"3" then port_xx03_reg <= cpu_do_bus; end if;
 		if cpu_iorq_n = '0' and cpu_wr_n = '0' and cpu_a_bus(3 downto 0) = X"6" then port_xx06_reg <= cpu_do_bus(5 downto 0); end if;

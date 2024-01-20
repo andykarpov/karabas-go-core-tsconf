@@ -1396,7 +1396,7 @@ gs_top gs_top
 (
     .clk_sys(clk),
     .clk_bus(clk_bus),
-    .clk_gs(clk_gs),
+	 .ce(ce_14m),
     .reset(rst),
     .areset(~locked),
 
