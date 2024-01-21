@@ -285,4 +285,6 @@ ZIFI_OE_N <= '0' when IORQ_N = '0' and RD_N = '0' and (A = zifi_in_fifo_port or 
 
 ENABLED <= api_enabled;
 
+UART_CTS <= '1' when fifo_rx_used > 1792 else '0'; -- active 0
+
 end rtl;

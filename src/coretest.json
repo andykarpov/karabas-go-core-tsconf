@@ -1,0 +1,24 @@
+{
+    "id": "tsconf",
+    "name": "TS-Conf + GS",
+    "build": "24011114",
+    "bitstream": "karabas_go_top.bin",
+    "visible": true,
+    "type": "osd",
+    "order": 3,
+    "eeprom_bank": 0,
+    "roms": [
+        {"filename": "roms/ts-bios.rom", "address": 0},
+        {"filename": "roms/gs-test.rom", "address": 2147483648}
+    ],
+    "osd": [
+        {"type": "S", "bits": 1, "name": "Covox", "options": ["Off", "On"], "default": 1, "hotkey": "Menu+F6"},
+        {"type": "S", "bits": 2, "name": "PSG Mix", "options": ["ABC", "ACB", "Mono"], "default": 1, "hotkey": "Menu+F7"},
+        {"type": "S", "bits": 1, "name": "PSG Type", "options": ["AY3-8912", "YM2149F"], "default": 0, "hotkey": "Menu+F8"},
+        {"type": "S", "bits": 3, "name": "Joystick L", "options": ["Kempston", "Sinclair1", "Sinclair2", "Cursor", "QAOPM", "QAOPS"], "default": 0, "hotkey": "Menu+J"},
+        {"type": "S", "bits": 3, "name": "Joystick R", "options": ["Kempston", "Sinclair1", "Sinclair2", "Cursor", "QAOPM", "QAOPS"], "default": 1, "hotkey": "Menu+R"},
+        {"type": "N", "bits": 1, "name": "Pause", "options": ["Off", "On"], "default": 0, "hotkey": "Menu+P"},
+        {"type": "T", "bits": 1, "name": "NMI", "options": null, "default": 0, "hotkey": "F11"},
+        {"type": "T", "bits": 1, "name": "Reset", "options": null, "default": 0, "hotkey": "F12"}
+    ]
+}

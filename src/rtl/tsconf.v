@@ -10,6 +10,7 @@ module tsconf
 	input wire resetbtn_n,
 	input wire locked,
 	output wire clk_bus,
+	output wire f1_out,
 
    // SRAM
    output wire [20:0] sram_addr,
@@ -102,9 +103,19 @@ module tsconf
 	
 	// rom loader
 	input wire loader_act,
-	input wire [15:0] loader_a,
+	input wire [31:0] loader_a,
 	input wire [7:0] loader_d,
-	input wire loader_wr
+	input wire loader_wr,
+
+    // sdram
+	output wire        sdram_clk,
+	inout wire [15:0]  sdram_dq,
+	output wire [12:0] sdram_a,
+	output wire [1:0]  sdram_dqm,
+	output wire [1:0]  sdram_ba,
+	output wire        sdram_we_n,
+	output wire        sdram_ras_n,
+	output wire        sdram_cas_n
 	
 );
 
@@ -451,6 +462,8 @@ assign clk_bus = clk_28mhz;
 	 .clocktm(clocktm),
     .ay_mod(2'b00)
   );
+  
+  assign f1_out = f1;
 
   resetter myrst
   (
@@ -1265,6 +1278,9 @@ audio_mixer audio_mixer
 	.saa_l(saa_out_l),
 	.saa_r(saa_out_r),
 	
+	.gs_l(gs_out_l),
+	.gs_r(gs_out_r),
+	
 	.audio_l(audio_out_l),
 	.audio_r(audio_out_r)
 	
@@ -1277,6 +1293,7 @@ assign cpu_di_bus =
 		ena_ram    															?	dout_ram 			:	// SDRAM
 		(ts_enable && ~cpu_rd_n)										?	ts_do					:	// TurboSound
 		(~zifi_oe_n)														?  zifi_do_bus       :  // zifi
+      (gs_oe)																?  gs_do_bus 			:  // gs
 		(fdc_oe)																?  fdc_do_bus 			:  // floppy
 		(ena_ports)															?	dout_ports			:  // zports
 		(intack)																?	im2vect 				:
@@ -1356,5 +1373,63 @@ Firefly_FDC fdc
 	.oFDC_MOTOR(fdc_motor),
 	.oFDC_DS()
 );	
+
+// gs cpu clock 14 mhz
+
+reg ce_14m;
+wire clk_gs;
+always @(negedge clk_bus)
+begin
+	ce_14m <= !ce_14m;
+end
+
+BUFGCE U_BUFG14 (
+.O(clk_gs),
+.I(clk_bus),
+.CE(ce_14m)
+);
+
+// gs
+
+wire gs_oe;
+wire [7:0] gs_do_bus;
+wire [8:0] gs_out_l, gs_out_r;
+
+gs_top gs_top
+(
+    .clk_sys(clk),
+    .clk_bus(clk_bus),
+	 .ce(ce_14m),
+    .reset(rst),
+    .areset(~locked),
+
+    .a(cpu_a_bus),
+    .di(cpu_do_bus),
+    .mreq_n(cpu_mreq_n),
+    .iorq_n(cpu_iorq_n),
+    .m1_n(cpu_m1_n),
+    .rd_n(cpu_rd_n),
+    .wr_n(cpu_wr_n),
+
+    .oe(gs_oe),
+    .do_bus(gs_do_bus),
+
+	 .sdram_clk(sdram_clk),
+    .sdram_dq(sdram_dq),
+    .sdram_a(sdram_a),
+    .sdram_dqm(sdram_dqm),
+    .sdram_ba(sdram_ba),
+    .sdram_we_n(sdram_we_n),
+    .sdram_ras_n(sdram_ras_n),
+    .sdram_cas_n(sdram_cas_n),
+
+    .loader_act(loader_act),
+    .loader_a(loader_a),
+    .loader_d(loader_d),
+    .loader_wr(loader_wr),
+
+    .out_l(gs_out_l),
+    .out_r(gs_out_r)    
+);
 
 endmodule

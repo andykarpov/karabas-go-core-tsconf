@@ -6,7 +6,7 @@ module rom (
     output reg [7:0] dout,
 	 
 	 input wire loader_act,
-	 input wire [15:0] loader_a,
+	 input wire [31:0] loader_a,
 	 input wire [7:0] loader_d,
 	 input wire loader_wr
     );
@@ -17,7 +17,7 @@ module rom (
    end*/
 
    always @(posedge clk) begin
-		if (loader_act & loader_wr) begin
+		if (loader_act & loader_wr & ~loader_a[31]) begin
 			mem[loader_a[15:0]] <= loader_d[7:0];
 		end
      dout <= mem[a[15:0]];
