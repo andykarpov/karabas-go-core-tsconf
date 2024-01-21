@@ -91,7 +91,8 @@ module video_top
 
   // video controls
   input wire cfg_60hz,
-  input wire vga_on  
+  input wire vga_on
+  
 );
 
   // video config
@@ -360,6 +361,7 @@ module video_top
     .v60hz          (v60hz),
     .video_go       (video_go),
     .video_pre_next (video_pre_next)
+	 
   );
 
   video_fetch video_fetch

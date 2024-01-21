@@ -125,7 +125,6 @@ module karabas_go_top (
 	wire clk_sys;
 	wire clk_8mhz;
 	wire clk_bus;
-	wire clk_osd;
 	wire clk_16mhz;
    wire locked;
 	wire areset;
@@ -137,7 +136,6 @@ module karabas_go_top (
 	  .LOCKED(locked)
 	);
 	
-	assign clk_osd = clk_bus;
 	assign areset = ~locked;
 	
 	reg ce_28m;
@@ -148,6 +146,12 @@ module karabas_go_top (
 		if(div == 2) div <= 0;
 		ce_28m <= !div;
 	end
+
+	reg ce_14m;
+	always @(posedge clk_bus)
+	begin
+		ce_14m <= ~ce_14m;
+	end 
 	
 	reg tape_in_r;
 	always @(posedge clk_bus)
@@ -199,6 +203,7 @@ module karabas_go_top (
 	wire kb_reset;
 	wire kb_nmi;
 	wire mcu_busy;
+	wire f1;
 
 	tsconf tsconf (
      .clk(clk_sys),
@@ -207,6 +212,7 @@ module karabas_go_top (
 	  .resetbtn_n(btn_reset_n),	  
 	  .locked(locked),
 	  .clk_bus(clk_bus),
+	  .f1_out(f1),
 	  
 	  .sram_addr(MA),
 	  .sram_data(MD),
@@ -295,7 +301,7 @@ module karabas_go_top (
       .sdram_we_n(SDR_WE_N),
       .sdram_cas_n(SDR_CAS_N),
       .sdram_ras_n(SDR_RAS_N),
-      .sdram_dq(SDR_DQ)
+      .sdram_dq(SDR_DQ)		
 	  
 	 );
 	 
@@ -304,17 +310,15 @@ assign rtc_do_mapped = (rtc_addr == 8'hF0 ? keyboard_scancode : (rtc_addr == 8'h
 	 
 wire ftcs_n, ftclk, ftdo, ftdi, ftint, vdac2_sel;
 
-wire osd_hs, osd_vs, osd_active;
-	 
-assign VGA_R[7:0] = osd_active ? osd_r[7:0] : (vdac2_sel ? 8'bZZZZZZZZ : video_r[7:0]);
-assign VGA_G[7:0] = osd_active ? osd_g[7:0] : (vdac2_sel ? 8'bZZZZZZZZ : video_g[7:0]);
-assign VGA_B[7:0] = osd_active ? osd_b[7:0] : (vdac2_sel ? 8'bZZZZZZZZ : video_b[7:0]);
-assign VGA_HS = osd_active ? osd_hs : (vdac2_sel ? 1'bZ : video_hsync);
-assign VGA_VS = osd_active ? osd_vs : (vdac2_sel ? 1'bZ : video_vsync);
-assign V_CLK = osd_active ? ce_28m : (vdac2_sel ? FT_CLK : ce_28m);
+assign VGA_R[7:0] = (vdac2_sel ? 8'bZZZZZZZZ : osd_r[7:0]);
+assign VGA_G[7:0] = (vdac2_sel ? 8'bZZZZZZZZ : osd_g[7:0]);
+assign VGA_B[7:0] = (vdac2_sel ? 8'bZZZZZZZZ : osd_b[7:0]);
+assign VGA_HS = (vdac2_sel ? 1'bZ : video_hsync);
+assign VGA_VS = (vdac2_sel ? 1'bZ : video_vsync);
+assign V_CLK = (vdac2_sel ? FT_CLK : ce_28m);
 assign FT_SPI_CS_N = ftcs_n;
 assign FT_SPI_SCK = ftclk;
-assign FT_OE_N = osd_active ? 1'b1 : (vdac2_sel ? 1'b0 : 1'b1);
+assign FT_OE_N = (vdac2_sel ? 1'b0 : 1'b1);
 assign ftdi = FT_SPI_MISO;
 assign FT_SPI_MOSI = ftdo;
 assign ftint = FT_INT_N;
@@ -384,6 +388,7 @@ hid_parser hid_parser(
 	.JOY_L(joy_l),
 	.JOY_R(joy_r),
 	
+	.KB_TYPE(1'b1),
 	.A (keyboard_addr),	
 	
 	.JOY_DO(joy_bus),
@@ -462,12 +467,11 @@ assign DAC_MUTE = 1'b1; // soft mute, 0 = mute, 1 = unmute
 //--------- OSD --------------
 
 overlay overlay(
-	.CLK_BUS(clk_bus),
-	.CLK_VGA(clk_osd),
-	.OSD_RGB({osd_r[7:0], osd_g[7:0], osd_b[7:0]}),
-	.OSD_HS(osd_hs),
-	.OSD_VS(osd_vs),
-	.OSD_ACTIVE(osd_active),
+	.CLK(clk_bus),
+	.RGB_I({video_r[7:0], video_g[7:0], video_b[7:0]}),
+	.RGB_O({osd_r[7:0], osd_g[7:0], osd_b[7:0]}),
+	.HSYNC_I(video_hsync),
+	.VSYNC_I(video_vsync),
 	.OSD_COMMAND(osd_command)
 );
 

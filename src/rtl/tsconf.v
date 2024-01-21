@@ -10,6 +10,7 @@ module tsconf
 	input wire resetbtn_n,
 	input wire locked,
 	output wire clk_bus,
+	output wire f1_out,
 
    // SRAM
    output wire [20:0] sram_addr,
@@ -461,6 +462,8 @@ assign clk_bus = clk_28mhz;
 	 .clocktm(clocktm),
     .ay_mod(2'b00)
   );
+  
+  assign f1_out = f1;
 
   resetter myrst
   (

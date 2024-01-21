@@ -69,7 +69,8 @@ module video_sync
 
   // ZX controls
   input  wire       y_offs_wr,
-  output wire       int_start  
+  output wire       int_start
+  
 );
 
   localparam HSYNC_BEG     = 9'd11;

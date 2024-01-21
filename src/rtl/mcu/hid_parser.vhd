@@ -2,9 +2,6 @@
 -- MCU HID keyboard / joystick parser / transformer
 -------------------------------------------------------------------------------
 
--- TODO: bit5 profi
--- TODO: joy l/r mapped to keyboard
-
 library IEEE;
 use IEEE.std_logic_1164.all;
 use IEEE.std_logic_arith.conv_integer;
@@ -12,11 +9,17 @@ use IEEE.numeric_std.all;
 use IEEE.std_logic_unsigned.all;
 
 entity hid_parser is
+	generic 
+	(
+		NUM_KEYS : integer range 1 to 6 := 2; -- number of simultaneously pressed keys to process
+		ALLOW_KEYCODE : boolean := true -- allow ps/2 keycode (tsconf standard)
+	);
 	port
 	(
 	 CLK			 : in std_logic;
 	 RESET 		 : in std_logic;
 	 
+	 -- incoming usb hid report data
 	 KB_STATUS : in std_logic_vector(7 downto 0);
 	 KB_DAT0 : in std_logic_vector(7 downto 0);
 	 KB_DAT1 : in std_logic_vector(7 downto 0);
@@ -25,14 +28,22 @@ entity hid_parser is
 	 KB_DAT4 : in std_logic_vector(7 downto 0);
 	 KB_DAT5 : in std_logic_vector(7 downto 0);
 
+	 -- joy data from mcu
 	 JOY_TYPE_L : in std_logic_vector(2 downto 0);
 	 JOY_TYPE_R : in std_logic_vector(2 downto 0);
 	 JOY_L : in std_logic_vector(11 downto 0);
 	 JOY_R : in std_logic_vector(11 downto 0);
 
+	 -- cpu address for spectrum keyboard row address
 	 A : in std_logic_vector(15 downto 8);
 	 
+	 -- keyboard type
+	 KB_TYPE : in std_logic; -- 0=profi xt, 1=spectrum
+	 
+	 -- kempston joy output data
 	 JOY_DO : out std_logic_vector(7 downto 0);
+
+	 -- keyboard output data
 	 KB_DO : out std_logic_vector(5 downto 0);
 	 
 	 -- tsconf ps/2 scancode to RTC reg F0
@@ -51,7 +62,8 @@ architecture rtl of hid_parser is
 						 ZX_K_C, ZX_K_F, ZX_K_R, ZX_K_4,
 						 ZX_K_7, ZX_K_U, ZX_K_J, ZX_K_N,
 						 ZX_K_V, ZX_K_G, ZX_K_T, ZX_K_5,
-						 ZX_K_6, ZX_K_Y, ZX_K_H, ZX_K_B
+						 ZX_K_6, ZX_K_Y, ZX_K_H, ZX_K_B,
+						 ZX_BIT5
 						 );
 
 	constant SC_CTL_ON : natural := 0;
@@ -69,7 +81,7 @@ architecture rtl of hid_parser is
 	constant SC_BTN_MODE : natural := 12;
 						 
 	type kb_matrix is array(matrix) of std_logic;						 
-	signal kb_data : kb_matrix := (others => '0'); -- 40 keys
+	signal kb_data : kb_matrix := (others => '0'); -- 40 keys + 5th bit
 	
 	signal data : std_logic_vector(47 downto 0);
 	
@@ -81,7 +93,18 @@ architecture rtl of hid_parser is
 
 begin 
 
-	data <= KB_DAT0 & KB_DAT1 & KB_DAT2 & KB_DAT3 & KB_DAT4 & KB_DAT5;
+	-- incoming data of pressed keys from usb hid report
+	data <= KB_DAT5 & KB_DAT4 & KB_DAT3 & KB_DAT2 & KB_DAT1 & KB_DAT0;
+
+	-- usb hid to ps/2 keycode
+	G_PS2_LUT: if ALLOW_KEYCODE generate
+	U_PS2_LUT: entity work.usb_ps2_lut
+	port map(
+		kb_status => KB_STATUS,
+		kb_data => KB_DAT0,
+		keycode => KEYCODE
+	);
+	end generate G_PS2_LUT;
 
 	process( kb_data, A)
 	begin
@@ -129,6 +152,8 @@ begin
 					or   ( kb_data(ZX_K_Y) and not(A(13)) ) 
 					or   ( kb_data(ZX_K_H) and not(A(14)) ) 
 					or   ( kb_data(ZX_K_B) and not(A(15)) ) );
+					
+		KB_DO(5) <= not(kb_data(ZX_BIT5));
 	end process;
 
 process (RESET, CLK)
@@ -143,12 +168,11 @@ process (RESET, CLK)
 			is_shift := '0';
 			is_cs_used := '0';
 			is_ss_used := '0';
-			KEYCODE <= (others => '1');
 			macro_cnt <= (others => '0');
 			
 		elsif CLK'event and CLK = '1' then
 				
-			-- TODO: add delay (counter?) between presses
+			-- macro state machine
 			if is_macros = '1' then 
 					macro_cnt <= macro_cnt + 1;
 					if (macro_cnt = "1111111111111111111111") then 
@@ -166,123 +190,196 @@ process (RESET, CLK)
 			else
 				macro_cnt <= (others => '0');
 				kb_data <= (others => '0');
-				KEYCODE <= (others => '1');
 				is_shift := '0';
 				is_cs_used := '0';
 				is_ss_used := '0';
 				
-				-- L Shift -> CS
-				if KB_STATUS(1) = '1' then kb_data(ZX_K_CS) <= '1'; is_shift := '1'; KEYCODE <= X"12"; end if;
-				-- R Shift -> CS
-				if KB_STATUS(5) = '1' then kb_data(ZX_K_CS) <= '1'; is_shift := '1'; KEYCODE <= X"59"; end if;				
+				-- L Shift -> CS (SS for profi)
+				if KB_STATUS(1) = '1' then 
+					if KB_TYPE = '0' then kb_data(ZX_K_SS) <= '1'; else kb_data(ZX_K_CS) <= '1'; end if; 
+					is_shift := '1'; 
+				end if;
+
+				-- R Shift -> CS (SS for profi)
+				if KB_STATUS(5) = '1' then 
+					if KB_TYPE = '0' then kb_data(ZX_K_SS) <= '1'; else kb_data(ZX_K_CS) <= '1'; end if; 
+					is_shift := '1'; 
+				end if;
 							
-				-- L Ctrl -> SS
-				if KB_STATUS(0) = '1' then kb_data(ZX_K_SS) <= '1'; KEYCODE <= X"14"; end if;
-				-- R Ctrl -> SS
-				if KB_STATUS(4) = '1' then kb_data(ZX_K_SS) <= '1'; KEYCODE <= X"14"; end if;
+				-- L Ctrl -> SS (CS for profi)
+				if KB_STATUS(0) = '1' then 
+					if KB_TYPE = '0' then kb_data(ZX_K_CS) <= '1'; else kb_data(ZX_K_SS) <= '1'; end if; 
+				end if;
+				
+				-- R Ctrl -> SS (CS for profi)
+				if KB_STATUS(4) = '1' then 
+					if KB_TYPE = '0' then kb_data(ZX_K_CS) <= '1'; else kb_data(ZX_K_SS) <= '1'; end if; 
+				end if;
 							
-				-- Alt -> SS+CS
-				if KB_STATUS(2) = '1' or KB_STATUS(6) = '1' then kb_data(ZX_K_CS) <= '1'; kb_data(ZX_K_SS) <= '1'; is_cs_used := '1'; KEYCODE <= X"11"; end if;
+				-- L Alt -> SS+CS (SS+Enter for profi)
+				if KB_STATUS(2) = '1' then 
+					if KB_TYPE = '0' then kb_data(ZX_K_ENT) <= '1'; else kb_data(ZX_K_CS) <= '1'; end if; 
+					kb_data(ZX_K_SS) <= '1'; 
+					is_cs_used := '1'; 
+				end if;
+
+				-- R Alt -> SS+CS (SS+Space for profi)
+				if KB_STATUS(6) = '1' then 
+					if KB_TYPE = '0' then kb_data(ZX_K_SP) <= '1'; else kb_data(ZX_K_CS) <= '1'; end if; 
+					kb_data(ZX_K_SS) <= '1'; 
+					is_cs_used := '1'; 
+				end if;
 				
 				-- Win
-				if KB_STATUS(7) = '1' then KEYCODE <= x"27"; end if;
+				--if KB_STATUS(7) = '1' then end if;
 
-				for II in 0 to 5 loop		
+				for II in 0 to NUM_KEYS-1 loop		
 				case data((II+1)*8-1 downto II*8) is							
-					-- DEL -> SS + C
-					when X"4c" => if (is_shift = '0') then kb_data(ZX_K_SS) <= '1'; kb_data(ZX_K_C) <= '1'; end if;	KEYCODE <= x"71";				
-					-- INS -> SS + A
-					when X"49" => if (is_shift = '0') then kb_data(ZX_K_SS) <= '1'; kb_data(ZX_K_A) <= '1'; end if; KEYCODE <= x"70";
+
+					-- DEL -> SS + C (P + BIT5 for profi)
+					when X"4c" => 
+						if (is_shift = '0') then 
+							if KB_TYPE = '0' then
+								kb_data(ZX_K_P) <= '1';
+								kb_data(ZX_BIT5) <= '1';
+							else
+								kb_data(ZX_K_SS) <= '1'; 
+								kb_data(ZX_K_C) <= '1'; 
+							end if;
+						end if;	
+						
+					-- INS -> SS + A (O + BIT5 for profi)
+					when X"49" => 
+						if (is_shift = '0') then 
+							if KB_TYPE = '0' then
+								kb_data(ZX_K_O) <= '1';
+								kb_data(ZX_BIT5) <= '1';
+							else
+								kb_data(ZX_K_SS) <= '1'; 							
+								kb_data(ZX_K_A) <= '1'; 
+							end if;
+						end if; 
+					
 					-- Cursor -> CS + 5,6,7,8
-					when X"50" =>	if (is_shift = '0') then kb_data(ZX_K_CS) <= '1'; kb_data(ZX_K_5) <= '1'; is_cs_used := '1'; end if; KEYCODE <= x"6b";
-					when X"51" =>	if (is_shift = '0') then kb_data(ZX_K_CS) <= '1'; kb_Data(ZX_K_6) <= '1'; is_cs_used := '1'; end if; KEYCODE <= x"72";
-					when X"52" =>	if (is_shift = '0') then kb_data(ZX_K_CS) <= '1'; kb_data(ZX_K_7) <= '1'; is_cs_used := '1'; end if; KEYCODE <= x"75";
-					when X"4f" =>	if (is_shift = '0') then kb_data(ZX_K_CS) <= '1'; kb_data(ZX_K_8) <= '1'; is_cs_used := '1'; end if; KEYCODE <= x"74";
-					-- ESC -> CS + Space 
-					when X"29" => kb_data(ZX_K_CS) <= '1'; kb_data(ZX_K_SP) <= '1'; is_cs_used := '1'; KEYCODE <= x"76";					
+					when X"50" =>	if (is_shift = '0') then kb_data(ZX_K_CS) <= '1'; kb_data(ZX_K_5) <= '1'; is_cs_used := '1'; end if; 
+					when X"51" =>	if (is_shift = '0') then kb_data(ZX_K_CS) <= '1'; kb_Data(ZX_K_6) <= '1'; is_cs_used := '1'; end if; 
+					when X"52" =>	if (is_shift = '0') then kb_data(ZX_K_CS) <= '1'; kb_data(ZX_K_7) <= '1'; is_cs_used := '1'; end if; 
+					when X"4f" =>	if (is_shift = '0') then kb_data(ZX_K_CS) <= '1'; kb_data(ZX_K_8) <= '1'; is_cs_used := '1'; end if; 
+
+					-- ESC -> CS + Space (CS + 1 for profi)
+					when X"29" => 
+						kb_data(ZX_K_CS) <= '1'; 
+						if KB_TYPE = '0' then kb_data(ZX_K_1) <= '1'; else kb_data(ZX_K_SP) <= '1'; end if; 
+						is_cs_used := '1'; 
+						
 					-- Backspace -> CS + 0
-					when X"2a" => kb_data(ZX_K_CS) <= '1'; kb_data(ZX_K_0) <= '1'; is_cs_used := '1'; KEYCODE <= x"66";
+					when X"2a" => kb_data(ZX_K_CS) <= '1'; kb_data(ZX_K_0) <= '1'; is_cs_used := '1'; 
+
 					-- Enter
-					when X"28" =>	kb_data(ZX_K_ENT) <= '1'; KEYCODE <= x"5a"; -- normal
-					when X"58" =>  kb_data(ZX_K_ENT) <= '1'; KEYCODE <= x"5a"; -- keypad 					
+					when X"28" =>	kb_data(ZX_K_ENT) <= '1'; -- normal
+					when X"58" =>  kb_data(ZX_K_ENT) <= '1'; -- keypad 					
+					
 					-- Space 
-					when X"2c" =>	kb_data(ZX_K_SP) <= '1'; KEYCODE <= x"29";
+					when X"2c" =>	kb_data(ZX_K_SP) <= '1';
+					
 					-- Letters
-					when X"04" =>	kb_data(ZX_K_A) <= '1'; KEYCODE <= x"1c"; -- A
-					when X"05" =>	kb_data(ZX_K_B) <= '1'; KEYCODE <= x"32"; -- B								
-					when X"06" =>	kb_data(ZX_K_C) <= '1'; KEYCODE <= x"21"; -- C
-					when X"07" =>	kb_data(ZX_K_D) <= '1'; KEYCODE <= x"23"; -- D
-					when X"08" =>	kb_data(ZX_K_E) <= '1'; KEYCODE <= x"24"; -- E
-					when X"09" =>	kb_data(ZX_K_F) <= '1'; KEYCODE <= x"2b"; -- F
-					when X"0a" =>	kb_data(ZX_K_G) <= '1'; KEYCODE <= x"34"; -- G
-					when X"0b" =>	kb_data(ZX_K_H) <= '1'; KEYCODE <= x"33"; -- H
-					when X"0c" =>	kb_data(ZX_K_I) <= '1'; KEYCODE <= x"43"; -- I
-					when X"0d" =>	kb_data(ZX_K_J) <= '1'; KEYCODE <= x"3b"; -- J
-					when X"0e" =>	kb_data(ZX_K_K) <= '1'; KEYCODE <= x"42"; -- K
-					when X"0f" =>	kb_data(ZX_K_L) <= '1'; KEYCODE <= x"4b"; -- L
-					when X"10" =>	kb_data(ZX_K_M) <= '1'; KEYCODE <= x"3a"; -- M
-					when X"11" =>	kb_data(ZX_K_N) <= '1'; KEYCODE <= x"31"; -- N
-					when X"12" =>	kb_data(ZX_K_O) <= '1'; KEYCODE <= x"44"; -- O
-					when X"13" =>	kb_data(ZX_K_P) <= '1'; KEYCODE <= x"4d"; -- P
-					when X"14" =>	kb_data(ZX_K_Q) <= '1'; KEYCODE <= x"15"; -- Q
-					when X"15" =>	kb_data(ZX_K_R) <= '1'; KEYCODE <= x"2d"; -- R
-					when X"16" =>	kb_data(ZX_K_S) <= '1'; KEYCODE <= x"1b"; -- S
-					when X"17" =>	kb_data(ZX_K_T) <= '1'; KEYCODE <= x"2c"; -- T
-					when X"18" =>	kb_data(ZX_K_U) <= '1'; KEYCODE <= x"3c"; -- U
-					when X"19" =>	kb_data(ZX_K_V) <= '1'; KEYCODE <= x"2a"; -- V
-					when X"1a" =>	kb_data(ZX_K_W) <= '1'; KEYCODE <= x"1d"; -- W
-					when X"1b" =>	kb_data(ZX_K_X) <= '1'; KEYCODE <= x"22"; -- X
-					when X"1c" =>	kb_data(ZX_K_Y) <= '1'; KEYCODE <= x"35"; -- Y
-					when X"1d" =>	kb_data(ZX_K_Z) <= '1'; KEYCODE <= x"1a"; -- Z
+					when X"04" =>	kb_data(ZX_K_A) <= '1'; -- A
+					when X"05" =>	kb_data(ZX_K_B) <= '1'; -- B								
+					when X"06" =>	kb_data(ZX_K_C) <= '1'; -- C
+					when X"07" =>	kb_data(ZX_K_D) <= '1'; -- D
+					when X"08" =>	kb_data(ZX_K_E) <= '1'; -- E
+					when X"09" =>	kb_data(ZX_K_F) <= '1'; -- F
+					when X"0a" =>	kb_data(ZX_K_G) <= '1'; -- G
+					when X"0b" =>	kb_data(ZX_K_H) <= '1'; -- H
+					when X"0c" =>	kb_data(ZX_K_I) <= '1'; -- I
+					when X"0d" =>	kb_data(ZX_K_J) <= '1'; -- J
+					when X"0e" =>	kb_data(ZX_K_K) <= '1'; -- K
+					when X"0f" =>	kb_data(ZX_K_L) <= '1'; -- L
+					when X"10" =>	kb_data(ZX_K_M) <= '1'; -- M
+					when X"11" =>	kb_data(ZX_K_N) <= '1'; -- N
+					when X"12" =>	kb_data(ZX_K_O) <= '1'; -- O
+					when X"13" =>	kb_data(ZX_K_P) <= '1'; -- P
+					when X"14" =>	kb_data(ZX_K_Q) <= '1'; -- Q
+					when X"15" =>	kb_data(ZX_K_R) <= '1'; -- R
+					when X"16" =>	kb_data(ZX_K_S) <= '1'; -- S
+					when X"17" =>	kb_data(ZX_K_T) <= '1'; -- T
+					when X"18" =>	kb_data(ZX_K_U) <= '1'; -- U
+					when X"19" =>	kb_data(ZX_K_V) <= '1'; -- V
+					when X"1a" =>	kb_data(ZX_K_W) <= '1'; -- W
+					when X"1b" =>	kb_data(ZX_K_X) <= '1'; -- X
+					when X"1c" =>	kb_data(ZX_K_Y) <= '1'; -- Y
+					when X"1d" =>	kb_data(ZX_K_Z) <= '1'; -- Z
+					
 					-- Digits
-					when X"1e" =>	kb_data(ZX_K_1) <= '1'; KEYCODE <= x"16"; -- 1
-					when X"1f" =>	kb_data(ZX_K_2) <= '1'; KEYCODE <= x"1e"; -- 2
-					when X"20" =>	kb_data(ZX_K_3) <= '1'; KEYCODE <= x"26"; -- 3
-					when X"21" =>	kb_data(ZX_K_4) <= '1'; KEYCODE <= x"25"; -- 4
-					when X"22" =>	kb_data(ZX_K_5) <= '1'; KEYCODE <= x"2e"; -- 5
-					when X"23" =>	kb_data(ZX_K_6) <= '1'; KEYCODE <= x"36"; -- 6
-					when X"24" =>	kb_data(ZX_K_7) <= '1'; KEYCODE <= x"3d"; -- 7
-					when X"25" =>	kb_data(ZX_K_8) <= '1'; KEYCODE <= x"3e"; -- 8
-					when X"26" =>	kb_data(ZX_K_9) <= '1'; KEYCODE <= x"46"; -- 9
-					when X"27" =>	kb_data(ZX_K_0) <= '1'; KEYCODE <= x"45"; -- 0
+					when X"1e" =>	kb_data(ZX_K_1) <= '1'; -- 1
+					when X"1f" =>	kb_data(ZX_K_2) <= '1'; -- 2
+					when X"20" =>	kb_data(ZX_K_3) <= '1'; -- 3
+					when X"21" =>	kb_data(ZX_K_4) <= '1'; -- 4
+					when X"22" =>	kb_data(ZX_K_5) <= '1'; -- 5
+					when X"23" =>	kb_data(ZX_K_6) <= '1'; -- 6
+					when X"24" =>	kb_data(ZX_K_7) <= '1'; -- 7
+					when X"25" =>	kb_data(ZX_K_8) <= '1'; -- 8
+					when X"26" =>	kb_data(ZX_K_9) <= '1'; -- 9
+					when X"27" =>	kb_data(ZX_K_0) <= '1'; -- 0
 					-- Numpad digits
-					when X"59" =>	kb_data(ZX_K_1) <= '1'; KEYCODE <= x"16"; -- 1
-					when X"5A" =>	kb_data(ZX_K_2) <= '1'; KEYCODE <= x"1e"; -- 2
-					when X"5B" =>	kb_data(ZX_K_3) <= '1'; KEYCODE <= x"26"; -- 3
-					when X"5C" =>	kb_data(ZX_K_4) <= '1'; KEYCODE <= x"25"; -- 4
-					when X"5D" =>	kb_data(ZX_K_5) <= '1'; KEYCODE <= x"2e"; -- 5
-					when X"5E" =>	kb_data(ZX_K_6) <= '1'; KEYCODE <= x"36"; -- 6
-					when X"5F" =>	kb_data(ZX_K_7) <= '1'; KEYCODE <= x"3d"; -- 7
-					when X"60" =>	kb_data(ZX_K_8) <= '1'; KEYCODE <= x"3e"; -- 8
-					when X"61" =>	kb_data(ZX_K_9) <= '1'; KEYCODE <= x"46"; -- 9
-					when X"62" =>	kb_data(ZX_K_0) <= '1'; KEYCODE <= x"45"; -- 0
+					when X"59" =>	kb_data(ZX_K_1) <= '1'; -- 1
+					when X"5A" =>	kb_data(ZX_K_2) <= '1'; -- 2
+					when X"5B" =>	kb_data(ZX_K_3) <= '1'; -- 3
+					when X"5C" =>	kb_data(ZX_K_4) <= '1'; -- 4
+					when X"5D" =>	kb_data(ZX_K_5) <= '1'; -- 5
+					when X"5E" =>	kb_data(ZX_K_6) <= '1'; -- 6
+					when X"5F" =>	kb_data(ZX_K_7) <= '1'; -- 7
+					when X"60" =>	kb_data(ZX_K_8) <= '1'; -- 8
+					when X"61" =>	kb_data(ZX_K_9) <= '1'; -- 9
+					when X"62" =>	kb_data(ZX_K_0) <= '1'; -- 0
+					
 					-- Special keys 					
 					-- '/" -> SS+P / SS+7
-					when X"34" => kb_data(ZX_K_SS) <= '1'; KEYCODE <= x"52"; if is_shift = '1' then kb_data(ZX_K_P) <= '1'; else kb_data(ZX_K_7) <= '1'; end if; is_ss_used := is_shift;					
+					when X"34" => kb_data(ZX_K_SS) <= '1'; if is_shift = '1' then kb_data(ZX_K_P) <= '1'; else kb_data(ZX_K_7) <= '1'; end if; is_ss_used := is_shift;					
 					-- ,/< -> SS+N / SS+R
-					when X"36" => kb_data(ZX_K_SS) <= '1'; KEYCODE <= x"41"; if is_shift = '1' then kb_data(ZX_K_R) <= '1'; else kb_data(ZX_K_N) <= '1'; end if; is_ss_used := is_shift;					
+					when X"36" => kb_data(ZX_K_SS) <= '1'; if is_shift = '1' then kb_data(ZX_K_R) <= '1'; else kb_data(ZX_K_N) <= '1'; end if; is_ss_used := is_shift;					
 					-- ./> -> SS+M / SS+T
-					when X"37" => kb_data(ZX_K_SS) <= '1'; KEYCODE <= x"49"; if is_shift = '1' then kb_data(ZX_K_T) <= '1'; else kb_data(ZX_K_M) <= '1'; end if; is_ss_used := is_shift;					
+					when X"37" => kb_data(ZX_K_SS) <= '1'; if is_shift = '1' then kb_data(ZX_K_T) <= '1'; else kb_data(ZX_K_M) <= '1'; end if; is_ss_used := is_shift;					
 					-- ;/: -> SS+O / SS+Z
-					when X"33" => kb_data(ZX_K_SS) <= '1'; KEYCODE <= x"4c"; if is_shift = '1' then kb_data(ZX_K_Z) <= '1'; else kb_data(ZX_K_O) <= '1'; end if; is_ss_used := is_shift;					
+					when X"33" => kb_data(ZX_K_SS) <= '1'; if is_shift = '1' then kb_data(ZX_K_Z) <= '1'; else kb_data(ZX_K_O) <= '1'; end if; is_ss_used := is_shift;					
 					
 					-- Macroses
-					-- [,{ -> SS+Y / SS+F
-					when X"2F" => is_macros <= '1'; KEYCODE <= x"54"; if is_shift = '1' then macros_key <= ZX_K_F; else macros_key <= ZX_K_Y; end if; 					
-					-- ],} -> SS+U / SS+G
-					when X"30" => is_macros <= '1'; KEYCODE <= x"5b"; if is_shift = '1' then macros_key <= ZX_K_G; else macros_key <= ZX_K_U; end if; 					
+					
+					-- [,{ -> SS+Y / SS+F (Profi SS + F / Y)
+					when X"2F" => 
+						if KB_TYPE = '0' then
+							kb_data(ZX_K_SS) <= '1';
+							if is_shift = '1' then kb_data(ZX_K_F) <= '1'; else kb_data(ZX_K_Y) <= '1'; end if;
+						else
+							is_macros <= '1'; if is_shift = '1' then macros_key <= ZX_K_F; else macros_key <= ZX_K_Y; end if; 
+						end if;
+					
+					-- ],} -> SS+U / SS+G (Profi SS + U / G)
+					when X"30" => 
+						if KB_TYPE = '0' then
+							kb_data(ZX_K_SS) <= '1';
+							if is_shift = '1' then kb_data(ZX_K_G) <= '1'; else kb_data(ZX_K_U) <= '1'; end if;
+						else
+							is_macros <= '1'; if is_shift = '1' then macros_key <= ZX_K_G; else macros_key <= ZX_K_U; end if; 
+						end if;
+						
+					-- \,| -> SS+D / SS+S (Profi SS + D / S)
+					when X"31" => 
+						if KB_TYPE = '0' then 
+							kb_data(ZX_K_SS) <= '1';
+							if is_shift = '1' then kb_data(ZX_K_S) <= '1'; else kb_data(ZX_K_D) <= '1'; end if;
+						else
+							is_macros <= '1'; if is_shift = '1' then macros_key <= ZX_K_S; else macros_key <= ZX_K_D; end if; 					
+						end if;
 					
 					-- /,? -> SS+V / SS+C
-					when X"38" => kb_data(ZX_K_SS) <= '1'; KEYCODE <= x"4a"; if is_shift = '1' then kb_data(ZX_K_C) <= '1'; else kb_data(ZX_K_V) <= '1'; end if; is_ss_used := is_shift;					
-					-- \,| -> SS+D / SS+S
-					when X"31" => is_macros <= '1'; KEYCODE <= x"5d"; if is_shift = '1' then macros_key <= ZX_K_S; else macros_key <= ZX_K_D; end if; 					
+					when X"38" => kb_data(ZX_K_SS) <= '1'; if is_shift = '1' then kb_data(ZX_K_C) <= '1'; else kb_data(ZX_K_V) <= '1'; end if; is_ss_used := is_shift;					
 					-- =,+ -> SS+L / SS+K
-					when X"2E" => kb_data(ZX_K_SS) <= '1'; KEYCODE <= x"55"; if is_shift = '1' then kb_data(ZX_K_K) <= '1'; else kb_data(ZX_K_L) <= '1'; end if; is_ss_used := is_shift;					
+					when X"2E" => kb_data(ZX_K_SS) <= '1'; if is_shift = '1' then kb_data(ZX_K_K) <= '1'; else kb_data(ZX_K_L) <= '1'; end if; is_ss_used := is_shift;					
 					-- -,_ -> SS+J / SS+0
-					when X"2D" => kb_data(ZX_K_SS) <= '1'; KEYCODE <= x"4e"; if is_shift = '1' then kb_data(ZX_K_0) <= '1'; else kb_data(ZX_K_J) <= '1'; end if; is_ss_used := is_shift;
+					when X"2D" => kb_data(ZX_K_SS) <= '1'; if is_shift = '1' then kb_data(ZX_K_0) <= '1'; else kb_data(ZX_K_J) <= '1'; end if; is_ss_used := is_shift;
 					-- `,~ -> SS+X / SS+A
 					when X"35" => 
-						KEYCODE <= x"0e";
 						if (is_shift = '1') then 
 							is_macros <= '1'; macros_key <= ZX_K_A; 
 						else
@@ -296,35 +393,69 @@ process (RESET, CLK)
 					-- Keypad + -> SS+K
 					when X"57" => kb_data(ZX_K_SS) <= '1'; kb_data(ZX_K_K) <= '1';					
 					-- Tab -> CS + I
-					when X"2B" => kb_data(ZX_K_CS) <= '1'; kb_data(ZX_K_I) <= '1'; is_cs_used := '1'; KEYCODE <= x"0d";				
+					when X"2B" => kb_data(ZX_K_CS) <= '1'; kb_data(ZX_K_I) <= '1'; is_cs_used := '1'; 				
 					-- CapsLock -> CS + SS
-					when X"39" => kb_data(ZX_K_SS) <= '1'; kb_data(ZX_K_CS) <= '1'; is_cs_used := '1'; KEYCODE <= x"58";
-					-- PgUp -> CS+3 for ZX
-					when X"4B" => kb_data(ZX_K_CS) <= '1'; kb_data(ZX_K_3) <= '1'; is_cs_used := '1'; KEYCODE <= x"7d";
-					-- PgDown -> CS+4 for ZX
-					when X"4E" => kb_data(ZX_K_CS) <= '1'; kb_data(ZX_K_4) <= '1'; is_cs_used := '1'; KEYCODE <= x"7a";
+					when X"39" => kb_data(ZX_K_SS) <= '1'; kb_data(ZX_K_CS) <= '1'; is_cs_used := '1';
+					
+					-- PgUp -> CS+3 for ZX (M+BIT5 for profi)
+					when X"4B" => 
+						if is_shift = '0' then
+							if KB_TYPE = '0' then
+								kb_data(ZX_K_M) <= '1';
+								kb_data(ZX_BIT5) <= '1';
+							else
+								kb_data(ZX_K_CS) <= '1'; 
+								kb_data(ZX_K_3) <= '1'; 
+								is_cs_used := '1'; 
+							end if;
+						end if;
+
+					-- PgDown -> CS+4 for ZX (N+BIT5 for profi)
+					when X"4E" => 
+						if is_shift = '0' then
+							if KB_TYPE = '0' then
+								kb_data(ZX_K_N) <= '1';
+								kb_data(ZX_BIT5) <= '1';
+							else
+								kb_data(ZX_K_CS) <= '1'; 
+								kb_data(ZX_K_4) <= '1'; 
+								is_cs_used := '1'; 
+							end if;
+						end if;
+						
+					-- Home -> K+BIT5 for profi
+					when X"4a" =>	
+						if (KB_TYPE = '0' and is_shift = '0') then
+							kb_data(ZX_K_K) <= '1';
+							kb_data(ZX_BIT5) <= '1';
+						end if;
+					
+					-- End -> L+BIT5 for profi
+					when X"4d" =>	
+						if (KB_TYPE = '0' and is_shift = '0') then
+							kb_data(ZX_K_L) <= '1';
+							kb_data(ZX_BIT5) <= '1';
+						end if;
 					
 					-- Fx keys
-					when X"3a" =>	KEYCODE <= x"05";	-- F1
-					when X"3b" =>	KEYCODE <= x"06";	-- F2
-					when X"3c" =>	KEYCODE <= x"04";	-- F3
-					when X"3d" =>	KEYCODE <= x"0c";	-- F4
-					when X"3e" =>	KEYCODE <= x"03";	-- F5
-					when X"3f" =>	KEYCODE <= x"0b";	-- F6
-					when X"40" =>	KEYCODE <= x"83";	-- F7
-					when X"41" =>	KEYCODE <= x"0a";	-- F8
-					when X"42" =>	KEYCODE <= x"01";	-- F9
-					when X"43" =>	KEYCODE <= x"09";	-- F10
-					when X"44" =>	KEYCODE <= x"78";	-- F11
-					when X"45" =>	KEYCODE <= x"07";	-- F12
+					when X"3a" => if KB_TYPE = '0' then kb_data(ZX_K_A) <= '1'; kb_data(ZX_BIT5) <= '1'; end if; -- F1
+					when X"3b" => if KB_TYPE = '0' then kb_data(ZX_K_B) <= '1'; kb_data(ZX_BIT5) <= '1'; end if;	-- F2
+					when X"3c" => if KB_TYPE = '0' then kb_data(ZX_K_C) <= '1'; kb_data(ZX_BIT5) <= '1'; end if;	-- F3
+					when X"3d" => if KB_TYPE = '0' then kb_data(ZX_K_D) <= '1'; kb_data(ZX_BIT5) <= '1'; end if;	-- F4
+					when X"3e" => if KB_TYPE = '0' then kb_data(ZX_K_E) <= '1'; kb_data(ZX_BIT5) <= '1'; end if;	-- F5
+					when X"3f" => if KB_TYPE = '0' then kb_data(ZX_K_F) <= '1'; kb_data(ZX_BIT5) <= '1'; end if;	-- F6
+					when X"40" => if KB_TYPE = '0' then kb_data(ZX_K_G) <= '1'; kb_data(ZX_BIT5) <= '1'; end if;	-- F7
+					when X"41" => if KB_TYPE = '0' then kb_data(ZX_K_H) <= '1'; kb_data(ZX_BIT5) <= '1'; end if;	-- F8
+					when X"42" => if KB_TYPE = '0' then kb_data(ZX_K_I) <= '1'; kb_data(ZX_BIT5) <= '1'; end if;	-- F9
+					when X"43" => if KB_TYPE = '0' then kb_data(ZX_K_J) <= '1'; kb_data(ZX_BIT5) <= '1'; end if;	-- F10
+					when X"44" => if KB_TYPE = '0' then kb_data(ZX_K_Q) <= '1'; kb_data(ZX_K_SS) <= '1'; end if;	-- F11
+					when X"45" => if KB_TYPE = '0' then kb_data(ZX_K_W) <= '1'; kb_data(ZX_K_SS) <= '1'; end if;	-- F12
 	 
-					-- Soft keys
-					when X"46" =>	KEYCODE <= x"7c";	-- PrtScr
-					when X"47" =>	KEYCODE <= x"7e";	-- Scroll Lock
-					when X"48" =>	KEYCODE <= x"77";	-- Pause
-					when X"65" =>	KEYCODE <= x"2f";	-- WinMenu
-					when X"4a" =>	KEYCODE <= x"6c";	-- Home
-					when X"4d" =>	KEYCODE <= x"69";	-- End
+					-- Soft-only keys
+					--when X"46" =>	-- PrtScr
+					--when X"47" =>	-- Scroll Lock
+					--when X"48" =>	-- Pause
+					--when X"65" =>	-- WinMenu
 					
 					when others => null;
 				end case;
