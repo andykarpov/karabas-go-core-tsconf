@@ -21,7 +21,7 @@ begin
 
 	process(CLK)
 	begin
-		if rising_edge(CLK) then
+		if falling_edge(CLK) then
 			if LOAD = '1' then 
 				
 				shift_16 <= D(7) & D(7) & 

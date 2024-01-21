@@ -174,19 +174,22 @@ begin
 		end if;
 	 end process;
 	 
-	 -- pixel 
-	 process (CLK, OSD_POPUP, hcnt, char_x, char_y)
+	 -- pixel load from font
+	 process (CLK)
 	 begin
 		if rising_edge(CLK) then
-			load_pixel <= '0';
 			if char_x = "111" then 
 				rom_addr <= vram_do(15 downto 8) & char_y;
-			elsif char_x = "000" then
-				if (load_pixel = '0') then 
-					load_pixel <= '1';
-				else
-					load_pixel <= '0';
-				end if;
+			end if;
+		end if;
+	end process;	
+	
+	process (CLK) 
+	begin
+		if falling_edge(CLK) then
+			load_pixel <= '0';
+			if char_x = "000" and load_pixel = '0' then 
+				load_pixel <= '1';
 			end if;
 		end if;
 	end process;
