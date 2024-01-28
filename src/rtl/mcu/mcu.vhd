@@ -54,6 +54,13 @@ entity mcu is
 	 
 	 UART_TX_DATA			: in std_logic_vector(7 downto 0);
 	 UART_TX_WR				: in std_logic := '0';
+	 UART_TX_MODE 			: in std_logic := '0'; -- 0 = zifi data @ 115200, 1 = evo rs232 data @ dll/dlm speed
+	 
+	 -- evo rs232 dlm/dll registers
+	 UART_DLM : in std_logic_vector(7 downto 0);
+	 UART_DLL : in std_logic_vector(7 downto 0);
+	 UART_DLM_WR : in std_logic;
+	 UART_DLL_WR : in std_logic;
 	 
 	 -- soft switches command
 	 SOFTSW_COMMAND : out std_logic_vector(15 downto 0);
@@ -360,11 +367,21 @@ begin
 	-- fifo handling / queue commands to mcu side
 	process(CLK)
 	begin
-		if rising_edge(CLK) then		
+		if rising_edge(CLK) then
 			queue_wr_req <= '0';
 			if UART_TX_WR = '1' then -- send UART byte
 				queue_wr_req <= '1';
-				queue_di <= CMD_UART & x"00" & UART_TX_DATA;
+				if (UART_TX_MODE = '1') then
+					queue_di <= CMD_UART & "00000011" & UART_TX_DATA;
+				else 
+					queue_di <= CMD_UART & "00000000" & UART_TX_DATA;
+				end if;
+			elsif UART_DLL_WR = '1' then -- send UART DLL reg
+				queue_wr_req <= '1';
+				queue_di <= CMD_UART & "00000001" & UART_DLL;
+			elsif UART_DLM_WR = '1' then -- send UART RLM reg
+				queue_wr_req <= '1';
+				queue_di <= CMD_UART & "00000010" & UART_DLM;
 			elsif RTC_WR_N = '0' AND RTC_CS = '1' and BUSY = '0' then -- add rtc register write to queue
 				queue_wr_req <= '1';
 				queue_di <= CMD_RTC & RTC_A & RTC_DI;

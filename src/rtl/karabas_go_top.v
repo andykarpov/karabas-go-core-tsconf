@@ -187,6 +187,9 @@ module karabas_go_top (
 	wire [7:0] uart_rx_idx;
 	wire [7:0] uart_tx_data;
 	wire uart_tx_wr;
+	wire [7:0] uart_dlm;
+	wire [7:0] uart_dll;
+	wire uart_dll_wr, uart_dlm_wr, uart_tx_mode;
 	wire [7:0] hid_kb_status;
 	wire [7:0] hid_kb_dat0;
 	wire [7:0] hid_kb_dat1;
@@ -301,7 +304,12 @@ module karabas_go_top (
 	  .usb_uart_rx_data(uart_rx_data),
 	  .usb_uart_rx_idx(uart_rx_idx),	 
 	  .usb_uart_tx_data(uart_tx_data),
-	  .usb_uart_tx_wr(uart_tx_wr),	  
+	  .usb_uart_tx_wr(uart_tx_wr),
+	  .usb_uart_tx_mode(uart_tx_mode),
+	  .usb_uart_dll(uart_dll),
+	  .usb_uart_dlm(uart_dlm),
+	  .usb_uart_dll_wr(uart_dll_wr),
+	  .usb_uart_dlm_wr(uart_dlm_wr),
 
 		.sdram_clk(SDR_CLK),
       .sdram_ba(SDR_BA),
@@ -371,6 +379,12 @@ mcu mcu(
 	.UART_RX_IDX(uart_rx_idx),	 
 	.UART_TX_DATA(uart_tx_data),
 	.UART_TX_WR(uart_tx_wr),
+	
+	.UART_TX_MODE(uart_tx_mode),
+	.UART_DLL(uart_dll),
+	.UART_DLM(uart_dlm),
+	.UART_DLL_WR(uart_dll_wr),
+	.UART_DLM_WR(uart_dlm_wr),
 	
 	.ROMLOADER_ACTIVE(loader_act),
 	.ROMLOAD_ADDR(loader_addr),

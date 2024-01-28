@@ -202,24 +202,25 @@ NET "MCU_SCK" CLOCK_DEDICATED_ROUTE = FALSE;
 
 # Timings
 
-TIMESPEC TSF2P  = FROM : FFS : TO : PADS : 16 ns;
+TIMESPEC TSF2P  = FROM : FFS : TO : PADS : 11 ns;
 
 #NET "CLK_50MHZ" CLOCK_DEDICATED_ROUTE = FALSE;
 
 #NET "CLK_50MHZ" TNM_NET = "CLK_50MHZ";
 NET "clk_sys" TNM_NET = "clk_sys";
 NET "clk_bus" TNM_NET = "clk_bus";
-NET "tsconf/ce_14m" TNM_NET = "ce_14m";
+#NET "tsconf/ce_14m" TNM_NET = "ce_14m";
 NET "clk_16mhz" TNM_NET = "clk_16mhz";
 NET "clk_8mhz" TNM_NET = "clk_8mhz";
 
 #TIMESPEC "TS_CLK_50MHZ" = PERIOD "CLK_50MHZ" 50000 kHz;
 TIMESPEC "TS_CLK_SYS" = PERIOD "clk_sys" 84000 kHz;
 TIMESPEC "TS_CLK_BUS" = PERIOD "clk_bus" 28000 kHz;
-TIMESPEC "TS_CE_14M" = PERIOD "ce_14m" 14000 kHz;
+#TIMESPEC "TS_CE_14M" = PERIOD "ce_14m" 14000 kHz;
 TIMESPEC "TS_CLK_16" = PERIOD "clk_16mhz" 16000 kHz;
 TIMESPEC "TS_CLK_8" = PERIOD "clk_8mhz" 8000 kHz;
 
 PIN "tsconf/U_BUFG.O" CLOCK_DEDICATED_ROUTE = FALSE;
+#PIN "pll/clkout1_buf.O" CLOCK_DEDICATED_ROUTE = FALSE;
 
 

@@ -121,7 +121,12 @@ module tsconf
 	input wire [7:0]   usb_uart_rx_data,
 	input wire [7:0]	 usb_uart_rx_idx,
 	output wire [7:0]  usb_uart_tx_data,
-	output wire 		 usb_uart_tx_wr	
+	output wire 		 usb_uart_tx_wr,
+	output wire 		 usb_uart_tx_mode,
+	output wire [7:0]  usb_uart_dll,
+	output wire [7:0]  usb_uart_dlm,
+	output wire        usb_uart_dll_wr,
+	output wire        usb_uart_dlm_wr	
 );
 
   // cpu
@@ -1324,6 +1329,11 @@ zifi zifi(
 	.USB_UART_RX_IDX(usb_uart_rx_idx),
 	.USB_UART_TX_DATA(usb_uart_tx_data),
 	.USB_UART_TX_WR(usb_uart_tx_wr),
+	.USB_UART_TX_MODE(usb_uart_tx_mode),
+	.USB_UART_DLL(usb_uart_dll),
+	.USB_UART_DLM(usb_uart_dlm),
+	.USB_UART_DLL_WR(usb_uart_dll_wr),
+	.USB_UART_DLM_WR(usb_uart_dlm_wr),
 	
 	.ZIFI_OE_N(zifi_oe_n),
 	.ENABLED(),

@@ -32,6 +32,11 @@ port(
 	 USB_UART_RX_IDX  : in std_logic_vector(7 downto 0);
 	 USB_UART_TX_DATA : out std_logic_vector(7 downto 0);
 	 USB_UART_TX_WR : out std_logic := '0';
+	 USB_UART_TX_MODE : out std_logic := '0';
+	 USB_UART_DLL : out std_logic_vector(7 downto 0);
+	 USB_UART_DLM : out std_logic_vector(7 downto 0);
+	 USB_UART_DLL_WR : out std_logic;
+	 USB_UART_DLM_WR : out std_logic;
 
 	 -- esp 8266
     UART_RX     : in std_logic;
@@ -80,7 +85,8 @@ constant evo_lsr_port       : std_logic_vector(15 downto 0) := x"FDEF"; -- line 
 constant evo_msr_port       : std_logic_vector(15 downto 0) := x"FEEF"; -- modem status register
 constant evo_spr_port       : std_logic_vector(15 downto 0) := x"FFEF"; -- user register
 
-signal is_rs232				 : std_logic := '0';
+signal is_rs232				 : std_logic := '0'; -- 1 if accessed to ts rs232 / evo rs232
+signal is_evo_rs232			 : std_logic := '0'; -- 1 if acccessed to evo rs232
 
 signal evo_ier_reg          : std_logic_vector(7 downto 0); 
 signal evo_dl_reg           : std_logic_vector(15 downto 0); 
@@ -369,14 +375,21 @@ begin
 
         api_enabled <= '1';
         is_rs232 <= '0';
+		  is_evo_rs232 <= '0';
 		  
 			evo_ier_reg <= (others => '0');
 			evo_dl_reg <= (others => '0');
 			evo_lcr_reg <= "00000011";
 			evo_mcr_reg <= "00000000";
 			evo_spr_reg <= (others => '0');  
+
+			USB_UART_DLL_WR <= '0';
+			USB_UART_DLM_WR <= '0';
 		  
     elsif (rising_edge(CLK)) then
+	 
+		USB_UART_DLL_WR <= '0';
+		USB_UART_DLM_WR <= '0';
 	 
 		zifi_fifo_tx_clr_req <= '0';
 		zifi_fifo_rx_clr_req <= '0';
@@ -419,8 +432,10 @@ begin
              -- evo data / dll port
              if A = evo_data_port then 
                 is_rs232 <= '1';
+					 is_evo_rs232 <= '1';
                 if evo_lcr_reg(7) = '1' then
                     evo_dl_reg(7 downto 0) <= DI;
+						  USB_UART_DLL_WR <= '1';
                 elsif (evo_lcr_reg(7) = '0' and rs232_fifo_tx_wr_req = '0' and rs232_wr_allow = '1') then
 							rs232_wr_allow <= '0';
 							di_reg <= DI; 
@@ -431,8 +446,10 @@ begin
              -- evo ier / dlm port
              if A = evo_ier_port then 
                 is_rs232 <= '1';
+					 is_evo_rs232 <= '1';
                 if evo_lcr_reg(7) = '1' then 
                     evo_dl_reg(15 downto 8) <= DI;
+						  USB_UART_DLM_WR <= '1';
                 else
                     evo_ier_reg <= DI;
                 end if;
@@ -441,6 +458,7 @@ begin
              -- evo fcr port
              if A = evo_fcr_port then 
                 is_rs232 <= '1';
+					 is_evo_rs232 <= '1';					 
                 -- rx fifo clear
                 if (DI(0) = '1' and DI(1) = '1') then
                     rs232_fifo_rx_clr_req <= '1';
@@ -453,6 +471,7 @@ begin
             -- evo_lcr_port
             if A = evo_lcr_port then 
                 is_rs232 <= '1';
+					 is_evo_rs232 <= '1';					 
                 -- bit 7: dl enable
                 -- bit 5..3: 001 - odd parity, 011 - even parity, xxx - no parity
                 -- bit 2: stop bits count. 0 - 1, 1 - 1.5 in 5 bit mode, else 2 
@@ -463,6 +482,7 @@ begin
             -- evo_mcr_port
             if A = evo_mcr_port then 
                 is_rs232 <= '1';
+					 is_evo_rs232 <= '1';					 
                 -- bit 1:  RTS 
                 evo_mcr_reg <= DI;
              end if;
@@ -470,6 +490,7 @@ begin
             -- evo_spr_port
             if A = evo_spr_port then 
                 is_rs232 <= '1';
+					 is_evo_rs232 <= '1';
                 evo_spr_reg <= DI;
             end if;
 
@@ -500,10 +521,13 @@ begin
         -- track access to fifo registers to detect rs232 / zifi mode
         if IORQ_N = '0' and RD_N = '0' and (A = zifi_in_fifo_port or A = zifi_out_fifo_port) then 
             is_rs232 <= '0';
+				is_evo_rs232 <= '0';				
         elsif IORQ_N = '0' and RD_N = '0' and (A = rs232_in_fifo_port or A = rs232_out_fifo_port) then 
             is_rs232 <= '1';
+				is_evo_rs232 <= '0';	
         elsif IORQ_N = '0' and RD_N = '0' and (A = evo_data_port or A = evo_ier_port or A = evo_lcr_port or A = evo_mcr_port or A = evo_lsr_port or A = evo_msr_port or A = evo_spr_port) then
             is_rs232 <= '1';
+				is_evo_rs232 <= '1';	
         end if;
         
         if (RD_N = '1') then 
@@ -633,5 +657,8 @@ evo_msr_reg <= "11100000";
 ENABLED <= api_enabled;
 
 UART_CTS <= '1' when zifi_fifo_rx_used > 1792 else '0'; -- active 0
+USB_UART_DLL <= evo_dl_reg(7 downto 0);
+USB_UART_DLM <= evo_dl_reg(15 downto 8);
+USB_UART_TX_MODE <= is_evo_rs232;
 
 end rtl;
