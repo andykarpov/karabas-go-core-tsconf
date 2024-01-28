@@ -226,10 +226,6 @@
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="202"/>
       <association xil_pn:name="Implementation" xil_pn:seqID="59"/>
     </file>
-    <file xil_pn:name="rtl/osd/vga.vhd" xil_pn:type="FILE_VHDL">
-      <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="215"/>
-      <association xil_pn:name="Implementation" xil_pn:seqID="0"/>
-    </file>
     <file xil_pn:name="rtl/sound/audio_mixer.vhd" xil_pn:type="FILE_VHDL">
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="216"/>
       <association xil_pn:name="Implementation" xil_pn:seqID="54"/>
@@ -290,10 +286,6 @@
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="168"/>
       <association xil_pn:name="Implementation" xil_pn:seqID="6"/>
     </file>
-    <file xil_pn:name="ipcore_dir/gsrom.xco" xil_pn:type="FILE_COREGEN">
-      <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="172"/>
-      <association xil_pn:name="Implementation" xil_pn:seqID="0"/>
-    </file>
     <file xil_pn:name="rtl/sound/attenuator.v" xil_pn:type="FILE_VERILOG">
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="174"/>
       <association xil_pn:name="Implementation" xil_pn:seqID="7"/>
@@ -325,9 +317,6 @@
       <association xil_pn:name="Implementation" xil_pn:seqID="0"/>
     </file>
     <file xil_pn:name="ipcore_dir/rom_font.xise" xil_pn:type="FILE_COREGENISE">
-      <association xil_pn:name="Implementation" xil_pn:seqID="0"/>
-    </file>
-    <file xil_pn:name="ipcore_dir/gsrom.xise" xil_pn:type="FILE_COREGENISE">
       <association xil_pn:name="Implementation" xil_pn:seqID="0"/>
     </file>
   </files>
