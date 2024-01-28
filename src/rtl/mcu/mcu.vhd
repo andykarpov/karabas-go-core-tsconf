@@ -48,6 +48,13 @@ entity mcu is
 	 RTC_CS 		: in std_logic := '0';
 	 RTC_WR_N 	: in std_logic := '1';
 	 
+	 -- usb uart
+	 UART_RX_DATA			: out std_logic_vector(7 downto 0);
+	 UART_RX_IDX	: out std_logic_vector(7 downto 0) := (others => '0');
+	 
+	 UART_TX_DATA			: in std_logic_vector(7 downto 0);
+	 UART_TX_WR				: in std_logic := '0';
+	 
 	 -- soft switches command
 	 SOFTSW_COMMAND : out std_logic_vector(15 downto 0);
 	 
@@ -76,13 +83,13 @@ architecture rtl of mcu is
 	constant CMD_ROMBANK    : std_logic_vector(7 downto 0) := x"06";
 	constant CMD_ROMDATA    : std_logic_vector(7 downto 0) := x"07";
 	constant CMD_ROMLOADER  : std_logic_vector(7 downto 0) := x"08";
-	
 
 	-- 11, 12 - usb gamepad, joy : todo
 
 	constant CMD_OSD 			: std_logic_vector(7 downto 0) := x"20";
 	constant CMD_RTC 			: std_logic_vector(7 downto 0) := x"FA";
-
+	constant CMD_FLASHBOOT  : std_logic_vector(7 downto 0) := x"FB";
+	constant CMD_UART			: std_logic_vector(7 downto 0) := x"FC";
 	constant CMD_INIT_START	: std_logic_vector(7 downto 0) := x"FD";
 	constant CMD_INIT_DONE	: std_logic_vector(7 downto 0) := x"FE";	
 	constant CMD_NOPE			: std_logic_vector(7 downto 0) := x"FF";
@@ -264,6 +271,11 @@ begin
 						rtcr_a <= spi_do(15 downto 8);
 						rtcr_d <= spi_do(7 downto 0);
 						rtcr_command <= not rtcr_command;
+						
+					-- uart
+					when CMD_UART =>
+						UART_RX_DATA <= spi_do(7 downto 0);
+						UART_RX_IDX <= spi_do(15 downto 8);
 
 					-- init start
 					when CMD_INIT_START => BUSY <= '1';
@@ -346,11 +358,14 @@ begin
 	);
 	
 	-- fifo handling / queue commands to mcu side
-	process(CLK, N_RESET, RTC_WR_N, RTC_CS, queue_wr_full, RTC_A, RTC_DI, queue_wr_req, queue_rd_empty, BUSY)
+	process(CLK)
 	begin
 		if rising_edge(CLK) then		
-			queue_wr_req <= '0';			
-			if RTC_WR_N = '0' AND RTC_CS = '1' and BUSY = '0' then -- add rtc register write to queue
+			queue_wr_req <= '0';
+			if UART_TX_WR = '1' then -- send UART byte
+				queue_wr_req <= '1';
+				queue_di <= CMD_UART & x"00" & UART_TX_DATA;
+			elsif RTC_WR_N = '0' AND RTC_CS = '1' and BUSY = '0' then -- add rtc register write to queue
 				queue_wr_req <= '1';
 				queue_di <= CMD_RTC & RTC_A & RTC_DI;
 			elsif queue_rd_empty = '1' or queue_data_count < 5 then -- anti-empty queue
@@ -362,7 +377,7 @@ begin
 	end process;
 	
 	-- write RTC registers into ram from host / mcu
-	process (N_RESET, CLK, RTC_WR_N, RTC_CS, RTC_A, RTC_DI, rtcr_a, rtcr_d, rtcr_command, last_rtcr_command, BUSY) 
+	process (CLK) 
 	begin 
 		if rising_edge(CLK) then
 			rtcw_wr <= "0";

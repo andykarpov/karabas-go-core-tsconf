@@ -183,6 +183,10 @@ module karabas_go_top (
 	wire [7:0] rtc_di;
 	wire [7:0] rtc_do;
 	wire rtc_wr;
+	wire [7:0] uart_rx_data;
+	wire [7:0] uart_rx_idx;
+	wire [7:0] uart_tx_data;
+	wire uart_tx_wr;
 	wire [7:0] hid_kb_status;
 	wire [7:0] hid_kb_dat0;
 	wire [7:0] hid_kb_dat1;
@@ -293,6 +297,11 @@ module karabas_go_top (
 	  .loader_a(loader_addr),
 	  .loader_d(loader_data),
 	  .loader_wr(loader_wr),
+	  
+	  .usb_uart_rx_data(uart_rx_data),
+	  .usb_uart_rx_idx(uart_rx_idx),	 
+	  .usb_uart_tx_data(uart_tx_data),
+	  .usb_uart_tx_wr(uart_tx_wr),	  
 
 		.sdram_clk(SDR_CLK),
       .sdram_ba(SDR_BA),
@@ -357,6 +366,11 @@ mcu mcu(
 	.RTC_DO(rtc_do),
 	.RTC_CS(1'b1),
 	.RTC_WR_N(~rtc_wr),
+	
+	.UART_RX_DATA(uart_rx_data),
+	.UART_RX_IDX(uart_rx_idx),	 
+	.UART_TX_DATA(uart_tx_data),
+	.UART_TX_WR(uart_tx_wr),
 	
 	.ROMLOADER_ACTIVE(loader_act),
 	.ROMLOAD_ADDR(loader_addr),

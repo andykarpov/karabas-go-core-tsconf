@@ -115,8 +115,13 @@ module tsconf
 	output wire [1:0]  sdram_ba,
 	output wire        sdram_we_n,
 	output wire        sdram_ras_n,
-	output wire        sdram_cas_n
+	output wire        sdram_cas_n,
 	
+	// usb uart
+	input wire [7:0]   usb_uart_rx_data,
+	input wire [7:0]	 usb_uart_rx_idx,
+	output wire [7:0]  usb_uart_tx_data,
+	output wire 		 usb_uart_tx_wr	
 );
 
   // cpu
@@ -1305,7 +1310,7 @@ wire zifi_oe_n;
 
 zifi zifi(
 	.CLK(clk_28mhz),
-	.RESET(rst),
+	.RESET(~locked),
 	.DS80(1'b0),
 	
 	.A(cpu_a_bus),
@@ -1314,6 +1319,11 @@ zifi zifi(
 	.IORQ_N(cpu_iorq_n),
 	.RD_N(cpu_rd_n),
 	.WR_N(cpu_wr_n),
+	
+	.USB_UART_RX_DATA(usb_uart_rx_data),
+	.USB_UART_RX_IDX(usb_uart_rx_idx),
+	.USB_UART_TX_DATA(usb_uart_tx_data),
+	.USB_UART_TX_WR(usb_uart_tx_wr),
 	
 	.ZIFI_OE_N(zifi_oe_n),
 	.ENABLED(),
