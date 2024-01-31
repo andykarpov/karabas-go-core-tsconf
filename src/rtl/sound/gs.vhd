@@ -273,11 +273,16 @@ cpu_di_bus <=	MDI when (cpu_mreq_n = '0' and cpu_rd_n = '0') else
 				port_xxb3_reg when (cpu_iorq_n = '0' and cpu_rd_n = '0' and cpu_a_bus(3 downto 0) = X"2") else
 				"11111111";
 
--- signed => unsigned
-ch_a_u <= ch_a_reg when ch_a_reg(7) = '0' else '0' & not(ch_a_reg(6 downto 0)) + 1;
-ch_b_u <= ch_b_reg when ch_b_reg(7) = '0' else '0' & not(ch_b_reg(6 downto 0)) + 1;
-ch_c_u <= ch_c_reg when ch_c_reg(7) = '0' else '0' & not(ch_c_reg(6 downto 0)) + 1;
-ch_d_u <= ch_d_reg when ch_d_reg(7) = '0' else '0' & not(ch_d_reg(6 downto 0)) + 1;
+-- signed => unsigned 
+--ch_a_u <= ch_a_reg when ch_a_reg(7) = '0' else '0' & (not(ch_a_reg(6 downto 0)) + 1);
+--ch_b_u <= ch_b_reg when ch_b_reg(7) = '0' else '0' & (not(ch_b_reg(6 downto 0)) + 1);
+--ch_c_u <= ch_c_reg when ch_c_reg(7) = '0' else '0' & (not(ch_c_reg(6 downto 0)) + 1);
+--ch_d_u <= ch_d_reg when ch_d_reg(7) = '0' else '0' & (not(ch_d_reg(6 downto 0)) + 1);
+
+ch_a_u <= ch_a_reg;
+ch_b_u <= ch_b_reg;
+ch_c_u <= ch_c_reg;
+ch_d_u <= ch_d_reg;
 
 -- Channel A volume controlled output
 att_a: entity work.attenuator
