@@ -3,14 +3,14 @@
 //------------------------------------------------------------------------------
 // http://www.ti.com/product/PCM5101A-Q1/datasheet/specifications#slase121473
 module PCM5102(clk,reset,left,right,din,bck,lrck);
-	input 			clk;			// sysclk 28MHz
+	input 			clk;			// 12.288 MHz
 	input 			reset; 		// reset
 	input [15:0]	left,right;	// left and right 16bit samples Uint16
 	output 			din;			// pin on pcm5102 data
 	output 			bck;			// pin on pcm5102 bit clock
 	output 			lrck;			// pin on pcm5102 l/r clock can be used outside of this module to create new samples
 	
-	parameter DAC_CLK_DIV_BITS = 3; // 28 MHz / 16 / 32 = 54 kHz samplerate
+	parameter DAC_CLK_DIV_BITS = 1; // 28 MHz / 4 / 32 = 218 kHz samplerate (7 MHz bck)
 
 	reg [DAC_CLK_DIV_BITS:0]	i2s_clk;
 	

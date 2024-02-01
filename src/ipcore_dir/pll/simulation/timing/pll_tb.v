@@ -79,11 +79,11 @@ module pll_tb ();
   reg         CLK_IN1     = 1;
 
   // The high bits of the sampling counters
-  wire [3:1]  COUNT;
+  wire [4:1]  COUNT;
   // Status and control signals
   wire        LOCKED;
   reg         COUNTER_RESET = 0;
-wire [3:1] CLK_OUT;
+wire [4:1] CLK_OUT;
 //Freq Check using the M & D values setting and actual Frequency generated 
 
   reg [13:0]  timeout_counter = 14'b00000000000000;

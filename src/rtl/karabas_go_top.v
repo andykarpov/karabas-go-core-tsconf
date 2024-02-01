@@ -126,6 +126,7 @@ module karabas_go_top (
 	wire clk_8mhz;
 	wire clk_bus;
 	wire clk_16mhz;
+	wire clk_i2s;
    wire locked;
 	wire areset;
    pll pll (
@@ -133,6 +134,7 @@ module karabas_go_top (
 	  .CLK_OUT1(clk_sys),
 	  .CLK_OUT2(clk_8mhz),
 	  .CLK_OUT3(clk_16mhz),
+	  .CLK_OUT4(clk_i2s),
 	  .LOCKED(locked)
 	);
 	

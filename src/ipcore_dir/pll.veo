@@ -57,6 +57,7 @@
 // CLK_OUT1____84.091______0.000______50.0______231.223____247.402
 // CLK_OUT2_____7.974______0.000______50.0______407.093____247.402
 // CLK_OUT3____15.948______0.000______50.0______358.264____247.402
+// CLK_OUT4____12.333______0.000______50.0______376.007____247.402
 //
 //----------------------------------------------------------------------------
 // "Input Clock   Freq (MHz)    Input Jitter (UI)"
@@ -76,6 +77,7 @@
     .CLK_OUT1(CLK_OUT1),     // OUT
     .CLK_OUT2(CLK_OUT2),     // OUT
     .CLK_OUT3(CLK_OUT3),     // OUT
+    .CLK_OUT4(CLK_OUT4),     // OUT
     // Status and control signals
     .LOCKED(LOCKED));      // OUT
 // INST_TAG_END ------ End INSTANTIATION Template ---------
