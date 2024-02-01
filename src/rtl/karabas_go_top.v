@@ -167,13 +167,12 @@ module karabas_go_top (
 	wire [7:0] osd_b;
 	wire video_hsync;
 	wire video_vsync;
-	wire btn_reset_n;
+	wire btn_reset_n, btn_reset_gs_n;
 	wire audio_beeper;
 	wire [15:0] audio_out_l;
 	wire [15:0] audio_out_r;
-	wire [11:0] joy_l;
-	wire [11:0] joy_r;
-	wire [11:0] joy_usb;
+	wire [12:0] joy_l;
+	wire [12:0] joy_r;
 	wire [2:0] mouse_addr;
 	reg [7:0] mouse_data;
 	wire [15:8] keyboard_addr;
@@ -208,6 +207,7 @@ module karabas_go_top (
 	wire [7:0] joy_bus;
 	wire kb_pause;
 	wire kb_reset;
+	wire kb_reset_gs;
 	wire kb_nmi;
 	wire mcu_busy;
 	wire f1;
@@ -216,7 +216,8 @@ module karabas_go_top (
      .clk(clk_sys),
 	  .clk8(clk_8mhz),
 	  .ce(ce_28m),
-	  .resetbtn_n(btn_reset_n),	  
+	  .resetbtn_n(btn_reset_n),	
+		.resetgsbtn_n(btn_reset_gs_n),
 	  .locked(locked),
 	  .clk_bus(clk_bus),
 	  .f1_out(f1),
@@ -367,7 +368,6 @@ mcu mcu(
 	
 	.JOY_L(joy_l),
 	.JOY_R(joy_r),
-	.JOY_USB(joy_usb),
 	
 	.RTC_A(rtc_addr),
 	.RTC_DI(rtc_di),
@@ -441,11 +441,13 @@ soft_switches soft_switches(
 	.JOY_TYPE_L(kb_joy_type_l),
 	.JOY_TYPE_R(kb_joy_type_r),
 	.PAUSE(kb_pause),
+	.RESET_GS(kb_reset_gs),
 	.NMI(kb_nmi),
 	.RESET(kb_reset)
 );
 
 assign btn_reset_n = ~kb_reset & ~mcu_busy;
+assign btn_reset_gs_n = ~kb_reset_gs & ~mcu_busy;
 
 //---------- Mouse / cursor ------------
 
@@ -484,6 +486,7 @@ end
 
 PCM5102 PCM5102(
 	.clk(clk_bus),
+	.reset(areset),
 	.left(audio_out_l),
 	.right(audio_out_r),
 	.din(DAC_DAT),

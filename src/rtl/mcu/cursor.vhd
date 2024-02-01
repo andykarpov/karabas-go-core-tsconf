@@ -32,9 +32,10 @@ architecture rtl of cursor is
 	 -- mouse
 	 signal cursorX 			: signed(7 downto 0) := X"7F";
 	 signal cursorY 			: signed(7 downto 0) := X"7F";
+	 signal cursorZ			: signed(3 downto 0) := x"7";
 	 signal deltaX				: signed(8 downto 0);
 	 signal deltaY				: signed(8 downto 0);
-	 signal deltaZ				: signed(3 downto 0);
+	 signal deltaZ				: signed(4 downto 0);
 	 signal trigger 			: std_logic := '0';
 	 signal ms_flag 			: std_logic := '0';
 
@@ -58,22 +59,25 @@ begin
 	process (CLK)
 		variable newX : signed(7 downto 0);
 		variable newY : signed(7 downto 0);
+		variable newZ : signed(3 downto 0);
 	begin
 		if rising_edge (CLK) then
 
 			newX := cursorX + deltaX(7 downto 0);
 			newY := cursorY + deltaY(7 downto 0);
+			newZ := cursorZ + deltaZ(3 downto 0);
 
 			if trigger = '1' then
 				cursorX <= newX;
 				cursorY <= newY;
+				cursorZ <= newZ;
 			end if;
 		end if;
 	end process;
 	
 	OUT_X <= std_logic_vector(cursorX);
 	OUT_Y <= std_logic_vector(cursorY);
-	OUT_Z	<= std_logic_vector(deltaZ);
+	OUT_Z	<= std_logic_vector(cursorZ);
 	OUT_B <= MS_B;
 
 end rtl;

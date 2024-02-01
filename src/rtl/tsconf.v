@@ -8,6 +8,7 @@ module tsconf
 	input wire clk8,
 	input wire ce,
 	input wire resetbtn_n,
+	input wire resetgsbtn_n,
 	input wire locked,
 	output wire clk_bus,
 	output wire f1_out,
@@ -146,7 +147,7 @@ module tsconf
   // clock
   wire f0, f1, h0, h1, c0, c1, c2, c3;
   
-  wire rst_n; 
+  wire rst_n, rst_gs_n; 
   wire genrst;
 
   wire [1:0] ay_mod;
@@ -397,7 +398,7 @@ reg  [4:0] key;
 wire       key_reset;
 wire [7:0] key_scancode;
 wire [7:0]  mouse_do;
-wire n_reset;
+wire n_reset, n_reset_gs;
 
 wire [7:0] clocktm;
   // wire [1:0] vg_ddrv;
@@ -480,6 +481,13 @@ assign clk_bus = clk_28mhz;
     .clk(clk_28mhz),
     .rst_in_n(n_reset),
     .rst_out_n(rst_n)
+  );
+  
+  resetter myrst2
+  (
+    .clk(clk_28mhz),
+    .rst_in_n(n_reset_gs),
+    .rst_out_n(rst_gs_n)
   );
 
  wire zclkn;
@@ -1297,6 +1305,7 @@ audio_mixer audio_mixer
 );
 
 assign n_reset = locked & resetbtn_n;
+assign n_reset_gs = locked & resetgsbtn_n;
 
 assign cpu_di_bus = 
 		(csrom && ~cpu_mreq_n && ~cpu_rd_n) 						?	rom_do_bus			:	// BIOS
@@ -1420,7 +1429,7 @@ gs_top gs_top
     .clk_sys(clk),
     .clk_bus(clk_bus),
 	 .ce(ce_14m),
-    .reset(rst),
+    .reset(~rst_gs_n),
     .areset(~locked),
 
     .a(cpu_a_bus),

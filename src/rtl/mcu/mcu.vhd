@@ -37,9 +37,8 @@ entity mcu is
 	 KB_DAT5   : out std_logic_vector(7 downto 0) := "00000000";
 
 	 -- joysticks
-	 JOY_L			: out std_logic_vector(11 downto 0) := "000000000000";
-	 JOY_R			: out std_logic_vector(11 downto 0) := "000000000000";
-	 JOY_USB			: out std_logic_vector(11 downto 0) := "000000000000";
+	 JOY_L			: out std_logic_vector(12 downto 0) := "000000000000";
+	 JOY_R			: out std_logic_vector(12 downto 0) := "000000000000";
 
     -- rtc	 
 	 RTC_A 		: in std_logic_vector(7 downto 0);
@@ -220,32 +219,37 @@ begin
 						case spi_do(15 downto 8) is
 							-- joy L
 							when x"00" =>
-									  joy_l(0) <= spi_do(5); -- right 
-									  joy_l(1) <= spi_do(4); -- left 
-									  joy_l(2) <= spi_do(3); -- down 
-									  joy_l(3) <= spi_do(2); -- up
-									  joy_l(4) <= spi_do(0); -- fire
-									  joy_l(5) <= spi_do(1); -- fire2
+									  joy_l(0) <= spi_do(0); -- ON
+									  joy_l(1) <= spi_do(1); -- UP 
+									  joy_l(2) <= spi_do(2); -- DOWN 
+									  joy_l(3) <= spi_do(3); -- LEFT
+									  joy_l(4) <= spi_do(4); -- RIGHT
+									  joy_l(5) <= spi_do(5); -- START
 									  joy_l(6) <= spi_do(6); -- A
 									  joy_l(7) <= spi_do(7); -- B
 							when x"01" =>
-									  joy_r(0) <= spi_do(5); -- right 
-									  joy_r(1) <= spi_do(4); -- left 
-									  joy_r(2) <= spi_do(3); -- down 
-									  joy_r(3) <= spi_do(2); -- up
-									  joy_r(4) <= spi_do(0); -- fire
-									  joy_r(5) <= spi_do(1); -- fire2
+									  joy_l(8) <= spi_do(0); -- C 
+									  joy_l(9) <= spi_do(1); -- X 
+									  joy_l(10) <= spi_do(2); -- Y 
+									  joy_l(11) <= spi_do(3); -- Z
+									  joy_l(12) <= spi_do(4); -- MODE
+
+							-- joy R
+							when x"02" =>
+									  joy_r(0) <= spi_do(0); -- ON
+									  joy_r(1) <= spi_do(1); -- UP 
+									  joy_r(2) <= spi_do(2); -- DOWN 
+									  joy_r(3) <= spi_do(3); -- LEFT
+									  joy_r(4) <= spi_do(4); -- RIGHT
+									  joy_r(5) <= spi_do(5); -- START
 									  joy_r(6) <= spi_do(6); -- A
 									  joy_r(7) <= spi_do(7); -- B
-							when x"02" =>
-									  joy_usb(0) <= spi_do(5); -- right 
-									  joy_usb(1) <= spi_do(4); -- left 
-									  joy_usb(2) <= spi_do(3); -- down 
-									  joy_usb(3) <= spi_do(2); -- up
-									  joy_usb(4) <= spi_do(0); -- fire
-									  joy_usb(5) <= spi_do(1); -- fire2
-									  joy_usb(6) <= spi_do(6); -- A
-									  joy_usb(7) <= spi_do(7); -- B
+							when x"03" =>
+									  joy_r(8) <= spi_do(0); -- C 
+									  joy_r(9) <= spi_do(1); -- X 
+									  joy_r(10) <= spi_do(2); -- Y 
+									  joy_r(11) <= spi_do(3); -- Z
+									  joy_r(12) <= spi_do(4); -- MODE
 							when others => null;
 						end case;
 

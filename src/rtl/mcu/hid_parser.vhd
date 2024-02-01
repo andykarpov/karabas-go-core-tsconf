@@ -31,8 +31,8 @@ entity hid_parser is
 	 -- joy data from mcu
 	 JOY_TYPE_L : in std_logic_vector(2 downto 0);
 	 JOY_TYPE_R : in std_logic_vector(2 downto 0);
-	 JOY_L : in std_logic_vector(11 downto 0);
-	 JOY_R : in std_logic_vector(11 downto 0);
+	 JOY_L : in std_logic_vector(12 downto 0);
+	 JOY_R : in std_logic_vector(12 downto 0);
 
 	 -- cpu address for spectrum keyboard row address
 	 A : in std_logic_vector(15 downto 8);

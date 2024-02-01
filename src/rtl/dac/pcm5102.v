@@ -2,37 +2,47 @@
 //          PCM5102 2 Channel DAC
 //------------------------------------------------------------------------------
 // http://www.ti.com/product/PCM5101A-Q1/datasheet/specifications#slase121473
-module PCM5102(clk,left,right,din,bck,lrck);
+module PCM5102(clk,reset,left,right,din,bck,lrck);
 	input 			clk;			// sysclk 28MHz
-	input [15:0]	left,right;		// left and right 16bit samples Uint16
+	input 			reset; 		// reset
+	input [15:0]	left,right;	// left and right 16bit samples Uint16
 	output 			din;			// pin on pcm5102 data
 	output 			bck;			// pin on pcm5102 bit clock
 	output 			lrck;			// pin on pcm5102 l/r clock can be used outside of this module to create new samples
 	
-	parameter DAC_CLK_DIV_BITS = 3; 
+	parameter DAC_CLK_DIV_BITS = 3; // 28 MHz / 16 / 32 = 54 kHz samplerate
 
-	reg [DAC_CLK_DIV_BITS:0]	i2s_clk;			// 3 Bit Counter 28MHz / 8 = 3,5 MHz, bck = 3.5MHz, / 32 = ca 109,3 Khz SampleRate
-	always @(posedge clk) begin
-		i2s_clk 	<= i2s_clk + 1;
-	end	
-
-	reg [15:0] l2c;
-	reg [15:0] r2c;
+	reg [DAC_CLK_DIV_BITS:0]	i2s_clk;
 	
-	reg lrck;
-	reg din;
-	reg bck;
+	// clock divider counter
+	always @(negedge clk) begin
+		if (reset == 1'b1) 
+			i2s_clk <= 0;
+		else
+			i2s_clk 	<= i2s_clk + 1;
+	end
+	wire ce = i2s_clk == 0; // pulse ce only when counter is 0
 
-	always @(negedge i2sword[5]) begin
-		l2c <= left;
-		r2c <= right; 
+	reg [15:0] l2c, r2c;
+	reg lrck, din, bck;
+
+	// load shift registers with new data at the end if i2sword counter and disabled ce
+	always @(posedge clk) begin
+		if (ce == 1'b0 && i2sword == 6'b111111) begin
+			l2c <= left;
+			r2c <= right;
+		end
 	end	
 
 	reg [5:0]   i2sword = 0;		// 6 bit = 16 steps for left + right
-	always @(negedge i2s_clk[DAC_CLK_DIV_BITS]) begin
-		lrck	 	<= i2sword[5];
-		din 		<= lrck ? r2c[16 - i2sword[4:1]] : l2c[16 - i2sword[4:1]];	// blit data bits
-		bck			<= i2sword[0];
-		i2sword		<= i2sword + 1;
+	
+	// shift data
+	always @(posedge clk) begin
+		if (ce == 1'b1) begin
+			lrck	 	<= i2sword[5];
+			bck		<= i2sword[0];
+			din 		<= lrck ? r2c[15 - i2sword[4:1]] : l2c[15 - i2sword[4:1]];	// blit data bits
+			i2sword	<= i2sword + 1;
+		end
 	end	
 endmodule
