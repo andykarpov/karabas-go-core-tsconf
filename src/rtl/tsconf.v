@@ -1422,7 +1422,7 @@ BUFGCE U_BUFG14 (
 
 wire gs_oe;
 wire [7:0] gs_do_bus;
-wire [8:0] gs_out_l, gs_out_r;
+wire [14:0] gs_out_l, gs_out_r;
 
 gs_top gs_top
 (

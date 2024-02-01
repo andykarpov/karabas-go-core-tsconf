@@ -87,10 +87,10 @@ entity gs is
 		IORQ_n		: in std_logic;
 		M1_n		: in std_logic;
 
-		OUTA		: out std_logic_vector(7 downto 0);
-		OUTB		: out std_logic_vector(7 downto 0);
-		OUTC		: out std_logic_vector(7 downto 0);
-		OUTD		: out std_logic_vector(7 downto 0);
+		OUTA		: out std_logic_vector(13 downto 0);
+		OUTB		: out std_logic_vector(13 downto 0);
+		OUTC		: out std_logic_vector(13 downto 0);
+		OUTD		: out std_logic_vector(13 downto 0);
 
 		MA			: out std_logic_vector(20 downto 0);
 		MDI			: in std_logic_vector(7 downto 0);

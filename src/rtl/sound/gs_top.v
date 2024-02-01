@@ -42,8 +42,8 @@ module gs_top (
 	input wire            loader_wr,
 
     // sound output
-	output wire [8:0] out_l,
-	output wire [8:0] out_r
+	output wire [14:0] out_l,
+	output wire [14:0] out_r
 
 );
 
@@ -55,8 +55,8 @@ wire  [7:0] gs_mem_din;
 wire        gs_mem_rd_n;
 wire        gs_mem_wr_n;
 
-wire [8:0] gs_l, gs_r;
-wire [7:0] out_a, out_b, out_c, out_d;
+wire [14:0] gs_l, gs_r;
+wire [13:0] out_a, out_b, out_c, out_d;
 
 gs gs 
 (
