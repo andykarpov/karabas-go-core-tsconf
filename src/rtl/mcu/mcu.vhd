@@ -70,6 +70,14 @@ entity mcu is
 	 ROMLOAD_DATA: out std_logic_vector(7 downto 0) := (others => '0');
 	 ROMLOAD_WR : out std_logic := '0';
 
+	 -- ft812 exclusive access by mcu
+	 FT_SPI_ON : out std_logic := '0'; -- spi access
+	 FT_VGA_ON : out std_logic := '0';  -- vga access
+	 FT_SCK	  : out std_logic := '1';
+	 FT_MOSI	  : out std_logic := '1';
+	 FT_MISO	  : in  std_logic := '1';
+	 FT_CS_N   : out std_logic := '1';
+
     -- osd command
 	 OSD_COMMAND: out std_logic_vector(15 downto 0);
 	 
@@ -89,6 +97,8 @@ architecture rtl of mcu is
 	constant CMD_ROMBANK    : std_logic_vector(7 downto 0) := x"06";
 	constant CMD_ROMDATA    : std_logic_vector(7 downto 0) := x"07";
 	constant CMD_ROMLOADER  : std_logic_vector(7 downto 0) := x"08";
+	constant CMD_FT    		: std_logic_vector(7 downto 0) := x"09";
+	constant CMD_FT_DATA		: std_logic_vector(7 downto 0) := x"0A";
 
 	-- 11, 12 - usb gamepad, joy : todo
 
@@ -140,6 +150,22 @@ architecture rtl of mcu is
 	--state machine for queue writes
 	type qmachine IS(idle, rtc_wr_req, rtc_wr_ack);
 	signal qstate : qmachine := idle;
+	
+	-- ft command
+	signal ft_cmd : std_logic_vector(23 downto 0);
+	signal ft_cmd_wr : std_logic := '0';
+
+	-- ft transaction
+	signal ft_transaction_len : std_logic_vector(7 downto 0);
+	signal ft_addr : std_logic_vector(31 downto 0);
+	signal ft_buf_a : std_logic_vector(7 downto 0);
+	signal ft_buf_di : std_logic_vector(7 downto 0);
+	signal ft_buf_wr : std_logic := '0';
+	signal ft_transaction_wr : std_logic := '0';
+		 
+	signal ft_spi_ss_n : std_logic_vector(0 downto 0);
+	signal ft_spi_busy : std_logic;
+	signal ft_rx_data : std_logic_vector(23 downto 0);
 		 
 begin
 	
@@ -191,6 +217,11 @@ begin
 	process (CLK, spi_do_valid, spi_do)
 	begin
 		if (rising_edge(CLK)) then
+		
+			ft_cmd_wr <= '0';
+			ft_buf_wr <= '0';
+			ft_transaction_wr <= '0';
+		
 			if spi_do_valid = '1' then
 				case spi_do(23 downto 16) is 
 					-- keyboard
@@ -287,6 +318,37 @@ begin
 					when CMD_UART =>
 						UART_RX_DATA <= spi_do(7 downto 0);
 						UART_RX_IDX <= spi_do(15 downto 8);
+						
+					-- ft812
+					when CMD_FT => 
+						case spi_do(15 downto 8) is
+							-- control spi, vga
+							when x"00" => 
+								FT_SPI_ON <= spi_do(0);
+								FT_VGA_ON <= spi_do(1);
+							
+							-- command register
+							when x"01" => ft_cmd(23 downto 16) <= spi_do(7 downto 0);
+							when x"02" => ft_cmd(15 downto 8) <= spi_do(7 downto 0);
+							when x"03" => ft_cmd(7 downto 0) <= spi_do(7 downto 0); ft_cmd_wr <= '1'; -- todo: trigger cmd execution from here
+							
+							-- transaction length, address
+							when x"04" => ft_transaction_len(7 downto 0) <= spi_do(7 downto 0);
+							when x"05" => ft_addr(31 downto 24) <= spi_do(7 downto 0);
+							when x"06" => ft_addr(23 downto 16) <= spi_do(7 downto 0);
+							when x"07" => ft_addr(15 downto 8) <= spi_do(7 downto 0);
+							when x"08" => ft_addr(7 downto 0) <= spi_do(7 downto 0); -- todo: trigger ft transaction from here
+							when others => null;
+						end case;
+						
+					-- ft812 transaction data
+					when CMD_FT_DATA => 
+						ft_buf_a <= spi_do(15 downto 8);
+						ft_buf_di <= spi_do(7 downto 0);
+						ft_buf_wr <= '1';
+						if (ft_transaction_len = spi_do(15 downto 8)) then
+							ft_transaction_wr <= '1';
+						end if;
 
 					-- init start
 					when CMD_INIT_START => BUSY <= '1';
@@ -416,6 +478,31 @@ begin
 			end if;
 		end if;
 	end process;
+	
+	U_FT_SPI: entity work.spi_master
+	generic map(
+		slaves => 1,
+		d_width => 24
+	)
+	port map(
+		clock => CLK,
+		reset_n => '1',
+		enable => ft_cmd_wr,
+		cpol => '0',
+		cpha => '0',
+		cont => '0',
+		clk_div => 1,
+		addr => 1,
+		tx_data => ft_cmd,
+		miso => FT_MISO,
+		sclk => FT_SCK,
+		ss_n => ft_spi_ss_n,
+		mosi => FT_MOSI,
+		busy => ft_spi_busy,
+		rx_data => ft_rx_data
+	);
+	
+FT_CS_N <= ft_spi_ss_n(0);
 
 end RTL;
 

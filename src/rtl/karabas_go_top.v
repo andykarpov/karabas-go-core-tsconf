@@ -329,6 +329,7 @@ wire [7:0] rtc_do_mapped;
 assign rtc_do_mapped = (rtc_addr == 8'hF0 ? keyboard_scancode : (rtc_addr == 8'h0D ? 8'b10000000 : rtc_do));
 	 
 wire ftcs_n, ftclk, ftdo, ftdi, ftint, vdac2_sel;
+wire mcu_ft_spi_on, mcu_ft_vga_on, mcu_ft_sck, mcu_ft_mosi, mcu_ft_cs_n;
 
 assign VGA_R[7:0] = (vdac2_sel ? 8'bZZZZZZZZ : osd_r[7:0]);
 assign VGA_G[7:0] = (vdac2_sel ? 8'bZZZZZZZZ : osd_g[7:0]);
@@ -336,12 +337,13 @@ assign VGA_B[7:0] = (vdac2_sel ? 8'bZZZZZZZZ : osd_b[7:0]);
 assign VGA_HS = (vdac2_sel ? 1'bZ : video_hsync);
 assign VGA_VS = (vdac2_sel ? 1'bZ : video_vsync);
 assign V_CLK = (vdac2_sel ? FT_CLK : ce_28m);
-assign FT_SPI_CS_N = ftcs_n;
-assign FT_SPI_SCK = ftclk;
-assign FT_OE_N = (vdac2_sel ? 1'b0 : 1'b1);
+assign FT_SPI_CS_N = mcu_ft_spi_on ? mcu_ft_cs_n : ftcs_n;
+assign FT_SPI_SCK = mcu_ft_spi_on ? mcu_ft_sck : ftclk;
+assign FT_OE_N = mcu_ft_vga_on ? 1'b0 : (vdac2_sel ? 1'b0 : 1'b1);
 assign ftdi = FT_SPI_MISO;
-assign FT_SPI_MOSI = ftdo;
+assign FT_SPI_MOSI = mcu_ft_spi_on ? mcu_ft_mosi : ftdo;
 assign ftint = FT_INT_N;
+
 
 //---------- MCU ------------
 
@@ -395,6 +397,13 @@ mcu mcu(
 	
 	.SOFTSW_COMMAND(softsw_command),	
 	.OSD_COMMAND(osd_command),
+	
+	.FT_SPI_ON(mcu_ft_spi_on),
+	.FT_VGA_ON(mcu_ft_vga_on),
+	.FT_SCK(mcu_ft_sck),
+	.FT_MISO(FT_SPI_MISO),
+	.FT_MOSI(mcu_ft_mosi),
+	.FT_CS_N(mcu_ft_cs_n),
 	
 	.BUSY(mcu_busy)
 );

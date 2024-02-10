@@ -27,7 +27,7 @@ entity sdram is
 		RD				: in std_logic;
 		RFSH			: in std_logic;
 		RFSHREQ			: out std_logic;
-		IDLE			: out std_logic;
+		IDLE			: buffer std_logic;
 		-- SDRAM Pin
 		CK				: out std_logic;
 		RAS_n			: out std_logic;
@@ -71,7 +71,7 @@ architecture rtl of sdram is
 	signal sdr_dqmh		: std_logic;
 	signal sdr_a		: std_logic_vector(12 downto 0);
 	signal sdr_dq		: std_logic_vector(15 downto 0);
-
+	
 	constant SdrCmd_xx 	: std_logic_vector(2 downto 0) := "111"; -- no operation
 	constant SdrCmd_ac 	: std_logic_vector(2 downto 0) := "011"; -- activate
 	constant SdrCmd_rd 	: std_logic_vector(2 downto 0) := "101"; -- read
@@ -161,6 +161,15 @@ begin
 				when others =>
 					sdr_dq <= (others => 'Z');
 					sdr_cmd <= SdrCmd_xx;			-- NOP
+					
+					-- pre idle
+--					if (state = "10011") then 
+--						if ((idle1 = '0' and temp = "000") or (idle1 = '1')) then  -- wait the end of host mem cycle
+--							state <= state + 1;
+--						end if;
+--					else
+--						state <= state + 1;
+--					end if;
 					state <= state + 1;
 			end case;
 

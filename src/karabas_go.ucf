@@ -213,6 +213,8 @@ NET "clk_bus" TNM_NET = "clk_bus";
 NET "clk_16mhz" TNM_NET = "clk_16mhz";
 NET "clk_8mhz" TNM_NET = "clk_8mhz";
 
+NET "tsconf/ce_14m" KEEP | S | PERIOD = 71 ns;
+
 #TIMESPEC "TS_CLK_50MHZ" = PERIOD "CLK_50MHZ" 50000 kHz;
 TIMESPEC "TS_CLK_SYS" = PERIOD "clk_sys" 84000 kHz;
 TIMESPEC "TS_CLK_BUS" = PERIOD "clk_bus" 28000 kHz;
