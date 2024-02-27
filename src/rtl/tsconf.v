@@ -1169,49 +1169,43 @@ assign rtc_wr = wait_start_gluclock & ~cpu_wr_n;
 wire ay_hit = (cpu_a_bus[7:0] == 8'hFD) & cpu_a_bus[15];
 wire ay_bc1	= ay_hit & cpu_m1_n & !cpu_iorq_n & cpu_a_bus[14];
 wire ay_bdir = ay_hit & cpu_m1_n & !cpu_iorq_n & !cpu_wr_n;
-
 wire ts_enable = ~cpu_iorq_n & ay_hit;
+//wire ts_enable = ~cpu_iorq_n & cpu_a_bus[0] & cpu_a_bus[15] & ~cpu_a_bus[1];
 wire ts_we     = ts_enable & ~cpu_wr_n;
-wire  [7:0] ts_do, ts_do0, ts_do1;
-wire ts_sel;
+wire  [7:0] ts_do;
 wire [7:0] ts_ssg0_a, ts_ssg0_b, ts_ssg0_c, ts_ssg1_a, ts_ssg1_b, ts_ssg1_c;
+wire [7:0] ts_ssg0_fm, ts_ssg1_fm;
 
 reg ce_ym;
 reg [5:0] div;
 always @(posedge clk_28mhz) begin
 	div <= div + 1'd1;
-	ce_ym <= !div[3] & !div[2] & !div[1] & !div[0]; // 1.75
+	//ce_ym <= !div[3] & !div[2] & !div[1] & !div[0]; // 1.75
+	ce_ym <= !div[2] & !div[1] & !div[0]; // 3.5
 end
 
 turbosound turbosound
 (
-	.I_CLK(clk_28mhz),
-	.I_ENA(ce_ym),
-	.I_ADDR(cpu_a_bus),
-	.I_DATA(cpu_do_bus),
-	.I_WR_N(cpu_wr_n),
-	.I_IORQ_N(cpu_iorq_n),
-	.I_M1_N(cpu_m1_n),
-	.I_RESET_N(~rst),
+	.RESET(rst),
+	.CLK(clk_28mhz),
+	.CE(ce_ym),
+	.BDIR(/*ts_we*/ay_bdir),
+	.BC(/*cpu_a_bus[14]*/ay_bc1),
+	.DI(cpu_do_bus),
+	.DO(ts_do),
+	.AY_MODE(~psg_type),
+		
+	.SSG0_AUDIO_A(ts_ssg0_a),
+	.SSG0_AUDIO_B(ts_ssg0_b),
+	.SSG0_AUDIO_C(ts_ssg0_c),
 
-	.I_BDIR(ay_bdir),
-	.I_BC1(ay_bc1),
-	.O_SEL(ts_sel),
-	.I_MODE(~psg_type), // todo: mode AY/YM from mcu
+	.SSG1_AUDIO_A(ts_ssg1_a),
+	.SSG1_AUDIO_B(ts_ssg1_b),
+	.SSG1_AUDIO_C(ts_ssg1_c),
 	
-	.O_SSG0_DA(ts_do0),
-	.O_SSG1_DA(ts_do1),
-	
-	.O_SSG0_AUDIO_A(ts_ssg0_a),
-	.O_SSG0_AUDIO_B(ts_ssg0_b),
-	.O_SSG0_AUDIO_C(ts_ssg0_c),
-
-	.O_SSG1_AUDIO_A(ts_ssg1_a),
-	.O_SSG1_AUDIO_B(ts_ssg1_b),
-	.O_SSG1_AUDIO_C(ts_ssg1_c)	
+	.SSG0_AUDIO_FM(ts_ssg0_fm),
+	.SSG1_AUDIO_FM(ts_ssg1_fm)
 );
-
-assign ts_do = ts_sel ? ts_do1 : ts_do0;
 
 // SAA1099
 
@@ -1298,6 +1292,9 @@ audio_mixer audio_mixer
 	
 	.gs_l(gs_out_l),
 	.gs_r(gs_out_r),
+	
+	.fm_l(ts_ssg0_fm),
+	.fm_r(ts_ssg1_fm),
 	
 	.audio_l(audio_out_l),
 	.audio_r(audio_out_r)

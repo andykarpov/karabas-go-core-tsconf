@@ -1,133 +1,140 @@
-//-----------------------------------------------------------------[06.11.2016]
-// YM2149 Software-Controlled Sound Generator (SSG)
-//-----------------------------------------------------------------------------
+//
+// Copyright (c) MikeJ - Jan 2005
+// Copyright (c) 2016-2019 Sorgelig
+//
+// All rights reserved
+//
+// Redistribution and use in source and synthezised forms, with or without
+// modification, are permitted provided that the following conditions are met:
+//
+// Redistributions of source code must retain the above copyright notice,
+// this list of conditions and the following disclaimer.
+//
+// Redistributions in synthesized form must reproduce the above copyright
+// notice, this list of conditions and the following disclaimer in the
+// documentation and/or other materials provided with the distribution.
+//
+// Neither the name of the author nor the names of other contributors may
+// be used to endorse or promote products derived from this software without
+// specific prior written permission.
+//
+// THIS CODE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+// THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+// PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE
+// LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+// POSSIBILITY OF SUCH DAMAGE.
+//
+
+
+// BDIR  BC  MODE
+//   0   0   inactive
+//   0   1   read value
+//   1   0   write value
+//   1   1   set address
+//
 
 module ym2149
 (
-   input        CLK,		// Global clock
-   input        CE,		// PSG Clock enable
-   input        RESET,		// Chip RESET (set all Registers to '0', active hi)
-   input        BDIR,		// Bus Direction (0 - read , 1 - write)
-   input        BC,		// Bus control
-   input  [7:0] DI,		// Data In
-   output [7:0] DO,		// Data Out
-   output [7:0] CHANNEL_A,	// PSG Output channel A
-   output [7:0] CHANNEL_B,	// PSG Output channel B
-   output [7:0] CHANNEL_C, 	// PSG Output channel C
-   output [5:0] ACTIVE,
-   input        SEL,		// When SEL = '0', the input clock is taken as the master clock, When the SEL = '1', the input clock is didided by 2 
-   input        A8,
-   input        MODE
+	input        CLK,       // Global clock
+	input        CE,        // PSG Clock enable
+	input        RESET,     // Chip RESET (set all Registers to '0', active hi)
+	input        BDIR,      // Bus Direction (0 - read , 1 - write)
+	input        BC,        // Bus control
+	input  [7:0] DI,        // Data In
+	output [7:0] DO,        // Data Out
+	output [7:0] CHANNEL_A, // PSG Output channel A
+	output [7:0] CHANNEL_B, // PSG Output channel B
+	output [7:0] CHANNEL_C, // PSG Output channel C
+
+	input        SEL,
+	input        MODE,
+	
+	output [5:0] ACTIVE,
+
+	input  [7:0] IOA_in,
+	output [7:0] IOA_out,
+
+	input  [7:0] IOB_in,
+	output [7:0] IOB_out
 );
 
-assign ACTIVE = ~ymreg[7][5:0];
+assign ACTIVE  = ~ymreg[7][5:0];
+assign IOA_out = ymreg[14];
+assign IOB_out = ymreg[15];
 
-reg        ena_div;
-reg        ena_div_noise;
-reg [3:0]  addr;
-reg [7:0]  ymreg[0:15];
-reg        env_ena;
-reg [4:0]  env_vol;
+reg [7:0] addr;
+reg [7:0] ymreg[0:15];
 
-//wire [7:0] volTableAy[16] = 
-//       '{8'h00, 8'h03, 8'h04, 8'h06, 
-//		   8'h0a, 8'h0f, 8'h15, 8'h22, 
-//		   8'h28, 8'h41, 8'h5b, 8'h72, 
-//		   8'h90, 8'hb5, 8'hd7, 8'hff
-//		 };
-
-reg [7:0] volTableAy[0:15];
-initial begin 
-  volTableAy[0] = 8'h00;
-  volTableAy[1] = 8'h03;
-  volTableAy[2] = 8'h04;
-  volTableAy[3] = 8'h06;
-  volTableAy[4] = 8'h0a;
-  volTableAy[5] = 8'h0f;
-  volTableAy[6] = 8'h15;
-  volTableAy[7] = 8'h22;
-  volTableAy[8] = 8'h28;
-  volTableAy[9] = 8'h41;
-  volTableAy[10] = 8'h5b;
-  volTableAy[11] = 8'h72;
-  volTableAy[12] = 8'h90;
-  volTableAy[13] = 8'hb5;
-  volTableAy[14] = 8'hd7;
-  volTableAy[15] = 8'hff;
-end  
-
-//wire [7:0] volTableYm[32] = 
-//		'{8'h00, 8'h01, 8'h01, 8'h02, 
-//		  8'h02, 8'h03, 8'h03, 8'h04, 
-//		  8'h06, 8'h07, 8'h09, 8'h0a, 
-//		  8'h0c, 8'h0e, 8'h11, 8'h13, 
-//		  8'h17, 8'h1b, 8'h20, 8'h25, 
-//		  8'h2c, 8'h35, 8'h3e, 8'h47, 
-//		  8'h54, 8'h66, 8'h77, 8'h88, 
-//		  8'ha1, 8'hc0, 8'he0, 8'hff
-//		};
-
-
-reg [7:0] volTableYm[0:31];
-initial begin 
-  volTableYm[0] = 8'h00;
-  volTableYm[1] = 8'h01;
-  volTableYm[2] = 8'h01;
-  volTableYm[3] = 8'h02;
-  volTableYm[4] = 8'h02;
-  volTableYm[5] = 8'h03;
-  volTableYm[6] = 8'h03;
-  volTableYm[7] = 8'h04;
-  volTableYm[8] = 8'h06;
-  volTableYm[9] = 8'h07;
-  volTableYm[10] = 8'h09;
-  volTableYm[11] = 8'h0a;
-  volTableYm[12] = 8'h0c;
-  volTableYm[13] = 8'h0e;
-  volTableYm[14] = 8'h11;
-  volTableYm[15] = 8'h13;
-  volTableYm[16] = 8'h17;
-  volTableYm[17] = 8'h1b;
-  volTableYm[18] = 8'h20;
-  volTableYm[19] = 8'h25;
-  volTableYm[20] = 8'h2c;
-  volTableYm[21] = 8'h35;
-  volTableYm[22] = 8'h3e;
-  volTableYm[23] = 8'h47;
-  volTableYm[24] = 8'h54;
-  volTableYm[25] = 8'h66;
-  volTableYm[26] = 8'h77;
-  volTableYm[27] = 8'h88;
-  volTableYm[28] = 8'ha1;
-  volTableYm[29] = 8'hc0;
-  volTableYm[30] = 8'he0;
-  volTableYm[31] = 8'hff;
+// Write to PSG
+reg env_reset;
+always @(posedge CLK) begin
+	if(RESET) begin
+		//ymreg     <= '{default:0};
+		ymreg[0]  <= 8'd0;
+		ymreg[1]  <= 8'd0;
+		ymreg[2]  <= 8'd0;
+		ymreg[3]  <= 8'd0;
+		ymreg[4]  <= 8'd0;
+		ymreg[5]  <= 8'd0;
+		ymreg[6]  <= 8'd0;
+		ymreg[7]  <= 8'hFF;
+		ymreg[8]  <= 8'd0;
+		ymreg[9]  <= 8'd0;
+		ymreg[10]  <= 8'd0;
+		ymreg[11]  <= 8'd0;
+		ymreg[12]  <= 8'd0;
+		ymreg[13]  <= 8'd0;
+		ymreg[14]  <= 8'd0;
+		ymreg[15]  <= 8'd0;
+		addr      <= 8'd0;
+		env_reset <= 0;
+	end else begin
+		env_reset <= 0;
+		if(BDIR) begin
+			if(BC) addr <= DI;
+			else if(!addr[7:4]) begin
+				ymreg[addr[3:0]] <= DI;
+				env_reset <= (addr == 13);
+			end
+		end
+	end
 end
 
-// Read from AY
+// Read from PSG
 assign DO = dout;
 reg [7:0] dout;
-
 always @* begin
-	case(addr)
-		 0: dout = ymreg[0];
-		 1: dout = {4'b0000, ymreg[1][3:0]};
-		 2: dout = ymreg[2];
-		 3: dout = {4'b0000, ymreg[3][3:0]};
-		 4: dout = ymreg[4];
-		 5: dout = {4'b0000, ymreg[5][3:0]};
-		 6: dout = {3'b000,  ymreg[6][4:0]};
-		 7: dout = ymreg[7];
-		 8: dout = {3'b000,  ymreg[8][4:0]};
-		 9: dout = {3'b000,  ymreg[9][4:0]};
-		10: dout = {3'b000,  ymreg[10][4:0]};
-		11: dout = ymreg[11];
-		12: dout = ymreg[12];
-		13: dout = {4'b0000, ymreg[13][3:0]};
-		14: dout = (ymreg[7][6] ? ymreg[14] : 8'd0);
-		15: dout = (ymreg[7][7] ? ymreg[15] : 8'd0);
-	endcase
+	dout = 8'hFF;
+	if(~BDIR & BC & !addr[7:4]) begin
+		case(addr[3:0])
+			 0: dout = ymreg[0];
+			 1: dout = ymreg[1][3:0];
+			 2: dout = ymreg[2];
+			 3: dout = ymreg[3][3:0];
+			 4: dout = ymreg[4];
+			 5: dout = ymreg[5][3:0];
+			 6: dout = ymreg[6][4:0];
+			 7: dout = ymreg[7];
+			 8: dout = ymreg[8][4:0];
+			 9: dout = ymreg[9][4:0];
+			10: dout = ymreg[10][4:0];
+			11: dout = ymreg[11];
+			12: dout = ymreg[12];
+			13: dout = ymreg[13][3:0];
+			14: dout = ymreg[7][6] ? ymreg[14] : IOA_in; 
+			15: dout = ymreg[7][7] ? ymreg[15] : IOB_in;
+		endcase
+	end
 end
+
+reg ena_div;
+reg ena_div_noise;
 
 //  p_divider
 	reg [3:0]  cnt_div;
@@ -150,21 +157,22 @@ always @(posedge CLK) begin
 end
 
 
-reg [16:0] poly17;
-wire [4:0] noise_gen_comp = ymreg[6][4:0] ? ymreg[6][4:0] - 1'd1 : 5'd0;
+reg [2:0] noise_gen_op;
 
 //  p_noise_gen
+	reg [16:0] poly17;
 	reg [4:0]  noise_gen_cnt;
 always @(posedge CLK) begin
 
 	if(CE) begin
 		if (ena_div_noise) begin
-			if (noise_gen_cnt >= noise_gen_comp) begin
+			if (!ymreg[6][4:0] || (noise_gen_cnt >= ymreg[6][4:0] - 1'd1)) begin
 				noise_gen_cnt <= 0;
 				poly17 <= {(poly17[0] ^ poly17[2] ^ !poly17), poly17[16:1]};
 			end else begin
 				noise_gen_cnt <= noise_gen_cnt + 1'd1;
 			end
+			noise_gen_op <= {3{poly17[0]}};
 		end
 	end
 end
@@ -174,16 +182,11 @@ assign tone_gen_freq[1] = {ymreg[1][3:0], ymreg[0]};
 assign tone_gen_freq[2] = {ymreg[3][3:0], ymreg[2]};
 assign tone_gen_freq[3] = {ymreg[5][3:0], ymreg[4]};
 
-wire [11:0] tone_gen_comp[1:3];
-assign tone_gen_comp[1] = tone_gen_freq[1] ? tone_gen_freq[1] - 1'd1 : 12'd0;
-assign tone_gen_comp[2] = tone_gen_freq[2] ? tone_gen_freq[2] - 1'd1 : 12'd0;
-assign tone_gen_comp[3] = tone_gen_freq[3] ? tone_gen_freq[3] - 1'd1 : 12'd0;
-
 reg [3:1] tone_gen_op;
 
 //p_tone_gens
-	reg [11:0] tone_gen_cnt[1:3];
 	integer i;
+	reg [11:0] tone_gen_cnt[1:3];
 always @(posedge CLK) begin
 
 	if(CE) begin
@@ -191,9 +194,9 @@ always @(posedge CLK) begin
 	
 		for (i = 1; i <= 3; i = i + 1) begin
 			if(ena_div) begin
-				if (tone_gen_cnt[i] >= tone_gen_comp[i]) begin
+				if (!tone_gen_freq[i] || (tone_gen_cnt[i] >= (tone_gen_freq[i] - 1'd1))) begin
 					tone_gen_cnt[i] <= 0;
-					tone_gen_op[i]  <= (~tone_gen_op[i]);
+					tone_gen_op[i]  <= ~tone_gen_op[i];
 				end else begin
 					tone_gen_cnt[i] <= tone_gen_cnt[i] + 1'd1;
 				end
@@ -202,6 +205,7 @@ always @(posedge CLK) begin
 	end
 end
 
+reg env_ena;
 wire [15:0] env_gen_comp = {ymreg[12], ymreg[11]} ? {ymreg[12], ymreg[11]} - 1'd1 : 16'd0;
 
 //p_envelope_freq
@@ -221,13 +225,13 @@ always @(posedge CLK) begin
 	end
 end
 
+reg [4:0] env_vol;
+
 wire is_bot    = (env_vol == 5'b00000);
 wire is_bot_p1 = (env_vol == 5'b00001);
 wire is_top_m1 = (env_vol == 5'b11110);
 wire is_top    = (env_vol == 5'b11111);
 
-	reg old_BDIR;
-	reg env_reset;
 	reg env_hold;
 	reg env_inc;
 always @(posedge CLK) begin
@@ -254,82 +258,49 @@ always @(posedge CLK) begin
 	//
 	// 1 1 1 1  /___
 
-	if(RESET) begin
-		ymreg[0]  <= 0;
-		ymreg[1]  <= 0;
-		ymreg[2]  <= 0;
-		ymreg[3]  <= 0;
-		ymreg[4]  <= 0;
-		ymreg[5]  <= 0;
-		ymreg[6]  <= 0;
-		ymreg[7]  <= 255;
-		ymreg[8]  <= 0;
-		ymreg[9]  <= 0;
-		ymreg[10] <= 0;
-		ymreg[11] <= 0;
-		ymreg[12] <= 0;
-		ymreg[13] <= 0;
-		ymreg[14] <= 0;
-		ymreg[15] <= 0;
-		addr      <= 0;
-		env_vol   <= 0;
-	end else begin
-		old_BDIR <= BDIR;
-		if(~old_BDIR & BDIR & A8) begin
-			if(BC) addr <= DI[3:0];
-			else begin 
-				ymreg[addr] <= DI;
-				env_reset <= (addr == 13);
-			end
-		end
-	end
-
-	if(CE) begin
-		if(env_reset) begin
-			env_reset <= 0;
-			// load initial state
-			if(!ymreg[13][2]) begin		// attack
-				env_vol <= 5'b11111;
-				env_inc <= 0;		// -1
-			end else begin
-				env_vol <= 5'b00000;
-				env_inc <= 1;		// +1
-			end
-			env_hold <= 0;
+	if(env_reset | RESET) begin
+		// load initial state
+		if(!ymreg[13][2]) begin		// attack
+			env_vol <= 5'b11111;
+			env_inc <= 0;		// -1
 		end else begin
+			env_vol <= 5'b00000;
+			env_inc <= 1;		// +1
+		end
+		env_hold <= 0;
+	end
+	else if(CE) begin
+		if (env_ena) begin
+			if (!env_hold) begin
+				if (env_inc) env_vol <= (env_vol + 5'b00001);
+					else env_vol <= (env_vol + 5'b11111);
+			end
 
-			if (env_ena) begin
-				if (!env_hold) begin
-					if (env_inc) env_vol <= (env_vol + 5'b00001);
-						else env_vol <= (env_vol + 5'b11111);
-				end
-
-				// envelope shape control.
-				if(!ymreg[13][3]) begin
-					if(!env_inc) begin	// down
-						if(is_bot_p1) env_hold <= 1;
-					end else if (is_top) env_hold <= 1;
-				end else if(ymreg[13][0]) begin		// hold = 1
-					if(!env_inc) begin	// down
-						if(ymreg[13][1]) begin		// alt
-							if(is_bot) env_hold <= 1;
-						end else if(is_bot_p1) env_hold <= 1;
-					end else if(ymreg[13][1]) begin	// alt
-						if(is_top) env_hold <= 1;
-					end else if(is_top_m1) env_hold <= 1;
-				end else if(ymreg[13][1]) begin		// alternate
-					if(env_inc == 1'b0) begin		// down
-						if(is_bot_p1) env_hold <= 1;
-						if(is_bot) begin
-							env_hold <= 0;
-							env_inc  <= 1;
-						end
-					end else begin
-						if(is_top_m1) env_hold <= 1;
-						if(is_top) begin
-							env_hold <= 0;
-							env_inc  <= 0;
-						end
+			// envelope shape control.
+			if(!ymreg[13][3]) begin
+				if(!env_inc) begin	// down
+					if(is_bot_p1) env_hold <= 1;
+				end else if (is_top) env_hold <= 1;
+			end else if(ymreg[13][0]) begin		// hold = 1
+				if(!env_inc) begin	// down
+					if(ymreg[13][1]) begin		// alt
+						if(is_bot) env_hold <= 1;
+					end else if(is_bot_p1) env_hold <= 1;
+				end else if(ymreg[13][1]) begin	// alt
+					if(is_top) env_hold <= 1;
+				end else if(is_top_m1) env_hold <= 1;
+			end else if(ymreg[13][1]) begin		// alternate
+				if(env_inc == 1'b0) begin		// down
+					if(is_bot_p1) env_hold <= 1;
+					if(is_bot) begin
+						env_hold <= 0;
+						env_inc  <= 1;
+					end
+				end else begin
+					if(is_top_m1) env_hold <= 1;
+					if(is_top) begin
+						env_hold <= 0;
+						env_inc  <= 0;
 					end
 				end
 			end
@@ -337,12 +308,98 @@ always @(posedge CLK) begin
 	end
 end
 
-wire [4:0] A = ~((ymreg[7][0] | tone_gen_op[1]) & (ymreg[7][3] | poly17[0])) ? 5'd0 : ymreg[8][4]  ? env_vol[4:0] : { ymreg[8][3:0],  ymreg[8][3]};
-wire [4:0] B = ~((ymreg[7][1] | tone_gen_op[2]) & (ymreg[7][4] | poly17[0])) ? 5'd0 : ymreg[9][4]  ? env_vol[4:0] : { ymreg[9][3:0],  ymreg[9][3]};
-wire [4:0] C = ~((ymreg[7][2] | tone_gen_op[3]) & (ymreg[7][5] | poly17[0])) ? 5'd0 : ymreg[10][4] ? env_vol[4:0] : {ymreg[10][3:0], ymreg[10][3]};
+reg [5:0] A,B,C;
+always @(posedge CLK) begin
+	A <= {MODE, ~((ymreg[7][0] | tone_gen_op[1]) & (ymreg[7][3] | noise_gen_op[0])) ? 5'd0 : ymreg[8][4]  ? env_vol[4:0] : { ymreg[8][3:0],  ymreg[8][3]}};
+	B <= {MODE, ~((ymreg[7][1] | tone_gen_op[2]) & (ymreg[7][4] | noise_gen_op[1])) ? 5'd0 : ymreg[9][4]  ? env_vol[4:0] : { ymreg[9][3:0],  ymreg[9][3]}};
+	C <= {MODE, ~((ymreg[7][2] | tone_gen_op[3]) & (ymreg[7][5] | noise_gen_op[2])) ? 5'd0 : ymreg[10][4] ? env_vol[4:0] : {ymreg[10][3:0], ymreg[10][3]}};
+end
 
-assign CHANNEL_A = MODE ? volTableAy[A[4:1]] : volTableYm[A];
-assign CHANNEL_B = MODE ? volTableAy[B[4:1]] : volTableYm[B];
-assign CHANNEL_C = MODE ? volTableAy[C[4:1]] : volTableYm[C];
+//wire [7:0] volTable[64] = '{
+reg [7:0] volTable[0:63];
+initial begin
+  volTable[0] = 8'h00;
+  volTable[1] = 8'h01;
+  volTable[2] = 8'h01;
+  volTable[3] = 8'h02;
+  volTable[4] = 8'h02;
+  volTable[5] = 8'h03;
+  volTable[6] = 8'h03;
+  volTable[7] = 8'h04; 
+  volTable[8] = 8'h06;
+  volTable[9] = 8'h07;
+  volTable[10] = 8'h09;
+  volTable[11] = 8'h0a;
+  volTable[12] = 8'h0c;
+  volTable[13] = 8'h0e;
+  volTable[14] = 8'h11;
+  volTable[15] = 8'h13; 
+  volTable[16] = 8'h17;
+  volTable[17] = 8'h1b;
+  volTable[18] = 8'h20;
+  volTable[19] = 8'h25;
+  volTable[20] = 8'h2c;
+  volTable[21] = 8'h35;
+  volTable[22] = 8'h3e;
+  volTable[23] = 8'h47;
+  volTable[24] = 8'h54;
+  volTable[25] = 8'h66;
+  volTable[26] = 8'h77;
+  volTable[27] = 8'h88;
+  volTable[28] = 8'ha1;
+  volTable[29] = 8'hc0;
+  volTable[30] = 8'he0;
+  volTable[31] = 8'hff;
+  volTable[32] = 8'h00;
+  volTable[33] = 8'h00;
+  volTable[34] = 8'h03;
+  volTable[35] = 8'h03;
+  volTable[36] = 8'h04;
+  volTable[37] = 8'h04;
+  volTable[38] = 8'h06;
+  volTable[39] = 8'h06;
+  volTable[40] = 8'h0a;
+  volTable[41] = 8'h0a;
+  volTable[42] = 8'h0f;
+  volTable[43] = 8'h0f;
+  volTable[44] = 8'h15;
+  volTable[45] = 8'h15;
+  volTable[46] = 8'h22;
+  volTable[47] = 8'h22;
+  volTable[48] = 8'h28;
+  volTable[49] = 8'h28;
+  volTable[50] = 8'h41;
+  volTable[51] = 8'h41;
+  volTable[52] = 8'h5b;
+  volTable[53] = 8'h5b;
+  volTable[54] = 8'h72;
+  volTable[55] = 8'h72;
+  volTable[56] = 8'h90;
+  volTable[57] = 8'h90;
+  volTable[58] = 8'hb5;
+  volTable[59] = 8'hb5;
+  volTable[60] = 8'hd7;
+  volTable[61] = 8'hd7;
+  volTable[62] = 8'hff;
+  volTable[63] = 8'hff;
+end
+
+//	//YM2149
+//	8'h00, 8'h01, 8'h01, 8'h02, 8'h02, 8'h03, 8'h03, 8'h04, 
+//	8'h06, 8'h07, 8'h09, 8'h0a, 8'h0c, 8'h0e, 8'h11, 8'h13, 
+//	8'h17, 8'h1b, 8'h20, 8'h25, 8'h2c, 8'h35, 8'h3e, 8'h47, 
+//	8'h54, 8'h66, 8'h77, 8'h88, 8'ha1, 8'hc0, 8'he0, 8'hff,
+//
+//	//AY8910
+//	8'h00, 8'h00, 8'h03, 8'h03, 8'h04, 8'h04, 8'h06, 8'h06, 
+//	8'h0a, 8'h0a, 8'h0f, 8'h0f, 8'h15, 8'h15, 8'h22, 8'h22, 
+//	8'h28, 8'h28, 8'h41, 8'h41, 8'h5b, 8'h5b, 8'h72, 8'h72, 
+//	8'h90, 8'h90, 8'hb5, 8'hb5, 8'hd7, 8'hd7, 8'hff, 8'hff 
+//};
+
+assign CHANNEL_A = volTable[A];
+assign CHANNEL_B = volTable[B];
+assign CHANNEL_C = volTable[C];
 
 endmodule
+   
