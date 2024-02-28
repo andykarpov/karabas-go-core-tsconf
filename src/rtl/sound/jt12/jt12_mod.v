@@ -1,4 +1,3 @@
-`timescale 1ns / 1ps
 
 
 /* This file is part of JT12.
@@ -140,16 +139,14 @@ generate
     end
 endgenerate
 
-`ifdef SIMULATION
 // Control signals for simulation: should be 2'b0 or 2'b1
-wire [1:0] xusage = xuse_prevprev1+xuse_prev2+xuse_internal;
-wire [1:0] yusage = yuse_prev1+yuse_internal;
-
-always @(xusage,yusage)
-    if( xusage>2'b1 || yusage>2'b1 ) begin
-        $display("ERROR: x/y over use in jt12_mod");
-        $finish;
-    end
-`endif
+// wire [1:0] xusage = xuse_prevprev1+xuse_prev2+xuse_internal;
+// wire [1:0] yusage = yuse_prev1+yuse_internal;
+// 
+// always @(xusage,yusage)
+//     if( xusage>2'b1 || yusage>2'b1 ) begin
+//         $display("ERROR: x/y over use in jt12_mod");
+//         $finish;
+//     end
 
 endmodule

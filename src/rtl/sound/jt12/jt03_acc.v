@@ -20,18 +20,20 @@
 
 */
 
-`timescale 1ns / 1ps
 
-/* Use for YM2203
-    no left/right channels
-    full operator resolution
-    clamped to maximum output of signed 16 bits */
+// Use for YM2203
+// no left/right channels
+// full operator resolution
+// clamped to maximum output of signed 16 bits
+// This version does not clamp each channel individually
+// That does not correspond to real hardware behaviour. I should
+// change it.
 
 module jt03_acc
 (
     input               rst,
     input               clk,
-    input               clk_en,
+    input               clk_en /* synthesis direct_enable */,
     input signed [13:0] op_result,
     input               s1_enters,
     input               s2_enters,
@@ -54,13 +56,17 @@ always @(*) begin
     endcase
 end
 
-jt12_single_acc #(.win(14),.wout(16)) u_mono(
+localparam res=16;
+wire [res-1:0] hires;
+assign snd = hires[res-1:res-16];
+
+jt12_single_acc #(.win(14),.wout(res)) u_mono(
     .clk        ( clk            ),
     .clk_en     ( clk_en         ),
     .op_result  ( op_result      ),
     .sum_en     ( sum_en         ),
     .zero       ( zero           ),
-    .snd        ( snd            )
+    .snd        ( hires          )
 );
 
 endmodule

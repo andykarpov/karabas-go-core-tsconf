@@ -12,48 +12,76 @@
 
     You should have received a copy of the GNU General Public License
     along with JT12.  If not, see <http://www.gnu.org/licenses/>.
-    
+
     Author: Jose Tejada Gomez. Twitter: @topapate
     Version: 1.0
     Date: 14-2-2016
-    
+
     Based on information posted by Nemesis on:
 http://gendev.spritesmind.net/forum/viewtopic.php?t=386&postdays=0&postorder=asc&start=167
 
-    Based on jt51_phasegen.v, from JT51 
-    
+    Based on jt51_phasegen.v, from JT51
+
     */
 
 module jt12_top (
     input           rst,        // rst should be at least 6 clk&cen cycles long
     input           clk,        // CPU clock
-    input           cen,        // optional clock enable, it not needed leave as 1'b1
+    (* direct_enable *) input cen,        // optional clock enable, if not needed leave as 1'b1
     input   [7:0]   din,
     input   [1:0]   addr,
     input           cs_n,
     input           wr_n,
 	 input 			  ay_mode,
-    
+
     output  [7:0]   dout,
     output          irq_n,
+    // Configuration
+    input           en_hifi_pcm,  // high to enable PCM interpolation on YM2612 mode
+    // ADPCM pins
+    output  [19:0]  adpcma_addr,  // real hardware has 10 pins multiplexed through RMPX pin
+    output  [ 3:0]  adpcma_bank,
+    output          adpcma_roe_n, // ADPCM-A ROM output enable
+    input   [ 7:0]  adpcma_data,  // Data from RAM
+    output  [23:0]  adpcmb_addr,  // real hardware has 12 pins multiplexed through PMPX pin
+    input   [ 7:0]  adpcmb_data,
+    output          adpcmb_roe_n, // ADPCM-B ROM output enable
+    // I/O pins used by YM2203 embedded YM2149 chip
+    input      [7:0] IOA_in,
+    input      [7:0] IOB_in,
+    output     [7:0] IOA_out,
+    output     [7:0] IOB_out,
+    output           IOA_oe,
+    output           IOB_oe,
     // Separated output
     output          [ 7:0] psg_A,
     output          [ 7:0] psg_B,
     output          [ 7:0] psg_C,
     output  signed  [15:0] fm_snd_left,
     output  signed  [15:0] fm_snd_right,
+    output  signed  [15:0] adpcmA_l,
+    output  signed  [15:0] adpcmA_r,
+    output  signed  [15:0] adpcmB_l,
+    output  signed  [15:0] adpcmB_r,
     // combined output
     output          [ 9:0] psg_snd,
     output  signed  [15:0] snd_right, // FM+PSG
     output  signed  [15:0] snd_left,  // FM+PSG
-    output                 snd_sample
+    output                 snd_sample,
+    input           [ 5:0] ch_enable, // ADPCM-A channels
+    input           [ 7:0] debug_bus,
+    output          [ 7:0] debug_view
 );
 
-parameter use_lfo=1, use_ssg=0, num_ch=6, use_pcm=1, use_lr=1; // defaults to YM2612
+// parameters to select the features for each chip type
+// defaults to YM2612
+parameter use_lfo=1, use_ssg=0, num_ch=6, use_pcm=1;
+parameter use_adpcm=0;
+parameter JT49_DIV=2;
+parameter mask_div=1;
 
 wire flag_A, flag_B, busy;
 
-wire [7:0] fm_dout = { busy, 5'd0, flag_B, flag_A };
 wire write = !cs_n && !wr_n;
 wire clk_en, clk_en_ssg;
 
@@ -104,7 +132,9 @@ wire    [ 8:0]  pcm;
 // Test
 wire            pg_stop, eg_stop;
 
-wire    ch6op;
+wire            ch6op;
+wire    [ 2:0]  cur_ch;
+wire    [ 1:0]  cur_op;
 
 // Operator
 wire            xuse_internal, yuse_internal;
@@ -119,19 +149,175 @@ wire            lfo_rst;
 wire    [3:0]   psg_addr;
 wire    [7:0]   psg_data, psg_dout;
 wire            psg_wr_n;
+// ADPCM-A
+wire [15:0] addr_a;
+wire [ 2:0] up_addr, up_lracl;
+wire        up_start, up_end;
+wire [ 7:0] aon_a, lracl;
+wire [ 5:0] atl_a;     // ADPCM Total Level
+wire        up_aon;
+// APDCM-B
+wire        acmd_on_b;     // Control - Process start, Key On
+wire        acmd_rep_b;    // Control - Repeat
+wire        acmd_rst_b;    // Control - Reset
+wire        acmd_up_b;     // Control - New cmd received
+wire [ 1:0] alr_b;         // Left / Right
+wire [15:0] astart_b;      // Start address
+wire [15:0] aend_b;        // End   address
+wire [15:0] adeltan_b;     // Delta-N
+wire [ 7:0] aeg_b;         // Envelope Generator Control
+wire [ 5:0] adpcma_flags;  // ADPMC-A read over flags
+wire        adpcmb_flag;
+wire [ 6:0] flag_ctl;
+wire [ 6:0] flag_mask;
+wire [ 1:0] div_setting;
 
-jt12_mmr #(.use_ssg(use_ssg),.num_ch(num_ch),.use_pcm(use_pcm)) 
+wire clk_en_2, clk_en_666, clk_en_111, clk_en_55;
+
+assign debug_view = { 4'd0, flag_B, flag_A, div_setting };
+
+generate
+if( use_adpcm==1 ) begin: gen_adpcm
+    wire rst_n;
+
+    jt12_rst u_rst(
+        .rst    ( rst   ),
+        .clk    ( clk   ),
+        .rst_n  ( rst_n )
+    );
+
+    jt10_adpcm_drvA u_adpcm_a(
+        .rst_n      ( rst_n         ),
+        .clk        ( clk           ),
+        .cen        ( cen           ),
+        .cen6       ( clk_en_666    ),  // clk & cen must be 666  kHz
+        .cen1       ( clk_en_111    ),  // clk & cen must be 111 kHz
+
+        .addr       ( adpcma_addr   ),  // real hardware has 10 pins multiplexed through RMPX pin
+        .bank       ( adpcma_bank   ),
+        .roe_n      ( adpcma_roe_n  ),  // ADPCM-A ROM output enable
+        .datain     ( adpcma_data   ),
+
+        // Control Registers
+        .atl        ( atl_a         ),        // ADPCM Total Level
+        .addr_in    ( addr_a        ),
+        .lracl_in   ( lracl         ),
+        .up_start   ( up_start      ),
+        .up_end     ( up_end        ),
+        .up_addr    ( up_addr       ),
+        .up_lracl   ( up_lracl      ),
+
+        .aon_cmd    ( aon_a         ),    // ADPCM ON equivalent to key on for FM
+        .up_aon     ( up_aon        ),
+        // Flags
+        .flags      ( adpcma_flags  ),
+        .clr_flags  ( flag_ctl[5:0] ),
+
+        .pcm55_l    ( adpcmA_l      ),
+        .pcm55_r    ( adpcmA_r      ),
+        .ch_enable  ( ch_enable     )
+    );
+    /* verilator tracing_on */
+    jt10_adpcm_drvB u_adpcm_b(
+        .rst_n      ( rst_n         ),
+        .clk        ( clk           ),
+        .cen        ( cen           ),
+        .cen55      ( clk_en_55     ),
+
+        // Control
+        .acmd_on_b  ( acmd_on_b     ),  // Control - Process start, Key On
+        .acmd_rep_b ( acmd_rep_b    ),  // Control - Repeat
+        .acmd_rst_b ( acmd_rst_b    ),  // Control - Reset
+        .acmd_up_b  ( acmd_up_b     ),  // Control - New command received
+        .alr_b      ( alr_b         ),  // Left / Right
+        .astart_b   ( astart_b      ),  // Start address
+        .aend_b     ( aend_b        ),  // End   address
+        .adeltan_b  ( adeltan_b     ),  // Delta-N
+        .aeg_b      ( aeg_b         ),  // Envelope Generator Control
+        // Flag
+        .flag       ( adpcmb_flag   ),
+        .clr_flag   ( flag_ctl[6]   ),
+        // memory
+        .addr       ( adpcmb_addr   ),
+        .data       ( adpcmb_data   ),
+        .roe_n      ( adpcmb_roe_n  ),
+
+        .pcm55_l    ( adpcmB_l      ),
+        .pcm55_r    ( adpcmB_r      )
+    );
+
+    /* verilator tracing_on */
+    assign snd_sample   = zero;
+    jt10_acc u_acc(
+        .clk        ( clk           ),
+        .clk_en     ( clk_en        ),
+        .op_result  ( op_result_hd  ),
+        .rl         ( rl            ),
+        .zero       ( zero          ),
+        .s1_enters  ( s2_enters     ),
+        .s2_enters  ( s1_enters     ),
+        .s3_enters  ( s4_enters     ),
+        .s4_enters  ( s3_enters     ),
+        .cur_ch     ( cur_ch        ),
+        .cur_op     ( cur_op        ),
+        .alg        ( alg_I         ),
+        .adpcmA_l   ( adpcmA_l      ),
+        .adpcmA_r   ( adpcmA_r      ),
+        .adpcmB_l   ( adpcmB_l      ),
+        .adpcmB_r   ( adpcmB_r      ),
+        // combined output
+        .left       ( fm_snd_left   ),
+        .right      ( fm_snd_right  )
+    );
+end else begin : gen_adpcm_no
+    assign adpcmA_l     = 'd0;
+    assign adpcmA_r     = 'd0;
+    assign adpcmB_l     = 'd0;
+    assign adpcmB_r     = 'd0;
+    assign adpcma_addr  = 'd0;
+    assign adpcma_bank  = 'd0;
+    assign adpcma_roe_n = 'b1;
+    assign adpcmb_addr  = 'd0;
+    assign adpcmb_roe_n = 'd1;
+    assign adpcma_flags = 0;
+    assign adpcmb_flag  = 0;
+end
+endgenerate
+
+/* verilator tracing_on */
+jt12_dout #(.use_ssg(use_ssg),.use_adpcm(use_adpcm)) u_dout(
+//    .rst_n          ( rst_n         ),
+    .clk            ( clk           ),        // CPU clock
+    .flag_A         ( flag_A        ),
+    .flag_B         ( flag_B        ),
+    .busy           ( busy          ),
+    .adpcma_flags   ( adpcma_flags & flag_mask[5:0] ),
+    .adpcmb_flag    ( adpcmb_flag & flag_mask[6]    ),
+    .psg_dout       ( psg_dout      ),
+    .addr           ( addr          ),
+    .dout           ( dout          )
+);
+
+
+/* verilator tracing_on */
+jt12_mmr #(.use_ssg(use_ssg),.num_ch(num_ch),.use_pcm(use_pcm), .use_adpcm(use_adpcm), .mask_div(mask_div))
     u_mmr(
     .rst        ( rst       ),
     .clk        ( clk       ),
     .cen        ( cen       ),  // external clock enable
-    .clk_en     ( clk_en    ),  // internal clock enable    
-    .clk_en_ssg ( clk_en_ssg),  // internal clock enable    
+    .clk_en     ( clk_en    ),  // internal clock enable
+    .clk_en_2   ( clk_en_2  ),  // input cen divided by 2
+    .clk_en_ssg ( clk_en_ssg),  // internal clock enable
+    .clk_en_666 ( clk_en_666),
+    .clk_en_111 ( clk_en_111),
+    .clk_en_55  ( clk_en_55 ),
     .din        ( din       ),
     .write      ( write     ),
     .addr       ( addr      ),
     .busy       ( busy      ),
     .ch6op      ( ch6op     ),
+    .cur_ch     ( cur_ch    ),
+    .cur_op     ( cur_op    ),
     // LFO
     .lfo_freq   ( lfo_freq  ),
     .lfo_en     ( lfo_en    ),
@@ -151,11 +337,32 @@ jt12_mmr #(.use_ssg(use_ssg),.num_ch(num_ch),.use_pcm(use_pcm))
     .pcm        ( pcm           ),
     .pcm_en     ( pcm_en        ),
     .pcm_wr     ( pcm_wr        ),
-
+    // ADPCM-A
+    .aon_a      ( aon_a         ),   // ON
+    .atl_a      ( atl_a         ),   // TL
+    .addr_a     ( addr_a        ),   // address latch
+    .lracl      ( lracl         ),   // L/R ADPCM Channel Level
+    .up_start   ( up_start      ),   // write enable start address latch
+    .up_end     ( up_end        ),   // write enable end address latch
+    .up_addr    ( up_addr       ),   // write enable end address latch
+    .up_lracl   ( up_lracl      ),
+    .up_aon     ( up_aon        ),
+    // ADPCM-B
+    .acmd_on_b  ( acmd_on_b     ),  // Control - Process start, Key On
+    .acmd_rep_b ( acmd_rep_b    ),  // Control - Repeat
+    .acmd_rst_b ( acmd_rst_b    ),  // Control - Reset
+    .acmd_up_b  ( acmd_up_b     ),  // Control - New command received
+    .alr_b      ( alr_b         ),  // Left / Right
+    .astart_b   ( astart_b      ),  // Start address
+    .aend_b     ( aend_b        ),  // End   address
+    .adeltan_b  ( adeltan_b     ),  // Delta-N
+    .aeg_b      ( aeg_b         ),  // Envelope Generator Control
+    .flag_ctl   ( flag_ctl      ),
+    .flag_mask  ( flag_mask     ),
     // Operator
     .xuse_prevprev1 ( xuse_prevprev1  ),
     .xuse_internal  ( xuse_internal   ),
-    .yuse_internal  ( yuse_internal   ),  
+    .yuse_internal  ( yuse_internal   ),
     .xuse_prev2     ( xuse_prev2      ),
     .yuse_prev1     ( yuse_prev1      ),
     .yuse_prev2     ( yuse_prev2      ),
@@ -181,7 +388,7 @@ jt12_mmr #(.use_ssg(use_ssg),.num_ch(num_ch),.use_pcm(use_pcm))
     .sl_I       ( sl_I      ),
     .ks_II      ( ks_II     ),
 
-    .eg_stop    ( eg_stop   ),  
+    .eg_stop    ( eg_stop   ),
     // SSG operation
     .ssg_en_I   ( ssg_en_I  ),
     .ssg_eg_I   ( ssg_eg_I  ),
@@ -196,19 +403,26 @@ jt12_mmr #(.use_ssg(use_ssg),.num_ch(num_ch),.use_pcm(use_pcm))
     // PSG interace
     .psg_addr   ( psg_addr  ),
     .psg_data   ( psg_data  ),
-    .psg_wr_n   ( psg_wr_n  )    
+    .psg_wr_n   ( psg_wr_n  ),
+    .debug_bus  ( debug_bus ),
+    .div_setting(div_setting)
 );
 
-jt12_timers u_timers( 
+/* verilator tracing_on */
+// YM2203 seems to use a fixed cen/3 clock for the timers, regardless
+// of the prescaler setting
+wire timer_cen = fast_timers ? cen : clk_en;
+jt12_timers #(.num_ch(num_ch)) u_timers (
     .clk        ( clk           ),
-    .clk_en     ( clk_en | fast_timers  ),
+    .clk_en     ( timer_cen     ),
     .rst        ( rst           ),
+    .zero       ( zero          ),
     .value_A    ( value_A       ),
     .value_B    ( value_B       ),
     .load_A     ( load_A        ),
     .load_B     ( load_B        ),
-    .enable_irq_A( enable_irq_B ),
-    .enable_irq_B( enable_irq_A ),
+    .enable_irq_A( enable_irq_A ),
+    .enable_irq_B( enable_irq_B ),
     .clr_flag_A ( clr_flag_A    ),
     .clr_flag_B ( clr_flag_B    ),
     .flag_A     ( flag_A        ),
@@ -219,7 +433,7 @@ jt12_timers u_timers(
 
 // YM2203 does not have LFO
 generate
-if( use_lfo== 1)
+if( use_lfo== 1) begin : gen_lfo
     jt12_lfo u_lfo(
         .rst        ( rst       ),
         .clk        ( clk       ),
@@ -234,16 +448,43 @@ if( use_lfo== 1)
         .lfo_freq   ( lfo_freq  ),
         .lfo_mod    ( lfo_mod   )
     );
-else
+end else begin : gen_nolfo
     assign lfo_mod = 7'd0;
+end
 endgenerate
 
 // YM2203/YM2610 have a PSG
 
+`ifndef NOSSG
 generate
-    if( use_ssg==1 ) begin        
+    if( use_ssg==1 ) begin : gen_ssg
+        /*jt49 #(.COMP(2'b01), .CLKDIV(JT49_DIV))
+            u_psg( // note that input ports are not multiplexed
+            .rst_n      ( ~rst      ),
+            .clk        ( clk       ),    // signal on positive edge
+            .clk_en     ( clk_en_ssg),    // clock enable on negative edge
+            .addr       ( psg_addr  ),
+            .cs_n       ( 1'b0      ),
+            .wr_n       ( psg_wr_n  ),  // write
+            .din        ( psg_data  ),
+            .sound      ( psg_snd   ),  // combined output
+            .A          ( psg_A     ),
+            .B          ( psg_B     ),
+            .C          ( psg_C     ),
+            .dout       ( psg_dout  ),
+            .sel        ( 1'b1      ),  // half clock speed
+            .IOA_out    ( IOA_out   ),
+            .IOB_out    ( IOB_out   ),
+            .IOA_in     ( IOA_in    ),
+            .IOB_in     ( IOB_in    ),
+            .IOA_oe     ( IOA_oe    ),
+            .IOB_oe     ( IOB_oe    ),
+            // Unused:
+            .sample     (           )
+        );*/
+		  
         ym2149 u_psg
-		  (
+        (
            .CLK(clk),
            .CE(cen/*clk_en_ssg*/),
            .RESET(rst),
@@ -252,30 +493,38 @@ generate
            .BC(~addr[0] | ~write),
            .DI(din),
            .DO(psg_dout),
-			  .SEL(1'b1), // 3.5 mhz input div 2
-			  .MODE(ay_mode),
-			  .ACTIVE(),
-			  // todo: IOA_in, IOA_out, IOB_in, IOB_out
+           .SEL(1'b1), // 3.5 mhz input div 2
+           .MODE(ay_mode),
+           .ACTIVE(),
+           // todo: IOA_in, IOA_out, IOB_in, IOB_out
            .CHANNEL_A(psg_A),
            .CHANNEL_B(psg_B),
-           .CHANNEL_C(psg_C)
-        );
-        assign psg_snd = {2'b00, psg_A} + {2'b00, psg_B} + {2'b00, psg_C};
-        assign snd_left  = fm_snd_left  + { 2'b0, psg_snd[9:1],5'd0}; 
-        assign snd_right = fm_snd_right + { 2'b0, psg_snd[9:1],5'd0}; 
-        assign dout = addr[0] ? psg_dout : fm_dout;
-    end else begin
+           .CHANNEL_C(psg_C)	
+			);
+		  
+        assign snd_left  = fm_snd_left  + { 1'b0, psg_snd[9:0],5'd0};
+        assign snd_right = fm_snd_right + { 1'b0, psg_snd[9:0],5'd0};
+    end else begin : gen_nossg
         assign psg_snd  = 10'd0;
         assign snd_left = fm_snd_left;
         assign snd_right= fm_snd_right;
         assign psg_dout = 8'd0;
-        assign dout = fm_dout;
+        assign psg_A    = 8'd0;
+        assign psg_B    = 8'd0;
+        assign psg_C    = 8'd0;
     end
 endgenerate
+`else
+    assign psg_snd  = 10'd0;
+    assign snd_left = fm_snd_left;
+    assign snd_right= fm_snd_right;
+    assign psg_dout = 8'd0;
+`endif
 
-
-`ifndef TIMERONLY
-
+wire    [ 8:0]  op_result;
+wire    [13:0]  op_result_hd;
+`ifndef NOFM
+/* verilator tracing_on */
 jt12_pg #(.num_ch(num_ch)) u_pg(
     .rst        ( rst           ),
     .clk        ( clk           ),
@@ -304,7 +553,7 @@ jt12_eg #(.num_ch(num_ch)) u_eg(
     .clk            ( clk           ),
     .clk_en         ( clk_en        ),
     .zero           ( zero          ),
-    .eg_stop        ( eg_stop       ),  
+    .eg_stop        ( eg_stop       ),
     // envelope configuration
     .keycode_II     ( keycode_II    ),
     .arate_I        ( ar_I          ), // attack  rate
@@ -335,9 +584,6 @@ jt12_sh #(.width(10),.stages(4)) u_egpad(
     .drop   ( eg_IX     )
 );
 
-wire    [ 8:0]  op_result;
-wire    [13:0]  full_result;
-
 jt12_op #(.num_ch(num_ch)) u_op(
     .rst            ( rst           ),
     .clk            ( clk           ),
@@ -353,25 +599,32 @@ jt12_op #(.num_ch(num_ch)) u_op(
     .s4_enters      ( s4_enters     ),
     .xuse_prevprev1 ( xuse_prevprev1),
     .xuse_internal  ( xuse_internal ),
-    .yuse_internal  ( yuse_internal ),  
+    .yuse_internal  ( yuse_internal ),
     .xuse_prev2     ( xuse_prev2    ),
     .yuse_prev1     ( yuse_prev1    ),
     .yuse_prev2     ( yuse_prev2    ),
     .zero           ( zero          ),
     .op_result      ( op_result     ),
-    .full_result    ( full_result   )
+    .full_result    ( op_result_hd  )
 );
+`else
+assign op_result    = 'd0;
+assign op_result_hd = 'd0;
+`endif
+
+/* verilator tracing_on */
 
 generate
-    if( use_lr==1 ) begin
+    if( use_pcm==1 ) begin: gen_pcm_acc // YM2612 accumulator
         assign fm_snd_right[3:0] = 4'd0;
         assign fm_snd_left [3:0] = 4'd0;
         assign snd_sample        = zero;
-        wire signed [8:0] pcm2;
+        reg signed [8:0] pcm2;
 
         // interpolate PCM samples with automatic sample rate detection
         // this feature is not present in original YM2612
         // this improves PCM sample sound greatly
+        /*
         jt12_pcm u_pcm(
             .rst        ( rst       ),
             .clk        ( clk       ),
@@ -381,14 +634,40 @@ generate
             .pcm_wr     ( pcm_wr    ),
             .pcm_resampled ( pcm2   )
         );
+        */
+        wire rst_pcm_n;
 
-        jt12_acc #(.num_ch(num_ch)) u_acc(
+        jt12_rst u_rst_pcm(
+            .rst    ( rst       ),
+            .clk    ( clk       ),
+            .rst_n  ( rst_pcm_n )
+        );
+
+        `ifndef NOPCMLINEAR
+        wire signed [10:0] pcm_full;
+        always @(*)
+            pcm2 = en_hifi_pcm ? pcm_full[9:1] : pcm;
+
+        jt12_pcm_interpol #(.DW(11), .stepw(5)) u_pcm (
+            .rst_n ( rst_pcm_n      ),
+            .clk   ( clk            ),
+            .cen   ( clk_en         ),
+            .cen55 ( clk_en_55      ),
+            .pcm_wr( pcm_wr         ),
+            .pcmin ( {pcm[8],pcm, 1'b0}    ),
+            .pcmout( pcm_full       )
+        );
+        `else
+        assign pcm2 = pcm;
+        `endif
+
+        jt12_acc u_acc(
             .rst        ( rst       ),
             .clk        ( clk       ),
             .clk_en     ( clk_en    ),
             .op_result  ( op_result ),
             .rl         ( rl        ),
-            // note that the order changes to deal 
+            // note that the order changes to deal
             // with the operator pipeline delay
             .zero       ( zero      ),
             .s1_enters  ( s2_enters ),
@@ -403,7 +682,8 @@ generate
             .left       ( fm_snd_left [15:4]  ),
             .right      ( fm_snd_right[15:4]  )
         );
-    end else begin
+    end
+    if( use_pcm==0 && use_adpcm==0 ) begin : gen_2203_acc // YM2203 accumulator
         wire signed [15:0] mono_snd;
         assign fm_snd_left  = mono_snd;
         assign fm_snd_right = mono_snd;
@@ -412,8 +692,8 @@ generate
             .rst        ( rst       ),
             .clk        ( clk       ),
             .clk_en     ( clk_en    ),
-            .op_result  ( full_result ),
-            // note that the order changes to deal 
+            .op_result  ( op_result_hd ),
+            // note that the order changes to deal
             // with the operator pipeline delay
             .s1_enters  ( s1_enters ),
             .s2_enters  ( s2_enters ),
@@ -423,59 +703,18 @@ generate
             .zero       ( zero      ),
             // combined output
             .snd        ( mono_snd  )
-        );        
-    end    
+        );
+    end
 endgenerate
 
 `ifdef SIMULATION
-/* verilator lint_off PINMISSING */
-reg [4:0] sep24_cnt;
+integer fsnd;
+initial begin
+    fsnd=$fopen("jt12.raw","wb");
+end
 
-wire [9:0] eg_ch0s1, eg_ch1s1, eg_ch2s1, eg_ch3s1, eg_ch4s1, eg_ch5s1,
-        eg_ch0s2, eg_ch1s2, eg_ch2s2, eg_ch3s2, eg_ch4s2, eg_ch5s2,
-        eg_ch0s3, eg_ch1s3, eg_ch2s3, eg_ch3s3, eg_ch4s3, eg_ch5s3,
-        eg_ch0s4, eg_ch1s4, eg_ch2s4, eg_ch3s4, eg_ch4s4, eg_ch5s4;
-
-always @(posedge clk) if( clk_en )
-    sep24_cnt <= !zero ? sep24_cnt+1'b1 : 5'd0;
-
-sep24 #( .width(10), .pos0(5'd0)) egsep
-(
-    .clk    ( clk       ),
-    .clk_en ( clk_en    ),
-    .mixed  ( eg_IX     ),
-    .mask   ( 24'd0     ),
-    .cnt    ( sep24_cnt ),
-
-    .ch0s1 (eg_ch0s1), 
-    .ch1s1 (eg_ch1s1), 
-    .ch2s1 (eg_ch2s1), 
-    .ch3s1 (eg_ch3s1), 
-    .ch4s1 (eg_ch4s1), 
-    .ch5s1 (eg_ch5s1), 
-
-    .ch0s2 (eg_ch0s2), 
-    .ch1s2 (eg_ch1s2), 
-    .ch2s2 (eg_ch2s2), 
-    .ch3s2 (eg_ch3s2), 
-    .ch4s2 (eg_ch4s2), 
-    .ch5s2 (eg_ch5s2), 
-
-    .ch0s3 (eg_ch0s3), 
-    .ch1s3 (eg_ch1s3), 
-    .ch2s3 (eg_ch2s3), 
-    .ch3s3 (eg_ch3s3), 
-    .ch4s3 (eg_ch4s3), 
-    .ch5s3 (eg_ch5s3), 
-
-    .ch0s4 (eg_ch0s4), 
-    .ch1s4 (eg_ch1s4), 
-    .ch2s4 (eg_ch2s4), 
-    .ch3s4 (eg_ch3s4), 
-    .ch4s4 (eg_ch4s4), 
-    .ch5s4 (eg_ch5s4)
-);
-`endif
-/* verilator lint_on PINMISSING */
+always @(posedge zero) begin
+    $fwrite(fsnd,"%u", {snd_left, snd_right});
+end
 `endif
 endmodule

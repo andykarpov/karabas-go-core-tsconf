@@ -20,16 +20,19 @@
     
 */
 
-`timescale 1ns / 1ps
+// Accumulates an arbitrary number of inputs with saturation
+// restart the sum when input "zero" is high
 
-module jt12_single_acc #(parameter win=14, // input data width 
+
+module jt12_single_acc #(parameter 
+        win=14, // input data width 
         wout=16 // output data width
 )(
-    input   clk,
-    input   clk_en,
-    input [win-1:0] op_result,
-    input sum_en,
-    input zero,
+    input                 clk,
+    input                 clk_en /* synthesis direct_enable */,
+    input [win-1:0]       op_result,
+    input                 sum_en,
+    input                 zero,
     output reg [wout-1:0] snd
 );
 
