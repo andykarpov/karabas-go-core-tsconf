@@ -36,12 +36,12 @@ module turbosound
 	output reg [7:0] SSG0_AUDIO_A,
 	output reg [7:0] SSG0_AUDIO_B,
 	output reg [7:0] SSG0_AUDIO_C,
-	output reg [14:0] SSG0_AUDIO_FM,
+	output reg [7:0] SSG0_AUDIO_FM,
 
 	output reg [7:0] SSG1_AUDIO_A,
 	output reg [7:0] SSG1_AUDIO_B,
 	output reg [7:0] SSG1_AUDIO_C,
-	output reg [14:0] SSG1_AUDIO_FM
+	output reg [7:0] SSG1_AUDIO_FM
 );
 
 
@@ -170,8 +170,8 @@ always @(posedge CLK) begin
 	SSG1_AUDIO_A <= psg_ch_a_1;
 	SSG1_AUDIO_B <= psg_ch_b_1;
 	SSG1_AUDIO_C <= psg_ch_c_1;
-	SSG0_AUDIO_FM <= fm_ena ? ( opn_0[15] ? ~opn_0[14:0] : opn_0[14:0] ) : 15'b000000000000000;
-	SSG1_AUDIO_FM <= fm_ena ? ( opn_1[15] ? ~opn_1[14:0] : opn_1[14:0] ) : 15'b000000000000000;
+	SSG0_AUDIO_FM <= fm_ena ? ( opn_0[15] ? ~opn_0[14:7] : opn_0[14:7] ) : 8'b00000000;
+	SSG1_AUDIO_FM <= fm_ena ? ( opn_1[15] ? ~opn_1[14:7] : opn_1[14:7] ) : 8'b00000000;
 end 
 
 endmodule

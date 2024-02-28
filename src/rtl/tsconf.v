@@ -1174,7 +1174,7 @@ wire ts_enable = ~cpu_iorq_n & ay_hit;
 wire ts_we     = ts_enable & ~cpu_wr_n;
 wire  [7:0] ts_do;
 wire [7:0] ts_ssg0_a, ts_ssg0_b, ts_ssg0_c, ts_ssg1_a, ts_ssg1_b, ts_ssg1_c;
-wire [14:0] ts_ssg0_fm, ts_ssg1_fm;
+wire [7:0] ts_ssg0_fm, ts_ssg1_fm;
 
 reg ce_ym;
 reg [5:0] div;

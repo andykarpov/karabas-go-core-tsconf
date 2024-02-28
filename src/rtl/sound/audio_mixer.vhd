@@ -36,8 +36,8 @@ entity audio_mixer is
 		  gs_l : in std_logic_vector(14 downto 0);
 		  gs_r : in std_logic_vector(14 downto 0);
 		  
-		  fm_l : in std_logic_vector(14 downto 0);
-		  fm_r : in std_logic_vector(14 downto 0);
+		  fm_l : in std_logic_vector(7 downto 0);
+		  fm_r : in std_logic_vector(7 downto 0);
 
         audio_l : out std_logic_vector(15 downto 0);
         audio_r : out std_logic_vector(15 downto 0)
@@ -72,8 +72,8 @@ begin
 				        ("0000000"  & saa_r &         "00") + 
 						  ("0000000"  & gs_l(14 downto 5)   ) + 
 						  ("0000000"  & gs_r(14 downto 5)   ) + 
-						  ("0000000"  & fm_l(14 downto 5)   ) +
-						  ("0000000"  & fm_r(14 downto 5)   );
+						  ("0000000"  & fm_l &          "00") +
+						  ("0000000"  & fm_r &          "00");
 						  
 		  -- mute
 		  if mute = '1' then 
@@ -98,8 +98,8 @@ begin
 				        ("000000"  & covox_fb &      "000") + 
 				        ("000000"  & saa_l  &        "000") + 
 						  ("000000"  & gs_l(14 downto 4)    ) + 
-						  ("000000"  & fm_l(14 downto 4)    ) + 
-						  ("0000000"  & fm_r(14 downto 5)   );
+						  ("000000"  & fm_l &          "000") + 
+						  ("0000000"  & fm_r &          "00");
 			mix_r <= ("000000" & speaker & "0000000000") + -- ACB: R = B + C/2
 --				        ("00000000" & tape_in & "00000000") +	
 				        ("000000"  & ssg0_b &        "000") + 
@@ -111,8 +111,8 @@ begin
 				        ("000000"  & covox_fb &      "000") + 
 				        ("000000"  & saa_r &         "000") +
 						  ("000000"  & gs_r(14 downto 4)    ) +
-						  ("000000"  & fm_r(14 downto 4)    ) +
-						  ("0000000"  & fm_l(14 downto 5)   );						  
+						  ("000000"  & fm_r &          "000") +
+						  ("0000000"  & fm_l &          "00");						  
 		  -- ABC
 		  else 
 		   mix_l <= ("000000" & speaker & "0000000000") +  -- ABC: L = A + B/2
@@ -126,8 +126,8 @@ begin
 				        ("000000"  & covox_fb &      "000") + 
 				        ("000000"  & saa_l  &        "000") +
 						  ("000000"  & gs_l(14 downto 4)    ) +
-						  ("000000"  & fm_l(14 downto 4)    ) +
-						  ("0000000"  & fm_r(14 downto 5)   );		
+						  ("000000"  & fm_l &          "000") +
+						  ("0000000"  & fm_r &          "00");		
 			mix_r <= ("000000" & speaker & "0000000000") + -- ABC: R = C + B/2
 --				        ("00000000" & tape_in & "00000000") +	
 				        ("000000"  & ssg0_c &        "000") + 
@@ -139,8 +139,8 @@ begin
 				        ("000000"  & covox_fb &      "000") + 
 				        ("000000"  & saa_r &         "000") +
 						  ("000000"  & gs_r(14 downto 4)    ) +
-						  ("000000"  & fm_r(14 downto 4)    ) +
-						  ("0000000"  & fm_l(14 downto 5)   );	
+						  ("000000"  & fm_r &          "000") +
+						  ("0000000"  & fm_l &          "00");	
 		  end if;
     end if;
 end process;
