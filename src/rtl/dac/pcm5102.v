@@ -41,7 +41,7 @@ module PCM5102(clk,reset,left,right,din,bck,lrck);
 		if (ce == 1'b1) begin
 			lrck	 	<= i2sword[5];
 			bck		<= i2sword[0];
-			din 		<= lrck ? r2c[15 - i2sword[4:1]] : l2c[15 - i2sword[4:1]];	// blit data bits
+			din 		<= lrck ? r2c[16 - i2sword[4:1]] : l2c[16 - i2sword[4:1]];	// blit data bits
 			i2sword	<= i2sword + 1;
 		end
 	end	

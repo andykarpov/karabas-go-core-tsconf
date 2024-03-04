@@ -1166,21 +1166,17 @@ assign rtc_wr = wait_start_gluclock & ~cpu_wr_n;
 
 // turbosound
 
-wire ay_hit = (cpu_a_bus[7:0] == 8'hFD) & cpu_a_bus[15];
-wire ay_bc1	= ay_hit & cpu_m1_n & !cpu_iorq_n & cpu_a_bus[14];
-wire ay_bdir = ay_hit & cpu_m1_n & !cpu_iorq_n & !cpu_wr_n;
-wire ts_enable = ~cpu_iorq_n & ay_hit;
-//wire ts_enable = ~cpu_iorq_n & cpu_a_bus[0] & cpu_a_bus[15] & ~cpu_a_bus[1];
+wire ts_enable = ~cpu_iorq_n & cpu_a_bus[15] & (cpu_a_bus[3:0] == 4'b1101);
 wire ts_we     = ts_enable & ~cpu_wr_n;
 wire  [7:0] ts_do;
 wire [7:0] ts_ssg0_a, ts_ssg0_b, ts_ssg0_c, ts_ssg1_a, ts_ssg1_b, ts_ssg1_c;
-wire [7:0] ts_ssg0_fm, ts_ssg1_fm;
+wire [15:0] ts_ssg0_fm, ts_ssg1_fm;
+wire ts_fm_ena;
 
 reg ce_ym;
-reg [5:0] div;
+reg [2:0] div;
 always @(posedge clk_28mhz) begin
 	div <= div + 1'd1;
-	//ce_ym <= !div[3] & !div[2] & !div[1] & !div[0]; // 1.75
 	ce_ym <= !div[2] & !div[1] & !div[0]; // 3.5
 end
 
@@ -1189,8 +1185,8 @@ turbosound turbosound
 	.RESET(rst),
 	.CLK(clk_28mhz),
 	.CE(ce_ym),
-	.BDIR(/*ts_we*/ay_bdir),
-	.BC(/*cpu_a_bus[14]*/ay_bc1),
+	.BDIR(ts_we),
+	.BC(cpu_a_bus[14]),
 	.DI(cpu_do_bus),
 	.DO(ts_do),
 	.AY_MODE(~psg_type),
@@ -1204,7 +1200,9 @@ turbosound turbosound
 	.SSG1_AUDIO_C(ts_ssg1_c),
 	
 	.SSG0_AUDIO_FM(ts_ssg0_fm),
-	.SSG1_AUDIO_FM(ts_ssg1_fm)
+	.SSG1_AUDIO_FM(ts_ssg1_fm),
+	
+	.SSG_FM_ENA(ts_fm_ena)
 );
 
 // SAA1099
@@ -1212,7 +1210,6 @@ turbosound turbosound
 wire saa_wr_n;
 wire [7:0] saa_out_l;
 wire [7:0] saa_out_r;
-
 
 saa1099 saa1099
 (
@@ -1295,6 +1292,8 @@ audio_mixer audio_mixer
 	
 	.fm_l(ts_ssg0_fm),
 	.fm_r(ts_ssg1_fm),
+	
+	.fm_ena(ts_fm_ena),
 	
 	.audio_l(audio_out_l),
 	.audio_r(audio_out_r)

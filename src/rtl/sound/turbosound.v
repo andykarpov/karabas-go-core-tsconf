@@ -22,26 +22,28 @@
 
 module turbosound
 (
-	input         RESET,	    // Chip RESET (set all Registers to '0', active high)
-	input         CLK,		 // Global clock
-	input         CE,        // YM2203 Master Clock enable
+	input wire        RESET,	    // Chip RESET (set all Registers to '0', active high)
+	input wire        CLK,		 // Global clock
+	input wire        CE,        // YM2203 Master Clock enable
 
-	input         BDIR,	    // Bus Direction (0 - read , 1 - write)
-	input         BC,		    // Bus control
-	input   [7:0] DI,	       // Data In
-	output  [7:0] DO,	       // Data Out
+	input wire        BDIR,	    // Bus Direction (0 - read , 1 - write)
+	input wire        BC,		    // Bus control
+	input wire  [7:0] DI,	       // Data In
+	output wire [7:0] DO,	       // Data Out
 	
-	input         AY_MODE,
+	input wire        AY_MODE,
 
 	output reg [7:0] SSG0_AUDIO_A,
 	output reg [7:0] SSG0_AUDIO_B,
 	output reg [7:0] SSG0_AUDIO_C,
-	output reg [7:0] SSG0_AUDIO_FM,
+	output reg [15:0] SSG0_AUDIO_FM,
 
 	output reg [7:0] SSG1_AUDIO_A,
 	output reg [7:0] SSG1_AUDIO_B,
 	output reg [7:0] SSG1_AUDIO_C,
-	output reg [7:0] SSG1_AUDIO_FM
+	output reg [15:0] SSG1_AUDIO_FM,
+
+	output reg SSG_FM_ENA
 );
 
 
@@ -112,7 +114,7 @@ end
 wire  [7:0] psg_ch_a_0;
 wire  [7:0] psg_ch_b_0;
 wire  [7:0] psg_ch_c_0;
-wire  [15:0] opn_0;
+wire signed [15:0] opn_0;
 wire  [7:0] DO_0;
 
 jt03 ym2203_0
@@ -137,7 +139,7 @@ jt03 ym2203_0
 wire  [7:0] psg_ch_a_1;
 wire  [7:0] psg_ch_b_1;
 wire  [7:0] psg_ch_c_1;
-wire 	[15:0] opn_1;
+wire signed	[15:0] opn_1;
 wire  [7:0] DO_1;
 
 jt03 ym2203_1
@@ -161,17 +163,16 @@ jt03 ym2203_1
 
 assign DO = ay_select ? DO_1 : DO_0;
 
-reg [7:0] opn_l, opn_r; 
-
-always @(posedge CLK) begin
+always @(*) begin
 	SSG0_AUDIO_A <= psg_ch_a_0;
 	SSG0_AUDIO_B <= psg_ch_b_0;
 	SSG0_AUDIO_C <= psg_ch_c_0;
 	SSG1_AUDIO_A <= psg_ch_a_1;
 	SSG1_AUDIO_B <= psg_ch_b_1;
 	SSG1_AUDIO_C <= psg_ch_c_1;
-	SSG0_AUDIO_FM <= fm_ena ? ( opn_0[15] ? ~opn_0[14:7] : opn_0[14:7] ) : 8'b00000000;
-	SSG1_AUDIO_FM <= fm_ena ? ( opn_1[15] ? ~opn_1[14:7] : opn_1[14:7] ) : 8'b00000000;
+	SSG0_AUDIO_FM <= fm_ena ? $signed(opn_0) : 16'b000000000000;
+	SSG1_AUDIO_FM <= fm_ena ? $signed(opn_1) : 16'b000000000000;
+	SSG_FM_ENA <= fm_ena;
 end 
 
 endmodule
