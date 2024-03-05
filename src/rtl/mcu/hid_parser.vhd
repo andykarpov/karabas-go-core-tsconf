@@ -45,9 +45,14 @@ entity hid_parser is
 
 	 -- keyboard output data
 	 KB_DO : out std_logic_vector(5 downto 0);
-	 
-	 -- tsconf ps/2 scancode to RTC reg F0
-	 KEYCODE: out std_logic_vector(7 downto 0)
+
+	 -- mapped keyboard buffer and special registers to RTC (tsconf/baseconf related logic)
+	 RTC_A : in std_logic_vector(7 downto 0);
+	 RTC_DI : in std_logic_vector(7 downto 0);
+	 RTC_DO_IN : in std_logic_vector(7 downto 0);
+	 RTC_DO_OUT : out std_logic_vector(7 downto 0);
+	 RTC_WR : in std_logic;
+	 RTC_RD : in std_logic
 	);
 end hid_parser;
 
@@ -90,21 +95,97 @@ architecture rtl of hid_parser is
 	signal macros_key : matrix;
 	signal macros_state : macros_machine := MACRO_START;
 	signal macro_cnt : std_logic_vector(21 downto 0) := (others => '0');
-
+	
+	signal keycode : std_logic_vector(9 downto 0);
+	signal prev_keycode : std_logic_vector(9 downto 0);
+	signal allow_eeprom : std_logic := '1';
+	signal prev_rtc_rd : std_logic := '0';
+	type keybuf_machine is (KEYBUF_IDLE, KEYBUF_WR_EXT, KEYBUF_WR_RELEASE, KEYBUF_WR_CODE);
+	signal keybuf_state : keybuf_machine := KEYBUF_IDLE;
+	signal keybuf_di, keybuf_do : std_logic_vector(7 downto 0);
+	signal keybuf_wr, keybuf_rd : std_logic := '0';
+	signal keybuf_full, keybuf_empty, keybuf_overflow, keybuf_reset : std_logic;
 begin 
 
 	-- incoming data of pressed keys from usb hid report
 	data <= KB_DAT5 & KB_DAT4 & KB_DAT3 & KB_DAT2 & KB_DAT1 & KB_DAT0;
 
-	-- usb hid to ps/2 keycode
+	-- usb hid to ps/2 keycode (with release and ext bits)
 	G_PS2_LUT: if ALLOW_KEYCODE generate
 	U_PS2_LUT: entity work.usb_ps2_lut
 	port map(
 		kb_status => KB_STATUS,
 		kb_data => KB_DAT0,
-		keycode => KEYCODE
+		keycode => keycode
 	);
 	end generate G_PS2_LUT;
+	
+	-- 16 bytes keyboard buffer
+	U_KEYBUF: entity work.fifo_keybuf
+	port map(
+		clk => CLK,
+		rst => keybuf_reset,
+		din => keybuf_di,
+		wr_en => keybuf_wr,
+		full => keybuf_full,
+		rd_en => keybuf_rd,
+		dout => keybuf_do,
+		empty => keybuf_empty,
+		overflow => keybuf_overflow
+	);
+	
+	-- ps2 keyboard buffer write, read
+	-- todo:
+	process(CLK)
+	begin
+		if rising_edge(CLK) then
+			-- keycode write condition into the fifo
+			if keycode /= prev_keycode and keybuf_state = KEYBUF_IDLE and keybuf_full = '0' then 
+				prev_keycode <= keycode;
+				if (keycode(7 downto 0) /= x"00") then 
+					if (keycode(8) = '1') then 
+						keybuf_state <= KEYBUF_WR_EXT;
+					elsif keycode(9) = '1' then 
+						keybuf_state <= KEYBUF_WR_RELEASE;
+					else
+						keybuf_state <= KEYBUF_WR_CODE;
+					end if;
+				end if;
+			end if;
+			
+			-- write keycode into a sequence of ps/2 scancodes
+			keybuf_wr <= '0';			
+			case keybuf_state is
+				-- idle
+				when KEYBUF_IDLE => null;
+				
+				-- ext key
+				when KEYBUF_WR_EXT => 
+					keybuf_wr <= '1';
+					keybuf_di <= x"E0";
+					if keycode(9) = '1' then
+						keybuf_state <= KEYBUF_WR_RELEASE;
+					else 
+						keybuf_state <= KEYBUF_WR_CODE;
+					end if;
+				
+				-- release
+				when KEYBUF_WR_RELEASE => 
+					keybuf_wr <= '1';
+					keybuf_di <= x"F0";
+					keybuf_state <= KEYBUF_WR_CODE;
+				
+				-- key scancode
+				when KEYBUF_WR_CODE => 
+					keybuf_wr <= '1';
+					keybuf_di <= keycode(7 downto 0);
+					keybuf_state <= KEYBUF_IDLE;
+					
+				when others => keybuf_state <= KEYBUF_IDLE;
+			end case;
+			
+		end if;
+	end process;
 
 	process( kb_data, A)
 	begin
@@ -581,6 +662,56 @@ process (RESET, CLK)
 			else
 				joy_do <= (others => '0');
 			end if;
+		end if;
+	end process;
+	
+	-- map ps/2 keyboard to RTC + special registers
+	process(RESET, CLK)
+	begin
+		if RESET = '1' then
+			allow_eeprom <= '1';
+			keybuf_reset <= '1';
+		elsif rising_edge(CLK) then
+			
+			prev_rtc_rd <= RTC_RD;
+			
+			keybuf_reset <= '0';
+			keybuf_rd <= '0';
+			
+			-- write control register 0C
+			if RTC_WR = '1' then
+				case RTC_A is
+					when x"0C" => 
+						if (RTC_DI(0) = '1') then
+							keybuf_reset <= '1';
+						end if;
+						allow_eeprom <= RTC_DI(7);
+					when others => null;
+				end case;
+			-- read RTC special registers + keyboard buffer
+			elsif prev_rtc_rd = '0' and RTC_RD = '1' then
+				case RTC_A is 
+					when x"0A" => RTC_DO_OUT <= x"00";
+					when x"0B" => RTC_DO_OUT <= x"02";
+					when x"0C" => RTC_DO_OUT <= x"00";
+					when x"0D" => RTC_DO_OUT <= "10" & KB_STATUS(5) & KB_STATUS(1) & KB_STATUS(6) & KB_STATUS(2) & KB_STATUS(4) & KB_STATUS(0); -- 1 f12 rshift lshift ralt lalt rctrl lctrl  
+					when x"F0" | x"F1" | x"F2" | x"F3" | 
+						  x"F4" | x"F5" | x"F6" | x"F7" | 
+						  x"F8" | x"F9" | x"FA" | x"FB" |
+						  x"FC" | x"FD" | x"FE" | x"FF" => 
+								if keybuf_empty = '1' then 
+									RTC_DO_OUT <= x"00";
+								else
+									if (keybuf_overflow = '1') then 
+										RTC_DO_OUT <= x"FF";
+									else 
+										keybuf_rd <= '1';
+										RTC_DO_OUT <= keybuf_do;
+									end if;
+								end if;
+					when others => RTC_DO_OUT <= RTC_DO_IN;
+				end case;
+			end if;			
 		end if;
 	end process;
 
