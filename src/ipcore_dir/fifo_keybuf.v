@@ -44,7 +44,6 @@ module fifo_keybuf(
   rd_en,
   dout,
   full,
-  overflow,
   empty
 );
 
@@ -55,7 +54,6 @@ input wr_en;
 input rd_en;
 output [7 : 0] dout;
 output full;
-output overflow;
 output empty;
 
 // synthesis translate_off
@@ -86,7 +84,7 @@ output empty;
     .C_AXIS_TYPE(0),
     .C_COMMON_CLOCK(1),
     .C_COUNT_TYPE(0),
-    .C_DATA_COUNT_WIDTH(4),
+    .C_DATA_COUNT_WIDTH(8),
     .C_DEFAULT_VALUE("BlankString"),
     .C_DIN_WIDTH(8),
     .C_DIN_WIDTH_AXIS(1),
@@ -136,7 +134,7 @@ output empty;
     .C_HAS_INT_CLK(0),
     .C_HAS_MASTER_CE(0),
     .C_HAS_MEMINIT_FILE(0),
-    .C_HAS_OVERFLOW(1),
+    .C_HAS_OVERFLOW(0),
     .C_HAS_PROG_FLAGS_AXIS(0),
     .C_HAS_PROG_FLAGS_RACH(0),
     .C_HAS_PROG_FLAGS_RDCH(0),
@@ -185,14 +183,14 @@ output empty;
     .C_PROG_EMPTY_TYPE_WACH(0),
     .C_PROG_EMPTY_TYPE_WDCH(0),
     .C_PROG_EMPTY_TYPE_WRCH(0),
-    .C_PROG_FULL_THRESH_ASSERT_VAL(14),
+    .C_PROG_FULL_THRESH_ASSERT_VAL(254),
     .C_PROG_FULL_THRESH_ASSERT_VAL_AXIS(1023),
     .C_PROG_FULL_THRESH_ASSERT_VAL_RACH(1023),
     .C_PROG_FULL_THRESH_ASSERT_VAL_RDCH(1023),
     .C_PROG_FULL_THRESH_ASSERT_VAL_WACH(1023),
     .C_PROG_FULL_THRESH_ASSERT_VAL_WDCH(1023),
     .C_PROG_FULL_THRESH_ASSERT_VAL_WRCH(1023),
-    .C_PROG_FULL_THRESH_NEGATE_VAL(13),
+    .C_PROG_FULL_THRESH_NEGATE_VAL(253),
     .C_PROG_FULL_TYPE(0),
     .C_PROG_FULL_TYPE_AXIS(0),
     .C_PROG_FULL_TYPE_RACH(0),
@@ -201,10 +199,10 @@ output empty;
     .C_PROG_FULL_TYPE_WDCH(0),
     .C_PROG_FULL_TYPE_WRCH(0),
     .C_RACH_TYPE(0),
-    .C_RD_DATA_COUNT_WIDTH(4),
-    .C_RD_DEPTH(16),
+    .C_RD_DATA_COUNT_WIDTH(8),
+    .C_RD_DEPTH(256),
     .C_RD_FREQ(1),
-    .C_RD_PNTR_WIDTH(4),
+    .C_RD_PNTR_WIDTH(8),
     .C_RDCH_TYPE(0),
     .C_REG_SLICE_MODE_AXIS(0),
     .C_REG_SLICE_MODE_RACH(0),
@@ -232,8 +230,8 @@ output empty;
     .C_WACH_TYPE(0),
     .C_WDCH_TYPE(0),
     .C_WR_ACK_LOW(0),
-    .C_WR_DATA_COUNT_WIDTH(4),
-    .C_WR_DEPTH(16),
+    .C_WR_DATA_COUNT_WIDTH(8),
+    .C_WR_DEPTH(256),
     .C_WR_DEPTH_AXIS(1024),
     .C_WR_DEPTH_RACH(16),
     .C_WR_DEPTH_RDCH(1024),
@@ -241,7 +239,7 @@ output empty;
     .C_WR_DEPTH_WDCH(1024),
     .C_WR_DEPTH_WRCH(16),
     .C_WR_FREQ(1),
-    .C_WR_PNTR_WIDTH(4),
+    .C_WR_PNTR_WIDTH(8),
     .C_WR_PNTR_WIDTH_AXIS(10),
     .C_WR_PNTR_WIDTH_RACH(4),
     .C_WR_PNTR_WIDTH_RDCH(10),
@@ -259,7 +257,6 @@ output empty;
     .RD_EN(rd_en),
     .DOUT(dout),
     .FULL(full),
-    .OVERFLOW(overflow),
     .EMPTY(empty),
     .BACKUP(),
     .BACKUP_MARKER(),
@@ -279,6 +276,7 @@ output empty;
     .INJECTSBITERR(),
     .ALMOST_FULL(),
     .WR_ACK(),
+    .OVERFLOW(),
     .ALMOST_EMPTY(),
     .VALID(),
     .UNDERFLOW(),

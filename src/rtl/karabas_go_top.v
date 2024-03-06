@@ -183,8 +183,7 @@ module karabas_go_top (
 	wire [7:0] rtc_addr;
 	wire [7:0] rtc_di;
 	wire [7:0] rtc_do;
-	wire rtc_wr;
-	wire rtc_rd;
+	wire rtc_wr, rtc_rd;
 	wire [7:0] uart_rx_data;
 	wire [7:0] uart_rx_idx;
 	wire [7:0] uart_tx_data;

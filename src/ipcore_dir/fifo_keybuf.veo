@@ -65,7 +65,6 @@ fifo_keybuf your_instance_name (
   .rd_en(rd_en), // input rd_en
   .dout(dout), // output [7 : 0] dout
   .full(full), // output full
-  .overflow(overflow), // output overflow
   .empty(empty) // output empty
 );
 // INST_TAG_END ------ End INSTANTIATION Template ---------

@@ -75,7 +75,6 @@ entity fifo_keybuf_exdes is
    PORT (
            CLK                       : IN  std_logic;
            RST                       : IN  std_logic;
-           OVERFLOW                  : OUT std_logic;
            WR_EN 		     : IN  std_logic;
            RD_EN                     : IN  std_logic;
            DIN                       : IN  std_logic_vector(8-1 DOWNTO 0);
@@ -97,7 +96,6 @@ architecture xilinx of fifo_keybuf_exdes is
    PORT (
            CLK                       : IN  std_logic;
            RST                       : IN  std_logic;
-           OVERFLOW                  : OUT std_logic;
            WR_EN 		     : IN  std_logic;
            RD_EN                     : IN  std_logic;
            DIN                       : IN  std_logic_vector(8-1 DOWNTO 0);
@@ -121,7 +119,6 @@ begin
     PORT MAP (
            CLK                       => clk_i,
            RST                       => rst,
-           OVERFLOW                  => overflow,
            WR_EN 		     => wr_en,
            RD_EN                     => rd_en,
            DIN                       => din,

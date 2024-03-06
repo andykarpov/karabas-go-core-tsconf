@@ -11,29 +11,19 @@ entity usb_ps2_lut is
 port (
 	kb_status : in std_logic_vector(7 downto 0);
 	kb_data : in std_logic_vector(7 downto 0);
-	keycode	: buffer std_logic_vector(9 downto 0)
+	keycode	: buffer std_logic_vector(8 downto 0) -- keycode(8) = E0
 );
 end usb_ps2_lut;
 
 architecture rtl of usb_ps2_lut is
 
-	signal prev_kb_data : std_logic_vector(7 downto 0) := (others => '0');
-	signal prev_kb_status : std_logic_vector(7 downto 0) := (others => '0');
-	signal prev_keycode : std_logic_vector(8 downto 0) := (others => '0');
-
 begin
 	process (kb_status, kb_data)
 	begin
-		prev_keycode <= keycode(8 downto 0);
-		prev_kb_data <= kb_data;
-		prev_kb_status <= kb_status;
-		keycode <= (others => '0');
+		keycode <= "011111111"; -- 0xFF
 		
-		if kb_data /= prev_kb_data then 
+		if kb_data /= "00000000" then 
 				case kb_data is
-					when X"00" => keycode(9) <= '1';  -- release
-									  keycode(8) <= prev_keycode(8); -- ext code
-									  keycode(7 downto 0) <= prev_keycode(7 downto 0); -- prev scancode
 					-- Letters
 					when X"04" =>	KEYCODE(7 downto 0) <= x"1c"; -- A
 					when X"05" =>	KEYCODE(7 downto 0) <= x"32"; -- B								
@@ -139,11 +129,8 @@ begin
 					when X"65" =>	KEYCODE(7 downto 0) <= x"2f"; keycode(8) <= '1'; -- WinMenu  
 					when others => null;
 				end case;
-		elsif KB_STATUS /= prev_kb_status then		
-				if KB_STATUS = x"00" then 
-					keycode(9) <= '1'; -- release
-					keycode(8 downto 0) <= prev_keycode(8 downto 0); -- prev keycode up
-				elsif    KB_STATUS(1) = '1' then KEYCODE(7 downto 0) <= X"12"; -- L shift
+		else	
+				if    KB_STATUS(1) = '1' then KEYCODE(7 downto 0) <= X"12"; -- L shift
 				elsif KB_STATUS(5) = '1' then KEYCODE(7 downto 0) <= X"59"; -- R shift
 				elsif KB_STATUS(0) = '1' then KEYCODE(7 downto 0) <= X"14"; -- L ctrl
 				elsif KB_STATUS(4) = '1' then KEYCODE(7 downto 0) <= X"14"; keycode(8) <= '1'; -- R ctrl
