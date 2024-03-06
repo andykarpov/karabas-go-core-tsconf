@@ -45,9 +45,14 @@ entity hid_parser is
 
 	 -- keyboard output data
 	 KB_DO : out std_logic_vector(5 downto 0);
-	 
-	 -- tsconf ps/2 scancode to RTC reg F0
-	 KEYCODE: out std_logic_vector(7 downto 0)
+
+	 -- mapped keyboard buffer and special registers to RTC (tsconf/baseconf related logic)
+	 RTC_A : in std_logic_vector(7 downto 0);
+	 RTC_DI : in std_logic_vector(7 downto 0);
+	 RTC_DO_IN : in std_logic_vector(7 downto 0);
+	 RTC_DO_OUT : out std_logic_vector(7 downto 0);
+	 RTC_WR : in std_logic;
+	 RTC_RD : in std_logic
 	);
 end hid_parser;
 
@@ -90,19 +95,26 @@ architecture rtl of hid_parser is
 	signal macros_key : matrix;
 	signal macros_state : macros_machine := MACRO_START;
 	signal macro_cnt : std_logic_vector(21 downto 0) := (others => '0');
-
+	
+	signal keycode, keycode_latch : std_logic_vector(8 downto 0);
+	signal prev_keycode : std_logic_vector(8 downto 0);
+	signal prev_rtc_rd : std_logic;
+	signal allow_eeprom : std_logic := '1';
+	signal prev_rtc_wr : std_logic := '0';
+	type keybuf_machine is (KEYBUF_IDLE, KEYBUF_WR_EXT, KEYBUF_WR_CODE);
+	signal keybuf_state : keybuf_machine := KEYBUF_IDLE;
 begin 
 
 	-- incoming data of pressed keys from usb hid report
 	data <= KB_DAT5 & KB_DAT4 & KB_DAT3 & KB_DAT2 & KB_DAT1 & KB_DAT0;
 
-	-- usb hid to ps/2 keycode
+	-- usb hid to ps/2 keycode (with release and ext bits)
 	G_PS2_LUT: if ALLOW_KEYCODE generate
 	U_PS2_LUT: entity work.usb_ps2_lut
 	port map(
 		kb_status => KB_STATUS,
 		kb_data => KB_DAT0,
-		keycode => KEYCODE
+		keycode => keycode
 	);
 	end generate G_PS2_LUT;
 
@@ -581,6 +593,60 @@ process (RESET, CLK)
 			else
 				joy_do <= (others => '0');
 			end if;
+		end if;
+	end process;
+	
+	-- map ps/2 keyboard to RTC + special registers
+	process(RESET, CLK)
+	begin
+		if RESET = '1' then
+			allow_eeprom <= '1';
+			keybuf_state <= KEYBUF_IDLE;
+		elsif rising_edge(CLK) then
+			
+			prev_rtc_rd <= RTC_RD;
+			
+			-- write control register 0C
+			if RTC_WR = '1' then
+				case RTC_A is
+					when x"0C" => 
+						allow_eeprom <= RTC_DI(7);
+					when others => null;
+				end case;
+			-- read RTC special registers + keyboard buffer
+			elsif RTC_RD = '1' and prev_rtc_rd /= RTC_RD then
+				case RTC_A is 
+					when x"0A" => RTC_DO_OUT <= x"00";
+					when x"0B" => RTC_DO_OUT <= x"02";
+					when x"0C" => RTC_DO_OUT <= x"00";
+					when x"0D" => RTC_DO_OUT <= "10" & KB_STATUS(5) & KB_STATUS(1) & KB_STATUS(6) & KB_STATUS(2) & KB_STATUS(4) & KB_STATUS(0); -- 1 f12 rshift lshift ralt lalt rctrl lctrl  
+					when x"F0" | x"F1" | x"F2" | x"F3" | 
+						  x"F4" | x"F5" | x"F6" | x"F7" | 
+						  x"F8" | x"F9" | x"FA" | x"FB" |
+						  x"FC" | x"FD" | x"FE" | x"FF" => 
+							if allow_eeprom = '0' then
+							
+								case keybuf_state is
+									when KEYBUF_IDLE => 
+										if (keycode(8) = '0') then 
+											RTC_DO_OUT <= keycode(7 downto 0);
+										else
+											RTC_DO_OUT <= x"E0";
+											keybuf_state <= KEYBUF_WR_CODE;
+											keycode_latch <= keycode;
+										end if;
+									when KEYBUF_WR_CODE =>
+										RTC_DO_OUT <= keycode_latch(7 downto 0);
+										keybuf_state <= KEYBUF_IDLE;
+									when others => keybuf_state <= KEYBUF_IDLE;
+								end case;
+								
+							else 
+								RTC_DO_OUT <= RTC_DO_IN;
+							end if;
+					when others => RTC_DO_OUT <= RTC_DO_IN;
+				end case;
+			end if;			
 		end if;
 	end process;
 

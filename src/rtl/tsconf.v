@@ -62,6 +62,7 @@ module tsconf
 	output wire [7:0] rtc_di,
 	input wire [7:0] rtc_do,
 	output wire rtc_wr,
+	output wire rtc_rd,
 	
 	// uart (zifi)
 	input wire uart_rx,
@@ -1163,6 +1164,7 @@ assign rtc_addr = wait_addr;
 assign rtc_di = cpu_do_bus;
 assign mc146818a_do_bus = rtc_do;
 assign rtc_wr = wait_start_gluclock & ~cpu_wr_n;
+assign rtc_rd = wait_start_gluclock & ~cpu_rd_n;
 
 // turbosound
 

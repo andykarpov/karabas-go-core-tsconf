@@ -448,7 +448,7 @@ begin
 			elsif UART_DLM_WR = '1' then -- send UART RLM reg
 				queue_wr_req <= '1';
 				queue_di <= CMD_UART & "00000010" & UART_DLM;
-			elsif RTC_WR_N = '0' AND RTC_CS = '1' and BUSY = '0' then -- add rtc register write to queue
+			elsif RTC_WR_N = '0' AND RTC_CS = '1' and BUSY = '0' and (RTC_A /= x"0C" and RTC_A < x"F0") then -- add rtc register write to queue
 				queue_wr_req <= '1';
 				queue_di <= CMD_RTC & RTC_A & RTC_DI;
 			elsif queue_rd_empty = '1' or queue_data_count < 5 then -- anti-empty queue
