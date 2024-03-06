@@ -188,7 +188,7 @@ begin
 	begin
 		if falling_edge(CLK) then
 			load_pixel <= '0';
-			if char_x = "000" and load_pixel = '0' then 
+			if char_x = "111" and load_pixel = '0' then 
 				load_pixel <= '1';
 			end if;
 		end if;
