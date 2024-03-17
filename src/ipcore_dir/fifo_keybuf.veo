@@ -65,7 +65,8 @@ fifo_keybuf your_instance_name (
   .rd_en(rd_en), // input rd_en
   .dout(dout), // output [7 : 0] dout
   .full(full), // output full
-  .empty(empty) // output empty
+  .empty(empty), // output empty
+  .data_count(data_count) // output [10 : 0] data_count
 );
 // INST_TAG_END ------ End INSTANTIATION Template ---------
 

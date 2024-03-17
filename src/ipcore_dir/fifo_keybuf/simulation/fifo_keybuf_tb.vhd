@@ -83,7 +83,7 @@ ARCHITECTURE fifo_keybuf_arch OF fifo_keybuf_tb IS
  SIGNAL  sim_done            : STD_LOGIC := '0';
  SIGNAL  end_of_sim          : STD_LOGIC_VECTOR(4 DOWNTO 0) := (OTHERS => '0');
  -- Write and Read clock periods
- CONSTANT wr_clk_period_by_2 : TIME := 100 ns;
+ CONSTANT wr_clk_period_by_2 : TIME := 200 ns;
  -- Procedures to display strings
  PROCEDURE disp_str(CONSTANT str:IN STRING) IS
     variable dp_l : line := null;   
@@ -104,7 +104,7 @@ BEGIN
   -- Generation of clock
 
   PROCESS BEGIN
-    WAIT FOR 200 ns; -- Wait for global reset
+    WAIT FOR 400 ns; -- Wait for global reset
     WHILE 1 = 1 LOOP
       wr_clk <= '0';
       WAIT FOR wr_clk_period_by_2;
@@ -117,7 +117,7 @@ BEGIN
   
   PROCESS BEGIN
     reset <= '1';
-    WAIT FOR 2100 ns;
+    WAIT FOR 4200 ns;
     reset <= '0';
     WAIT;
   END PROCESS;
@@ -183,7 +183,7 @@ BEGIN
    GENERIC MAP(
               FREEZEON_ERROR => 0,
  	      TB_STOP_CNT    => 2,
- 	      TB_SEED        => 11 
+ 	      TB_SEED        => 13 
  	      )
   PORT MAP(
 	   CLK           => wr_clk,

@@ -74,6 +74,7 @@ use unisim.vcomponents.all;
 entity fifo_keybuf_exdes is
    PORT (
            CLK                       : IN  std_logic;
+     	   DATA_COUNT                : OUT std_logic_vector(11-1 DOWNTO 0);
            RST                       : IN  std_logic;
            WR_EN 		     : IN  std_logic;
            RD_EN                     : IN  std_logic;
@@ -95,6 +96,7 @@ architecture xilinx of fifo_keybuf_exdes is
   component fifo_keybuf is
    PORT (
            CLK                       : IN  std_logic;
+     	   DATA_COUNT                : OUT std_logic_vector(11-1 DOWNTO 0);
            RST                       : IN  std_logic;
            WR_EN 		     : IN  std_logic;
            RD_EN                     : IN  std_logic;
@@ -118,6 +120,7 @@ begin
   exdes_inst : fifo_keybuf 
     PORT MAP (
            CLK                       => clk_i,
+           DATA_COUNT                => data_count,
            RST                       => rst,
            WR_EN 		     => wr_en,
            RD_EN                     => rd_en,

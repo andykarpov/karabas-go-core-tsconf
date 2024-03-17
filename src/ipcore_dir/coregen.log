@@ -1,10 +1,6 @@
-Welcome to Xilinx CORE Generator.
-Help system initialized.
-The IP Catalog has been reloaded.
-Opening project file
-/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
-sconf/src/ipcore_dir/coregen.cgp.
-Recustomize and Generate (Under Original Project Settings)INFO:sim:172 - Generating IP...
+INFO:sim:172 - Generating IP...
+Applying current project options...
+Finished applying current project options.
 WARNING:sim - A core named 'fifo_keybuf' already exists in the project. Output
    products for this core may be overwritten.
 Resolving generics for 'fifo_keybuf'...
@@ -33,6 +29,7 @@ Delivered 1 file into directory
 sconf/src/ipcore_dir/tmp/_cg/fifo_keybuf
 Generating ASY schematic symbol...
 INFO:sim:949 - Finished generation of ASY schematic symbol.
+Generating SYM schematic symbol for 'fifo_keybuf'...
 Generating metadata file...
 Regenerating ISE project file for 'fifo_keybuf'...
 Generating ISE project...
@@ -51,6 +48,9 @@ File
 "/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-
 tsconf/src/ipcore_dir/tmp/_cg/fifo_keybuf.ngc" device information matches
 project device.
+Adding
+/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
+sconf/src/ipcore_dir/tmp/_cg/fifo_keybuf.sym -view all -origin_type imported
 Adding
 /home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
 sconf/src/ipcore_dir/tmp/_cg/fifo_keybuf.v -view all -origin_type created
@@ -72,5 +72,4 @@ INFO:sim:948 - Finished FLIST file generation.
 Launching README viewer...
 Moving files to output directory...
 Finished moving files to output directory
-Saved CGP file for project 'coregen'.
-Closed project file.
+Wrote CGP file for project 'fifo_keybuf'.

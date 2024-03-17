@@ -96,27 +96,63 @@ architecture rtl of hid_parser is
 	signal macros_state : macros_machine := MACRO_START;
 	signal macro_cnt : std_logic_vector(21 downto 0) := (others => '0');
 	
-	signal keycode, keycode_latch : std_logic_vector(8 downto 0);
-	signal prev_keycode : std_logic_vector(8 downto 0);
 	signal prev_rtc_rd : std_logic;
 	signal allow_eeprom : std_logic := '1';
 	signal prev_rtc_wr : std_logic := '0';
-	type keybuf_machine is (KEYBUF_IDLE, KEYBUF_WR_EXT, KEYBUF_WR_CODE);
-	signal keybuf_state : keybuf_machine := KEYBUF_IDLE;
+
+    signal o_kb_status : std_logic_vector(7 downto 0);
+    signal o_kb_dat0, o_kb_dat1, o_kb_dat2, o_kb_dat3, o_kb_dat4, o_kb_dat5 : std_logic_vector(7 downto 0);
+
+    signal keybuf_rd : std_logic := '0';
+    signal keybuf_reset : std_logic := '0';
+    signal keybuf_data : std_logic_vector(7 downto 0) := x"FF";
 begin 
 
 	-- incoming data of pressed keys from usb hid report
 	data <= KB_DAT5 & KB_DAT4 & KB_DAT3 & KB_DAT2 & KB_DAT1 & KB_DAT0;
 
-	-- usb hid to ps/2 keycode (with release and ext bits)
-	G_PS2_LUT: if ALLOW_KEYCODE generate
-	U_PS2_LUT: entity work.usb_ps2_lut
+	-- usb hid to ps/2 keybuf
+	G_PS2_KEYBUF: if ALLOW_KEYCODE generate
+
+    U_PS2_TYPEMATIC: entity work.hid_typematic
+    port map(
+        CLK => CLK,
+        RESET => RESET,
+
+        KB_STATUS => KB_STATUS,
+        KB_DAT0 => KB_DAT0,
+        KB_DAT1 => KB_DAT1,
+        KB_DAT2 => KB_DAT2,
+        KB_DAT3 => KB_DAT3,
+        KB_DAT4 => KB_DAT4,
+        KB_DAT5 => KB_DAT5,
+
+        O_KB_STATUS => o_kb_status,
+        O_KB_DAT0 => o_kb_dat0,
+        O_KB_DAT1 => o_kb_dat1,
+        O_KB_DAT2 => o_kb_dat2,
+        O_KB_DAT3 => o_kb_dat3,
+        O_KB_DAT4 => o_kb_dat4,
+        O_KB_DAT5 => o_kb_dat5        
+    );
+
+	U_PS2_KEYBUF: entity work.usb_ps2_keybuf
 	port map(
-		kb_status => KB_STATUS,
-		kb_data => KB_DAT0,
-		keycode => keycode
+        clk => clk,
+        reset => reset,
+		kb_status => o_kb_status,
+		kb_dat0 => o_kb_dat0,
+        kb_dat1 => o_kb_dat1,
+        kb_dat2 => o_kb_dat2,
+        kb_dat3 => o_kb_dat3,
+        kb_dat4 => o_kb_dat4,
+        kb_dat5 => o_kb_dat5,
+
+        keybuf_rd => keybuf_rd,
+        keybuf_reset => keybuf_reset,
+        keybuf_data => keybuf_data
 	);
-	end generate G_PS2_LUT;
+	end generate G_PS2_KEYBUF;
 
 	process( kb_data, A)
 	begin
@@ -601,15 +637,17 @@ process (RESET, CLK)
 	begin
 		if RESET = '1' then
 			allow_eeprom <= '1';
-			keybuf_state <= KEYBUF_IDLE;
 		elsif rising_edge(CLK) then
 			
 			prev_rtc_rd <= RTC_RD;
+            keybuf_rd <= '0';
+            keybuf_reset <= '0';
 			
 			-- write control register 0C
 			if RTC_WR = '1' then
 				case RTC_A is
 					when x"0C" => 
+                        keybuf_reset <= RTC_DI(0);
 						allow_eeprom <= RTC_DI(7);
 					when others => null;
 				end case;
@@ -625,22 +663,8 @@ process (RESET, CLK)
 						  x"F8" | x"F9" | x"FA" | x"FB" |
 						  x"FC" | x"FD" | x"FE" | x"FF" => 
 							if allow_eeprom = '0' then
-							
-								case keybuf_state is
-									when KEYBUF_IDLE => 
-										if (keycode(8) = '0') then 
-											RTC_DO_OUT <= keycode(7 downto 0);
-										else
-											RTC_DO_OUT <= x"E0";
-											keybuf_state <= KEYBUF_WR_CODE;
-											keycode_latch <= keycode;
-										end if;
-									when KEYBUF_WR_CODE =>
-										RTC_DO_OUT <= keycode_latch(7 downto 0);
-										keybuf_state <= KEYBUF_IDLE;
-									when others => keybuf_state <= KEYBUF_IDLE;
-								end case;
-								
+                                RTC_DO_OUT <= keybuf_data;
+                                keybuf_rd <= '1';
 							else 
 								RTC_DO_OUT <= RTC_DO_IN;
 							end if;
