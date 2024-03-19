@@ -198,6 +198,8 @@ module karabas_go_top (
 	wire [7:0] hid_kb_dat3;
 	wire [7:0] hid_kb_dat4;
 	wire [7:0] hid_kb_dat5;
+	wire [7:0] ps2_scancode;
+	wire ps2_scancode_upd;
 	wire loader_act;
 	wire [31:0] loader_addr;
 	wire [7:0] loader_data;
@@ -370,6 +372,9 @@ mcu mcu(
 	.KB_DAT4(hid_kb_dat4),
 	.KB_DAT5(hid_kb_dat5),
 	
+	.KB_SCANCODE(ps2_scancode),
+	.KB_SCANCODE_UPD(ps2_scancode_upd),
+	
 	.JOY_L(joy_l),
 	.JOY_R(joy_r),
 	
@@ -420,7 +425,10 @@ hid_parser hid_parser(
 	.KB_DAT2(hid_kb_dat2),
 	.KB_DAT3(hid_kb_dat3),
 	.KB_DAT4(hid_kb_dat4),
-	.KB_DAT5(hid_kb_dat5),	
+	.KB_DAT5(hid_kb_dat5),
+	
+	.KB_SCANCODE(ps2_scancode),
+	.KB_SCANCODE_UPD(ps2_scancode_upd),
 
 	.JOY_TYPE_L(kb_joy_type_l),
 	.JOY_TYPE_R(kb_joy_type_r),

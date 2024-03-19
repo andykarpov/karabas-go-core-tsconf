@@ -9,12 +9,9 @@ use IEEE.numeric_std.all;
 use IEEE.std_logic_unsigned.all;
 
 entity hid_parser is
-	generic 
-	(
-		NUM_KEYS : integer range 1 to 6 := 2; -- number of simultaneously pressed keys to process
-		ALLOW_KEYCODE : boolean := true; -- allow ps/2 keycode (tsconf standard)
-		ALLOW_TYPEMATIC : boolean := false -- allow ps/2 typematic delay and repeat
-	);
+	generic (
+		NUM_KEYS : integer := 2
+	);	
 	port
 	(
 	 CLK			 : in std_logic;
@@ -28,6 +25,10 @@ entity hid_parser is
 	 KB_DAT3 : in std_logic_vector(7 downto 0);
 	 KB_DAT4 : in std_logic_vector(7 downto 0);
 	 KB_DAT5 : in std_logic_vector(7 downto 0);
+	 
+	 -- ps/2 scancode
+	 KB_SCANCODE : in std_logic_vector(7 downto 0);
+	 KB_SCANCODE_UPD : in std_logic;
 
 	 -- joy data from mcu
 	 JOY_TYPE_L : in std_logic_vector(2 downto 0);
@@ -112,60 +113,16 @@ begin
 	-- incoming data of pressed keys from usb hid report
 	data <= KB_DAT5 & KB_DAT4 & KB_DAT3 & KB_DAT2 & KB_DAT1 & KB_DAT0;
 
-	-- usb hid to ps/2 keybuf
-	G_PS2_KEYBUF: if ALLOW_KEYCODE generate
-
-	 G_PS2_TYPEMATIC: if ALLOW_TYPEMATIC generate
-		 U_PS2_TYPEMATIC: entity work.hid_typematic
-		 port map(
-			  CLK => CLK,
-			  RESET => RESET,
-
-			  KB_STATUS => KB_STATUS,
-			  KB_DAT0 => KB_DAT0,
-			  KB_DAT1 => KB_DAT1,
-			  KB_DAT2 => KB_DAT2,
-			  KB_DAT3 => KB_DAT3,
-			  KB_DAT4 => KB_DAT4,
-			  KB_DAT5 => KB_DAT5,
-
-			  O_KB_STATUS => o_kb_status,
-			  O_KB_DAT0 => o_kb_dat0,
-			  O_KB_DAT1 => o_kb_dat1,
-			  O_KB_DAT2 => o_kb_dat2,
-			  O_KB_DAT3 => o_kb_dat3,
-			  O_KB_DAT4 => o_kb_dat4,
-			  O_KB_DAT5 => o_kb_dat5        
-		 );
-		end generate G_PS2_TYPEMATIC;
-		
-		G_NO_PS2_TYPEMATIC: if not ALLOW_TYPEMATIC generate
-			o_kb_status <= kb_status;
-			o_kb_dat0 <= kb_dat0;
-			o_kb_dat1 <= kb_dat1;
-			o_kb_dat2 <= kb_dat2;
-			o_kb_dat3 <= kb_dat3;
-			o_kb_dat4 <= kb_dat4;
-			o_kb_dat5 <= kb_dat5;			
-		end generate G_NO_PS2_TYPEMATIC;
-
 	U_PS2_KEYBUF: entity work.usb_ps2_keybuf
 	port map(
         clk => clk,
         reset => reset,
-		kb_status => o_kb_status,
-		kb_dat0 => o_kb_dat0,
-        kb_dat1 => o_kb_dat1,
-        kb_dat2 => o_kb_dat2,
-        kb_dat3 => o_kb_dat3,
-        kb_dat4 => o_kb_dat4,
-        kb_dat5 => o_kb_dat5,
-
+		  kb_scancode => kb_scancode,
+		  kb_scancode_upd => kb_scancode_upd,
         keybuf_rd => keybuf_rd,
         keybuf_reset => keybuf_reset,
         keybuf_data => keybuf_data
 	);
-	end generate G_PS2_KEYBUF;
 
 	process( kb_data, A)
 	begin
