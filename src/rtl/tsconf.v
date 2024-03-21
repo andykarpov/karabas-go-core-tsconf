@@ -128,7 +128,11 @@ module tsconf
 	output wire [7:0]  usb_uart_dll,
 	output wire [7:0]  usb_uart_dlm,
 	output wire        usb_uart_dll_wr,
-	output wire        usb_uart_dlm_wr	
+	output wire        usb_uart_dlm_wr,
+	
+	// midi
+	output wire        midi_reset_n,
+	output wire        midi_tx
 );
 
   // cpu
@@ -420,6 +424,8 @@ wire [7:0] clocktm;
 //`ifdef IDE_HDD
   assign ide_rs_n = rst_n;
 //`endif
+
+assign midi_reset_n = rst_n;
 
 // clock
 wire clk_28mhz;// = clk & ce;
@@ -1204,7 +1210,8 @@ turbosound turbosound
 	.SSG0_AUDIO_FM(ts_ssg0_fm),
 	.SSG1_AUDIO_FM(ts_ssg1_fm),
 	
-	.SSG_FM_ENA(ts_fm_ena)
+	.SSG_FM_ENA(ts_fm_ena),
+	.MIDI_TX(midi_tx)
 );
 
 // SAA1099

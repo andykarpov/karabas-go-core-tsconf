@@ -446,14 +446,6 @@
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="207"/>
       <association xil_pn:name="Implementation" xil_pn:seqID="63"/>
     </file>
-    <file xil_pn:name="ipcore_dir/fifo_keybuf.xco" xil_pn:type="FILE_COREGEN">
-      <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="207"/>
-      <association xil_pn:name="Implementation" xil_pn:seqID="0"/>
-    </file>
-    <file xil_pn:name="rtl/mcu/hid_typematic.vhd" xil_pn:type="FILE_VHDL">
-      <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="214"/>
-      <association xil_pn:name="Implementation" xil_pn:seqID="0"/>
-    </file>
     <file xil_pn:name="rtl/mcu/usb_ps2_keybuf.v" xil_pn:type="FILE_VERILOG">
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="215"/>
       <association xil_pn:name="Implementation" xil_pn:seqID="95"/>
@@ -477,9 +469,6 @@
       <association xil_pn:name="Implementation" xil_pn:seqID="0"/>
     </file>
     <file xil_pn:name="ipcore_dir/rom_font.xise" xil_pn:type="FILE_COREGENISE">
-      <association xil_pn:name="Implementation" xil_pn:seqID="0"/>
-    </file>
-    <file xil_pn:name="ipcore_dir/fifo_keybuf.xise" xil_pn:type="FILE_COREGENISE">
       <association xil_pn:name="Implementation" xil_pn:seqID="0"/>
     </file>
   </files>

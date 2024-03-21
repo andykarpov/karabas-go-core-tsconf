@@ -496,7 +496,10 @@ generate
            .SEL(1'b1), // 3.5 mhz input div 2
            .MODE(ay_mode),
            .ACTIVE(),
-           // todo: IOA_in, IOA_out, IOB_in, IOB_out
+			  .IOA_in(IOA_in),
+			  .IOA_out(IOA_out),
+			  .IOB_in(IOB_in),
+			  .IOB_out(IOB_out),
            .CHANNEL_A(psg_A),
            .CHANNEL_B(psg_B),
            .CHANNEL_C(psg_C)	

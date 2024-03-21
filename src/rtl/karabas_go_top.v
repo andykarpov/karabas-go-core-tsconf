@@ -113,12 +113,30 @@ module karabas_go_top (
 	input wire MCU_CS_N,
 	input wire MCU_SCK,
 	inout wire MCU_MOSI,
-	output wire MCU_MISO	
+	output wire MCU_MISO,
+	input wire [3:0] MCU_IO,
+	
+	//---------------------------
+	output wire MIDI_TX,
+	output wire MIDI_CLK,
+	output wire MIDI_RESET_N,
+	
+	//---------------------------
+	output wire FLASH_CS_N,
+	input wire  FLASH_DO,
+	output wire FLASH_DI,
+	output wire FLASH_SCK,
+	output wire FLASH_WP_N,
+	output wire FLASH_HOLD_N	
    );
 
-	// todo: esp control
 	assign ESP_RESET_N = 1'bZ;
 	assign ESP_BOOT_N = 1'bZ;	
+	assign FLASH_CS_N = 1'b1;
+	assign FLASH_DI = 1'b1;
+	assign FLASH_SCK = 1'b0;
+	assign FLASH_WP_N = 1'b1;
+	assign FLASH_HOLD_N = 1'b1;
 	
 	assign BEEPER = audio_beeper;
 	
@@ -126,7 +144,7 @@ module karabas_go_top (
 	wire clk_8mhz;
 	wire clk_bus;
 	wire clk_16mhz;
-	wire clk_i2s;
+	wire clk_12mhz;
    wire locked;
 	wire areset;
    pll pll (
@@ -134,8 +152,20 @@ module karabas_go_top (
 	  .CLK_OUT1(clk_sys),
 	  .CLK_OUT2(clk_8mhz),
 	  .CLK_OUT3(clk_16mhz),
-	  .CLK_OUT4(clk_i2s),
+	  .CLK_OUT4(clk_12mhz),
 	  .LOCKED(locked)
+	);
+
+	// midi clk
+	ODDR2 u_midi_clk (
+		.Q(MIDI_CLK),
+		.C0(clk_12mhz),
+		.C1(~clk_12mhz),
+		.CE(1'b1),
+		.D0(1'b1),
+		.D1(1'b0),
+		.R(1'b0),
+		.S(1'b0)
 	);
 	
 	assign areset = ~locked;
@@ -324,7 +354,10 @@ module karabas_go_top (
       .sdram_we_n(SDR_WE_N),
       .sdram_cas_n(SDR_CAS_N),
       .sdram_ras_n(SDR_RAS_N),
-      .sdram_dq(SDR_DQ)		
+      .sdram_dq(SDR_DQ),
+		
+		.midi_reset_n(MIDI_RESET_N),
+		.midi_tx(MIDI_TX)
 	  
 	 );
 	 
