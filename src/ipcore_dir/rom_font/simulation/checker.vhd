@@ -1,6 +1,7 @@
+
 --------------------------------------------------------------------------------
 --
--- BLK MEM GEN v7_3 Core - Top File for the Example Testbench
+-- BLK MEM GEN v7_3 Core - Checker
 --
 --------------------------------------------------------------------------------
 --
@@ -51,9 +52,12 @@
 -- PART OF THIS FILE AT ALL TIMES.
 
 --------------------------------------------------------------------------------
--- Filename: rom_font_tb.vhd
+--
+-- Filename: checker.vhd
+--
 -- Description:
---  Testbench Top
+--   Checker
+--
 --------------------------------------------------------------------------------
 -- Author: IP Solutions Division
 --
@@ -70,73 +74,88 @@ USE IEEE.STD_LOGIC_ARITH.ALL;
 USE IEEE.STD_LOGIC_UNSIGNED.ALL;
 
 LIBRARY work;
-USE work.ALL;
+USE work.BMG_TB_PKG.ALL;
 
-ENTITY rom_font_tb IS
-END ENTITY;
+ENTITY CHECKER IS
+  GENERIC ( WRITE_WIDTH : INTEGER :=32;
+            READ_WIDTH  : INTEGER :=32
+  );
+        
+  PORT (
+        CLK      : IN STD_LOGIC;
+        RST      : IN STD_LOGIC;
+        EN       : IN STD_LOGIC; 
+        DATA_IN  : IN STD_LOGIC_VECTOR (READ_WIDTH-1 DOWNTO 0);   --OUTPUT VECTOR          
+        STATUS   : OUT STD_LOGIC:= '0'
+  );
+END CHECKER;
 
+ARCHITECTURE CHECKER_ARCH OF CHECKER IS
+  SIGNAL EXPECTED_DATA : STD_LOGIC_VECTOR(READ_WIDTH-1 DOWNTO 0);
+  SIGNAL DATA_IN_R: STD_LOGIC_VECTOR(READ_WIDTH-1 DOWNTO 0);
+  SIGNAL EN_R : STD_LOGIC := '0';
+  SIGNAL EN_2R : STD_LOGIC := '0';
+--DATA PART CNT DEFINES THE ASPECT RATIO AND GIVES THE INFO TO THE DATA GENERATOR TO PROVIDE THE DATA EITHER IN PARTS OR COMPLETE DATA IN ONE SHOT
+--IF READ_WIDTH > WRITE_WIDTH DIVROUNDUP RESULTS IN '1' AND DATA GENERATOR GIVES THE DATAOUT EQUALS TO MAX OF (WRITE_WIDTH, READ_WIDTH)
+--IF READ_WIDTH < WRITE-WIDTH DIVROUNDUP RESULTS IN > '1' AND DATA GENERATOR GIVES THE DATAOUT IN TERMS OF PARTS(EG 4 PARTS WHEN WRITE_WIDTH 32 AND READ WIDTH 8)
+  CONSTANT DATA_PART_CNT: INTEGER:= DIVROUNDUP(WRITE_WIDTH,READ_WIDTH);
+  CONSTANT MAX_WIDTH: INTEGER:= IF_THEN_ELSE((WRITE_WIDTH>READ_WIDTH),WRITE_WIDTH,READ_WIDTH);
+  SIGNAL ERR_HOLD : STD_LOGIC :='0';
+  SIGNAL ERR_DET : STD_LOGIC :='0';
+BEGIN
+   PROCESS(CLK)
+   BEGIN
+     IF(RISING_EDGE(CLK)) THEN
+       IF(RST= '1') THEN
+     	  EN_R <= '0';
+     	  EN_2R <= '0';
+          DATA_IN_R <= (OTHERS=>'0');
+       ELSE
+	      EN_R <= EN;
+	      EN_2R <= EN_R;
+          DATA_IN_R <= DATA_IN;
+       END IF;        
+     END IF;
+   END PROCESS;
 
-ARCHITECTURE rom_font_tb_ARCH OF rom_font_tb IS
- SIGNAL  STATUS : STD_LOGIC_VECTOR(8 DOWNTO 0);
- SIGNAL  CLK :  STD_LOGIC := '1';
- SIGNAL  CLKB :  STD_LOGIC := '1';
- SIGNAL  RESET : STD_LOGIC;
- 
- BEGIN
-
-  
- CLK_GEN: PROCESS BEGIN
-     CLK <= NOT CLK;
-     WAIT FOR 100 NS;
-     CLK <= NOT CLK; 
-     WAIT FOR 100 NS;
-  END PROCESS;
- CLKB_GEN: PROCESS BEGIN
-     CLKB <= NOT CLKB;
-     WAIT FOR 100 NS;
-     CLKB <= NOT CLKB; 
-     WAIT FOR 100 NS;
-  END PROCESS;
-  
-  RST_GEN: PROCESS BEGIN
-    RESET <= '1';
-    WAIT FOR 1000 NS;
-    RESET <= '0';
-    WAIT;
-  END PROCESS;
-
-  
---STOP_SIM: PROCESS BEGIN
--- WAIT FOR 200 US; -- STOP SIMULATION AFTER 1 MS
---   ASSERT FALSE
---     REPORT "END SIMULATION TIME REACHED"
---     SEVERITY FAILURE;
---END PROCESS;
---
-PROCESS BEGIN
-  WAIT UNTIL STATUS(8)='1';
-  IF( STATUS(7 downto 0)/="0") THEN
-    ASSERT false
-     REPORT "Test Completed Successfully"
-	 SEVERITY NOTE;
-     REPORT "Simulation Failed"
-	 SEVERITY FAILURE;
-  ELSE
-   ASSERT false
-     REPORT "TEST PASS"
-     SEVERITY NOTE;
-     REPORT "Test Completed Successfully"
-	 SEVERITY FAILURE;
-  END IF;
-  
-END PROCESS;	 
-  
-  rom_font_synth_inst:ENTITY work.rom_font_synth
-  PORT MAP(
-           CLK_IN   => CLK,
-           CLKB_IN   => CLK,
-     	   RESET_IN => RESET,
-           STATUS   => STATUS
+   EXPECTED_DATA_GEN_INST:ENTITY work.DATA_GEN 
+      GENERIC MAP ( DATA_GEN_WIDTH =>MAX_WIDTH,
+                    DOUT_WIDTH     => READ_WIDTH,
+         		    DATA_PART_CNT  => DATA_PART_CNT,
+	                SEED           => 2
+      )
+      PORT MAP (
+            CLK      => CLK,
+			RST      => RST,
+            EN       => EN_2R,
+            DATA_OUT => EXPECTED_DATA
 	  );
 
+   PROCESS(CLK)
+   BEGIN
+      IF(RISING_EDGE(CLK)) THEN
+         IF(EN_2R='1') THEN
+        	 IF(EXPECTED_DATA = DATA_IN_R) THEN
+	            ERR_DET<='0';
+        	 ELSE
+	            ERR_DET<= '1';
+        	 END IF;
+         END IF;
+     END IF;
+   END PROCESS;
+
+   PROCESS(CLK,RST)
+   BEGIN
+	  IF(RST='1') THEN
+		 ERR_HOLD <= '0';
+      ELSIF(RISING_EDGE(CLK)) THEN
+         ERR_HOLD <= ERR_HOLD  OR ERR_DET ;
+      END IF;
+   END PROCESS;
+
+   STATUS <= ERR_HOLD;
+
 END ARCHITECTURE;
+
+
+

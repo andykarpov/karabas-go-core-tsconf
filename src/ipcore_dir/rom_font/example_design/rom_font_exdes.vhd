@@ -88,11 +88,19 @@ USE UNISIM.VCOMPONENTS.ALL;
 ENTITY rom_font_exdes IS
   PORT (
       --Inputs - Port A
+  
+    WEA            : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
     ADDRA          : IN STD_LOGIC_VECTOR(10 DOWNTO 0);
   
-    DOUTA          : OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
-    CLKA       : IN STD_LOGIC
+    DINA           : IN STD_LOGIC_VECTOR(7 DOWNTO 0);
+  
+    CLKA       : IN STD_LOGIC;
 
+  
+      --Inputs - Port B
+    ADDRB          : IN STD_LOGIC_VECTOR(10 DOWNTO 0);
+    DOUTB          : OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
+    CLKB           : IN STD_LOGIC
 
   );
 
@@ -111,12 +119,20 @@ ARCHITECTURE xilinx OF rom_font_exdes IS
   COMPONENT rom_font IS
   PORT (
       --Port A
+  
+    WEA        : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
     ADDRA      : IN STD_LOGIC_VECTOR(10 DOWNTO 0);
   
-    DOUTA      : OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
+    DINA       : IN STD_LOGIC_VECTOR(7 DOWNTO 0);
 
-    CLKA       : IN STD_LOGIC
+  
+    CLKA       : IN STD_LOGIC;
 
+  
+      --Port B
+    ADDRB      : IN STD_LOGIC_VECTOR(10 DOWNTO 0);
+    DOUTB      : OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
+    CLKB       : IN STD_LOGIC
 
 
   );
@@ -134,17 +150,29 @@ BEGIN
      O => CLKA_buf
      );
 
+  bufg_B : BUFG
+    PORT MAP (
+     I => CLKB,
+     O => CLKB_buf
+     );
 
 
   bmg0 : rom_font
     PORT MAP (
       --Port A
+  
+      WEA        => WEA,
       ADDRA      => ADDRA,
   
-      DOUTA      => DOUTA,
+      DINA       => DINA,
 
-      CLKA       => CLKA_buf
+      CLKA       => CLKA_buf,
 
+  
+      --Port B
+      ADDRB      => ADDRB,
+      DOUTB      => DOUTB,
+      CLKB       => CLKB_buf
 
     );
 

@@ -92,11 +92,9 @@ USE work.ALL;
 USE work.BMG_TB_PKG.ALL;
 
 ENTITY rom_font_synth IS
-GENERIC ( 
-   C_ROM_SYNTH : INTEGER := 1
-   );
 PORT(
 	CLK_IN     : IN  STD_LOGIC;
+	CLKB_IN     : IN  STD_LOGIC;
     RESET_IN   : IN  STD_LOGIC;
     STATUS     : OUT STD_LOGIC_VECTOR(8 DOWNTO 0) := (OTHERS => '0')   --ERROR STATUS OUT OF FPGA
     );
@@ -108,10 +106,15 @@ ARCHITECTURE rom_font_synth_ARCH OF rom_font_synth IS
 COMPONENT rom_font_exdes 
   PORT (
       --Inputs - Port A
+    WEA            : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
     ADDRA          : IN STD_LOGIC_VECTOR(10 DOWNTO 0);
-    DOUTA          : OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
-    CLKA       : IN STD_LOGIC
+    DINA           : IN STD_LOGIC_VECTOR(7 DOWNTO 0);
+    CLKA       : IN STD_LOGIC;
 
+      --Inputs - Port B
+    ADDRB          : IN STD_LOGIC_VECTOR(10 DOWNTO 0);
+    DOUTB          : OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
+    CLKB           : IN STD_LOGIC
 
   );
 
@@ -120,9 +123,17 @@ END COMPONENT;
 
   SIGNAL CLKA: STD_LOGIC := '0';
   SIGNAL RSTA: STD_LOGIC := '0';
+  SIGNAL WEA: STD_LOGIC_VECTOR(0 DOWNTO 0) := (OTHERS => '0');
+  SIGNAL WEA_R: STD_LOGIC_VECTOR(0 DOWNTO 0) := (OTHERS => '0');
   SIGNAL ADDRA: STD_LOGIC_VECTOR(10 DOWNTO 0) := (OTHERS => '0');
   SIGNAL ADDRA_R: STD_LOGIC_VECTOR(10 DOWNTO 0) := (OTHERS => '0');
-  SIGNAL DOUTA: STD_LOGIC_VECTOR(7 DOWNTO 0);
+  SIGNAL DINA: STD_LOGIC_VECTOR(7 DOWNTO 0) := (OTHERS => '0');
+  SIGNAL DINA_R: STD_LOGIC_VECTOR(7 DOWNTO 0) := (OTHERS => '0');
+  SIGNAL CLKB: STD_LOGIC := '0';
+  SIGNAL RSTB: STD_LOGIC := '0';
+  SIGNAL ADDRB: STD_LOGIC_VECTOR(10 DOWNTO 0) := (OTHERS => '0');
+  SIGNAL ADDRB_R: STD_LOGIC_VECTOR(10 DOWNTO 0) := (OTHERS => '0');
+  SIGNAL DOUTB: STD_LOGIC_VECTOR(7 DOWNTO 0);
   SIGNAL CHECKER_EN : STD_LOGIC:='0';
   SIGNAL CHECKER_EN_R : STD_LOGIC:='0';
   SIGNAL STIMULUS_FLOW : STD_LOGIC_VECTOR(22 DOWNTO 0) := (OTHERS =>'0');
@@ -132,6 +143,10 @@ END COMPONENT;
   SIGNAL RESET_SYNC_R2 : STD_LOGIC:='1';
   SIGNAL RESET_SYNC_R3 : STD_LOGIC:='1';
 
+  SIGNAL clkb_in_i: STD_LOGIC;
+  SIGNAL RESETB_SYNC_R1 : STD_LOGIC := '1';
+  SIGNAL RESETB_SYNC_R2 : STD_LOGIC := '1';
+  SIGNAL RESETB_SYNC_R3 : STD_LOGIC := '1';
   SIGNAL ITER_R0 : STD_LOGIC := '0';
   SIGNAL ITER_R1 : STD_LOGIC := '0';
   SIGNAL ITER_R2 : STD_LOGIC := '0';
@@ -149,6 +164,13 @@ END COMPONENT;
    clk_in_i <= CLK_IN;
    CLKA <= clk_in_i;
 
+--  clkb_buf: bufg
+--    PORT map(
+--      i => CLKB_IN,
+--      o => clkb_in_i
+--    );
+   clkb_in_i <= CLKB_IN;
+   CLKB <= clkb_in_i;
    RSTA <= RESET_SYNC_R3 AFTER 50 ns;
 
 
@@ -161,6 +183,16 @@ END COMPONENT;
 	  END IF;
    END PROCESS;
 
+   RSTB <= RESETB_SYNC_R3 AFTER 50 ns;
+
+   PROCESS(clkb_in_i)
+   BEGIN
+      IF(RISING_EDGE(clkb_in_i)) THEN
+		 RESETB_SYNC_R1 <= RESET_IN;
+		 RESETB_SYNC_R2 <= RESETB_SYNC_R1;
+		 RESETB_SYNC_R3 <= RESETB_SYNC_R2;
+	  END IF;
+   END PROCESS;
 
 PROCESS(CLKA)
 BEGIN
@@ -178,55 +210,83 @@ STATUS(7 DOWNTO 0) <= ISSUE_FLAG_STATUS;
 
 
 
+   BMG_DATA_CHECKER_INST: ENTITY work.CHECKER
+      GENERIC MAP ( 
+         WRITE_WIDTH => 8,
+		 READ_WIDTH  => 8      )
+      PORT MAP (
+         CLK      => clkb_in_i,
+         RST      => RSTB, 
+         EN       => CHECKER_EN_R,
+         DATA_IN  => DOUTB,
+         STATUS   => ISSUE_FLAG(0)
+	   );
+
+   PROCESS(clkb_in_i)
+   BEGIN
+      IF(RISING_EDGE(clkb_in_i)) THEN
+         IF(RSTB='1') THEN
+		    CHECKER_EN_R <= '0';
+	     ELSE
+		    CHECKER_EN_R <= CHECKER_EN AFTER 50 ns;
+         END IF;
+      END IF;
+   END PROCESS;
+
 
  BMG_STIM_GEN_INST:ENTITY work.BMG_STIM_GEN
-    GENERIC MAP(  C_ROM_SYNTH => C_ROM_SYNTH
-              )
-
      PORT MAP(
-                CLK => clk_in_i,
-            	RST => RSTA,
-                ADDRA  => ADDRA,
-				DATA_IN => DOUTA,
-				STATUS => ISSUE_FLAG(0)
-             );
+       CLKA => clk_in_i,
+       CLKB => clkb_in_i,
+       TB_RST => RSTA,
+       ADDRA  => ADDRA,
+       DINA => DINA,
+       WEA => WEA,
+       ADDRB => ADDRB,
+	   CHECK_DATA => CHECKER_EN
+     );
+  PROCESS(CLKA)
+  BEGIN
+    IF(RISING_EDGE(CLKA)) THEN
+	  IF(RESET_SYNC_R3='1') THEN
+		STATUS(8) <= '0';
+		iter_r2 <= '0';
+		iter_r1 <= '0';
+		iter_r0 <= '0';
+	  ELSE
+		STATUS(8) <= iter_r2;
+		iter_r2 <= iter_r1;
+		iter_r1 <= iter_r0;
+		iter_r0 <= STIMULUS_FLOW(8);
+      END IF;
+    END IF;
+  END PROCESS;
 
-      PROCESS(CLKA)
-      BEGIN
-        IF(RISING_EDGE(CLKA)) THEN
-		  IF(RESET_SYNC_R3='1') THEN
-			STATUS(8) <= '0';
-			iter_r2 <= '0';
-			iter_r1 <= '0';
-			iter_r0 <= '0';
-		  ELSE
-			STATUS(8) <= iter_r2;
-			iter_r2 <= iter_r1;
-			iter_r1 <= iter_r0;
-			iter_r0 <= STIMULUS_FLOW(8);
-	      END IF;
+
+  PROCESS(CLKA)
+  BEGIN
+    IF(RISING_EDGE(CLKA)) THEN
+	  IF(RESET_SYNC_R3='1') THEN
+	      STIMULUS_FLOW <= (OTHERS => '0'); 
+       ELSIF(WEA(0)='1') THEN
+	      STIMULUS_FLOW <= STIMULUS_FLOW+1;
+     END IF;
 	    END IF;
       END PROCESS;
 
-      PROCESS(CLKA)
-      BEGIN
-        IF(RISING_EDGE(CLKA)) THEN
-		  IF(RESET_SYNC_R3='1') THEN
-		      STIMULUS_FLOW <= (OTHERS => '0'); 
-           ELSIF(ADDRA(0)='1') THEN
-		      STIMULUS_FLOW <= STIMULUS_FLOW+1;
-         END IF;
-	    END IF;
-      END PROCESS;
 
 
       PROCESS(CLKA)
       BEGIN
         IF(RISING_EDGE(CLKA)) THEN
 		  IF(RESET_SYNC_R3='1') THEN
+            WEA_R  <= (OTHERS=>'0') AFTER 50 ns;
+            DINA_R <= (OTHERS=>'0') AFTER 50 ns;
           
 
            ELSE
+            WEA_R  <= WEA AFTER 50 ns;
+            DINA_R <= DINA AFTER 50 ns;
 
          END IF;
 	    END IF;
@@ -238,8 +298,10 @@ STATUS(7 DOWNTO 0) <= ISSUE_FLAG_STATUS;
         IF(RISING_EDGE(CLKA)) THEN
 		  IF(RESET_SYNC_R3='1') THEN
             ADDRA_R <= (OTHERS=> '0') AFTER 50 ns;
+            ADDRB_R <= (OTHERS=> '0') AFTER 50 ns;
           ELSE
             ADDRA_R <= ADDRA AFTER 50 ns;
+            ADDRB_R <= ADDRB AFTER 50 ns;
           END IF;
 	    END IF;
       END PROCESS;
@@ -247,9 +309,14 @@ STATUS(7 DOWNTO 0) <= ISSUE_FLAG_STATUS;
 
     BMG_PORT: rom_font_exdes PORT MAP ( 
       --Port A
+      WEA        => WEA_R,
       ADDRA      => ADDRA_R,
-      DOUTA      => DOUTA,
-      CLKA       => CLKA
+      DINA       => DINA_R,
+      CLKA       => CLKA,
+      --Port B
+      ADDRB      => ADDRB_R,
+      DOUTB      => DOUTB,
+      CLKB       => CLKB
 
     );
 END ARCHITECTURE;

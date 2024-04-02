@@ -22,7 +22,7 @@
 *     devices, or systems.  Use in such applications are expressly             *
 *     prohibited.                                                              *
 *                                                                              *
-*     (c) Copyright 1995-2023 Xilinx, Inc.                                     *
+*     (c) Copyright 1995-2024 Xilinx, Inc.                                     *
 *     All rights reserved.                                                     *
 *******************************************************************************/
 // You must compile the wrapper file rom_font.v when simulating
@@ -38,13 +38,21 @@
 
 module rom_font(
   clka,
+  wea,
   addra,
-  douta
+  dina,
+  clkb,
+  addrb,
+  doutb
 );
 
 input clka;
+input [0 : 0] wea;
 input [10 : 0] addra;
-output [7 : 0] douta;
+input [7 : 0] dina;
+input clkb;
+input [10 : 0] addrb;
+output [7 : 0] doutb;
 
 // synthesis translate_off
 
@@ -82,7 +90,7 @@ output [7 : 0] douta;
     .C_INITB_VAL("0"),
     .C_INTERFACE_TYPE(0),
     .C_LOAD_INIT_FILE(1),
-    .C_MEM_TYPE(3),
+    .C_MEM_TYPE(1),
     .C_MUX_PIPELINE_STAGES(0),
     .C_PRIM_TYPE(1),
     .C_READ_DEPTH_A(2048),
@@ -113,21 +121,21 @@ output [7 : 0] douta;
   )
   inst (
     .CLKA(clka),
+    .WEA(wea),
     .ADDRA(addra),
-    .DOUTA(douta),
+    .DINA(dina),
+    .CLKB(clkb),
+    .ADDRB(addrb),
+    .DOUTB(doutb),
     .RSTA(),
     .ENA(),
     .REGCEA(),
-    .WEA(),
-    .DINA(),
-    .CLKB(),
+    .DOUTA(),
     .RSTB(),
     .ENB(),
     .REGCEB(),
     .WEB(),
-    .ADDRB(),
     .DINB(),
-    .DOUTB(),
     .INJECTSBITERR(),
     .INJECTDBITERR(),
     .SBITERR(),

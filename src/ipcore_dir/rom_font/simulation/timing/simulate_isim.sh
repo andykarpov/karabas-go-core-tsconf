@@ -54,7 +54,10 @@ vlogcomp -work work ../../implement/results/routed.v
 echo "Compiling Test Bench Files"
 
 vhpcomp -work work    ../bmg_tb_pkg.vhd
+vhpcomp -work work    ../random.vhd
+vhpcomp -work work    ../data_gen.vhd
 vhpcomp -work work    ../addr_gen.vhd
+vhpcomp -work work    ../checker.vhd
 vhpcomp -work work    ../bmg_stim_gen.vhd
 vhpcomp -work work    ../rom_font_synth.vhd 
 vhpcomp -work work    ../rom_font_tb.vhd

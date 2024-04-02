@@ -1,6 +1,7 @@
+
 --------------------------------------------------------------------------------
 --
--- BLK MEM GEN v7_3 Core - Top File for the Example Testbench
+-- BLK MEM GEN v7_3 Core - Data Generator
 --
 --------------------------------------------------------------------------------
 --
@@ -51,9 +52,12 @@
 -- PART OF THIS FILE AT ALL TIMES.
 
 --------------------------------------------------------------------------------
--- Filename: rom_font_tb.vhd
+--
+-- Filename: data_gen.vhd
+--
 -- Description:
---  Testbench Top
+--   Data Generator
+--
 --------------------------------------------------------------------------------
 -- Author: IP Solutions Division
 --
@@ -70,73 +74,67 @@ USE IEEE.STD_LOGIC_ARITH.ALL;
 USE IEEE.STD_LOGIC_UNSIGNED.ALL;
 
 LIBRARY work;
-USE work.ALL;
+USE work.BMG_TB_PKG.ALL;
 
-ENTITY rom_font_tb IS
-END ENTITY;
+ENTITY DATA_GEN IS
+  GENERIC ( DATA_GEN_WIDTH : INTEGER := 32;
+            DOUT_WIDTH     : INTEGER := 32;
+            DATA_PART_CNT  : INTEGER := 1;
+            SEED           : INTEGER := 2
+  );
+        
+  PORT (
+        CLK      : IN STD_LOGIC;
+        RST      : IN STD_LOGIC;
+        EN       : IN STD_LOGIC; 
+        DATA_OUT : OUT STD_LOGIC_VECTOR (DOUT_WIDTH-1 DOWNTO 0)   --OUTPUT VECTOR           
+  );
+END DATA_GEN;
 
+ARCHITECTURE DATA_GEN_ARCH OF DATA_GEN IS
+  CONSTANT LOOP_COUNT     : INTEGER   := DIVROUNDUP(DATA_GEN_WIDTH,8);
+  SIGNAL   RAND_DATA      : STD_LOGIC_VECTOR(8*LOOP_COUNT-1 DOWNTO 0);
+  SIGNAL   LOCAL_DATA_OUT : STD_LOGIC_VECTOR(DATA_GEN_WIDTH-1 DOWNTO 0);
+  SIGNAL   LOCAL_CNT      : INTEGER   :=1;
+  SIGNAL   DATA_GEN_I     : STD_LOGIC :='0';
+BEGIN
 
-ARCHITECTURE rom_font_tb_ARCH OF rom_font_tb IS
- SIGNAL  STATUS : STD_LOGIC_VECTOR(8 DOWNTO 0);
- SIGNAL  CLK :  STD_LOGIC := '1';
- SIGNAL  CLKB :  STD_LOGIC := '1';
- SIGNAL  RESET : STD_LOGIC;
- 
- BEGIN
+  LOCAL_DATA_OUT <= RAND_DATA(DATA_GEN_WIDTH-1 DOWNTO 0);
+  DATA_OUT       <= LOCAL_DATA_OUT(((DOUT_WIDTH*LOCAL_CNT)-1) DOWNTO ((DOUT_WIDTH*LOCAL_CNT)-DOUT_WIDTH));
+  DATA_GEN_I     <= '0' WHEN (LOCAL_CNT < DATA_PART_CNT) ELSE EN;
 
-  
- CLK_GEN: PROCESS BEGIN
-     CLK <= NOT CLK;
-     WAIT FOR 100 NS;
-     CLK <= NOT CLK; 
-     WAIT FOR 100 NS;
+  PROCESS(CLK)
+  BEGIN
+     IF(RISING_EDGE (CLK)) THEN
+        IF(EN ='1' AND (DATA_PART_CNT =1)) THEN
+           LOCAL_CNT <=1;
+        ELSIF(EN='1' AND (DATA_PART_CNT>1)) THEN
+           IF(LOCAL_CNT = 1) THEN
+              LOCAL_CNT <= LOCAL_CNT+1;
+           ELSIF(LOCAL_CNT < DATA_PART_CNT) THEN
+              LOCAL_CNT <= LOCAL_CNT+1;
+           ELSE
+              LOCAL_CNT <= 1;
+           END IF;
+        ELSE
+          LOCAL_CNT <= 1;
+        END IF;
+     END IF;
   END PROCESS;
- CLKB_GEN: PROCESS BEGIN
-     CLKB <= NOT CLKB;
-     WAIT FOR 100 NS;
-     CLKB <= NOT CLKB; 
-     WAIT FOR 100 NS;
-  END PROCESS;
-  
-  RST_GEN: PROCESS BEGIN
-    RESET <= '1';
-    WAIT FOR 1000 NS;
-    RESET <= '0';
-    WAIT;
-  END PROCESS;
 
-  
---STOP_SIM: PROCESS BEGIN
--- WAIT FOR 200 US; -- STOP SIMULATION AFTER 1 MS
---   ASSERT FALSE
---     REPORT "END SIMULATION TIME REACHED"
---     SEVERITY FAILURE;
---END PROCESS;
---
-PROCESS BEGIN
-  WAIT UNTIL STATUS(8)='1';
-  IF( STATUS(7 downto 0)/="0") THEN
-    ASSERT false
-     REPORT "Test Completed Successfully"
-	 SEVERITY NOTE;
-     REPORT "Simulation Failed"
-	 SEVERITY FAILURE;
-  ELSE
-   ASSERT false
-     REPORT "TEST PASS"
-     SEVERITY NOTE;
-     REPORT "Test Completed Successfully"
-	 SEVERITY FAILURE;
-  END IF;
-  
-END PROCESS;	 
-  
-  rom_font_synth_inst:ENTITY work.rom_font_synth
-  PORT MAP(
-           CLK_IN   => CLK,
-           CLKB_IN   => CLK,
-     	   RESET_IN => RESET,
-           STATUS   => STATUS
-	  );
+  RAND_GEN:FOR N IN LOOP_COUNT-1 DOWNTO 0 GENERATE
+    RAND_GEN_INST:ENTITY work.RANDOM
+       GENERIC MAP(
+           WIDTH => 8,
+           SEED => (SEED+N) 
+       )
+       PORT MAP(
+          CLK => CLK,
+	      RST => RST,
+          EN  => DATA_GEN_I,
+          RANDOM_NUM => RAND_DATA(8*(N+1)-1 DOWNTO 8*N)
+       );
+  END GENERATE RAND_GEN;
 
 END ARCHITECTURE;
+

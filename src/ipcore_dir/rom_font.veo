@@ -22,7 +22,7 @@
 *     devices, or systems.  Use in such applications are expressly             *
 *     prohibited.                                                              *
 *                                                                              *
-*     (c) Copyright 1995-2023 Xilinx, Inc.                                     *
+*     (c) Copyright 1995-2024 Xilinx, Inc.                                     *
 *     All rights reserved.                                                     *
 *******************************************************************************/
 
@@ -49,8 +49,12 @@
 //----------- Begin Cut here for INSTANTIATION Template ---// INST_TAG
 rom_font your_instance_name (
   .clka(clka), // input clka
+  .wea(wea), // input [0 : 0] wea
   .addra(addra), // input [10 : 0] addra
-  .douta(douta) // output [7 : 0] douta
+  .dina(dina), // input [7 : 0] dina
+  .clkb(clkb), // input clkb
+  .addrb(addrb), // input [10 : 0] addrb
+  .doutb(doutb) // output [7 : 0] doutb
 );
 // INST_TAG_END ------ End INSTANTIATION Template ---------
 

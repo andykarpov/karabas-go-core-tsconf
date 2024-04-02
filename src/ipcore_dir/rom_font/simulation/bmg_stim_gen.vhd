@@ -1,8 +1,9 @@
- 
- 
-    --------------------------------------------------------------------------------
+      
+
+
+--------------------------------------------------------------------------------
 --
--- BLK MEM GEN v7_3 Core - Stimulus Generator For Single Port ROM
+-- BLK MEM GEN v7_3 Core - Stimulus Generator For Simple Dual Port RAM
 --
 --------------------------------------------------------------------------------
 --
@@ -57,7 +58,9 @@
 -- Filename: bmg_stim_gen.vhd
 --
 -- Description:
---  Stimulus Generation For SROM
+--  Stimulus Generation For SDP Configuration
+--  100 Writes and 100 Reads will be performed in a repeatitive loop till the 
+--  simulation ends
 --
 --------------------------------------------------------------------------------
 -- Author: IP Solutions Division
@@ -79,348 +82,353 @@ USE work.ALL;
 USE work.BMG_TB_PKG.ALL;
 
 
-ENTITY REGISTER_LOGIC_SROM IS
+ENTITY REGISTER_LOGIC IS
   PORT(
     Q   : OUT STD_LOGIC;
-    CLK   : IN STD_LOGIC;
+    CLK : IN STD_LOGIC;
     RST : IN STD_LOGIC;
     D   : IN STD_LOGIC
-    );
-END REGISTER_LOGIC_SROM;
+  );
+END REGISTER_LOGIC;
 
-ARCHITECTURE REGISTER_ARCH OF REGISTER_LOGIC_SROM IS
-   SIGNAL Q_O : STD_LOGIC :='0';
+ARCHITECTURE REGISTER_ARCH OF REGISTER_LOGIC IS
+SIGNAL Q_O : STD_LOGIC :='0';
 BEGIN
   Q <= Q_O;
-FF_BEH: PROCESS(CLK)
-BEGIN
-   IF(RISING_EDGE(CLK)) THEN
-      IF(RST /= '0' ) THEN
-	Q_O <= '0';
-     ELSE
-        Q_O <= D;
-      END IF;
-    END IF;
+  FF_BEH: PROCESS(CLK)
+  BEGIN
+     IF(RISING_EDGE(CLK)) THEN
+        IF(RST ='1') THEN
+           Q_O <= '0';
+        ELSE
+           Q_O <= D;
+        END IF;
+     END IF;
   END PROCESS;
 END REGISTER_ARCH;
-
-LIBRARY STD;
-USE STD.TEXTIO.ALL;
 
 LIBRARY IEEE;
 USE IEEE.STD_LOGIC_1164.ALL;
 USE IEEE.STD_LOGIC_ARITH.ALL;
---USE IEEE.NUMERIC_STD.ALL;
 USE IEEE.STD_LOGIC_UNSIGNED.ALL;
 USE IEEE.STD_LOGIC_MISC.ALL;
 
- LIBRARY work;
+LIBRARY work;
 USE work.ALL;
 USE work.BMG_TB_PKG.ALL;
 
 
 ENTITY BMG_STIM_GEN IS
-      GENERIC ( C_ROM_SYNTH : INTEGER := 0
-      );
       PORT (
-            CLK : IN STD_LOGIC;
-            RST : IN STD_LOGIC;
+            CLKA : IN STD_LOGIC;
+            CLKB : IN STD_LOGIC;
+            TB_RST : IN STD_LOGIC;
             ADDRA: OUT  STD_LOGIC_VECTOR(10 DOWNTO 0) := (OTHERS => '0'); 
-            DATA_IN : IN STD_LOGIC_VECTOR (7 DOWNTO 0);   --OUTPUT VECTOR         
-            STATUS : OUT STD_LOGIC:= '0'
-    	  );
+            DINA : OUT  STD_LOGIC_VECTOR(7 DOWNTO 0) := (OTHERS => '0'); 
+            WEA : OUT STD_LOGIC_VECTOR (0 DOWNTO 0) := (OTHERS => '0');
+            ADDRB: OUT  STD_LOGIC_VECTOR(10 DOWNTO 0) := (OTHERS => '0');
+	        CHECK_DATA: OUT STD_LOGIC:='0'
+	  );
 END BMG_STIM_GEN;
 
 
 ARCHITECTURE BEHAVIORAL OF BMG_STIM_GEN IS
 
-    FUNCTION hex_to_std_logic_vector(
-    hex_str       : STRING;
-    return_width  : INTEGER)
-  RETURN STD_LOGIC_VECTOR IS
-    VARIABLE tmp        : STD_LOGIC_VECTOR((hex_str'LENGTH*4)+return_width-1
-                                           DOWNTO 0);
+CONSTANT ZERO                    : STD_LOGIC_VECTOR(31 DOWNTO 0) := (OTHERS => '0');
+SIGNAL   WRITE_ADDR              : STD_LOGIC_VECTOR(31 DOWNTO 0) := (OTHERS => '0');
+SIGNAL   READ_ADDR               : STD_LOGIC_VECTOR(31 DOWNTO 0) := (OTHERS => '0');
+SIGNAL   DINA_INT                : STD_LOGIC_VECTOR(7 DOWNTO 0) := (OTHERS => '0');
+SIGNAL   DO_WRITE                : STD_LOGIC := '0';
+SIGNAL   DO_READ                 : STD_LOGIC := '0';
+SIGNAL   DO_READ_R               : STD_LOGIC := '0';
+SIGNAL   DO_READ_REG             : STD_LOGIC_VECTOR(5 DOWNTO 0) :=(OTHERS => '0');
+SIGNAL   PORTA_WR                : STD_LOGIC:='0';
+SIGNAL   COUNT                   : INTEGER :=0;
+SIGNAL   INCR_WR_CNT             : STD_LOGIC:='0';
+SIGNAL   PORTA_WR_COMPLETE       : STD_LOGIC :='0';
+SIGNAL   PORTB_RD                : STD_LOGIC:='0';
+SIGNAL   COUNT_RD                : INTEGER :=0;
+SIGNAL   INCR_RD_CNT             : STD_LOGIC:='0';
+SIGNAL   PORTB_RD_COMPLETE       : STD_LOGIC :='0';
+SIGNAL   LATCH_PORTA_WR_COMPLETE : STD_LOGIC :='0';
+SIGNAL   PORTB_RD_HAPPENED       : STD_LOGIC := '0';
+SIGNAL   PORTA_WR_L1             :STD_LOGIC  := '0';
+SIGNAL   PORTA_WR_L2             :STD_LOGIC  := '0';
+SIGNAL   PORTB_RD_R2             :STD_LOGIC  := '0';
+SIGNAL   PORTB_RD_R1             :STD_LOGIC  := '0';
+SIGNAL   LATCH_PORTB_RD_COMPLETE : STD_LOGIC :='0';
+SIGNAL   PORTA_WR_HAPPENED       : STD_LOGIC := '0';
+SIGNAL   PORTB_RD_L1             : STD_LOGIC  := '0';
+SIGNAL   PORTB_RD_L2             : STD_LOGIC  := '0';
+SIGNAL   PORTA_WR_R2             : STD_LOGIC  := '0';
+SIGNAL   PORTA_WR_R1             : STD_LOGIC  := '0';
 
-  BEGIN
-    tmp := (OTHERS => '0');
-    FOR i IN 1 TO hex_str'LENGTH LOOP
-      CASE hex_str((hex_str'LENGTH+1)-i) IS
-        WHEN '0' => tmp(i*4-1 DOWNTO (i-1)*4) := "0000";
-        WHEN '1' => tmp(i*4-1 DOWNTO (i-1)*4) := "0001";
-        WHEN '2' => tmp(i*4-1 DOWNTO (i-1)*4) := "0010";
-        WHEN '3' => tmp(i*4-1 DOWNTO (i-1)*4) := "0011";
-        WHEN '4' => tmp(i*4-1 DOWNTO (i-1)*4) := "0100";
-        WHEN '5' => tmp(i*4-1 DOWNTO (i-1)*4) := "0101";
-        WHEN '6' => tmp(i*4-1 DOWNTO (i-1)*4) := "0110";
-        WHEN '7' => tmp(i*4-1 DOWNTO (i-1)*4) := "0111";
-        WHEN '8' => tmp(i*4-1 DOWNTO (i-1)*4) := "1000";
-        WHEN '9' => tmp(i*4-1 DOWNTO (i-1)*4) := "1001";
-        WHEN 'a' | 'A' => tmp(i*4-1 DOWNTO (i-1)*4) := "1010";
-        WHEN 'b' | 'B' => tmp(i*4-1 DOWNTO (i-1)*4) := "1011";
-        WHEN 'c' | 'C' => tmp(i*4-1 DOWNTO (i-1)*4) := "1100";
-        WHEN 'd' | 'D' => tmp(i*4-1 DOWNTO (i-1)*4) := "1101";
-        WHEN 'e' | 'E' => tmp(i*4-1 DOWNTO (i-1)*4) := "1110";
-        WHEN 'f' | 'F' => tmp(i*4-1 DOWNTO (i-1)*4) := "1111";
-        WHEN OTHERS  =>  tmp(i*4-1 DOWNTO (i-1)*4) := "1111";
-      END CASE;
-    END LOOP;
-    RETURN tmp(return_width-1 DOWNTO 0);
-  END hex_to_std_logic_vector;
-
-CONSTANT ZERO : STD_LOGIC_VECTOR(31 DOWNTO 0) := (OTHERS => '0');
-SIGNAL READ_ADDR_INT : STD_LOGIC_VECTOR(10 DOWNTO 0) := (OTHERS => '0');
-SIGNAL READ_ADDR : STD_LOGIC_VECTOR(31 DOWNTO 0) := (OTHERS => '0');
-SIGNAL CHECK_READ_ADDR : STD_LOGIC_VECTOR(31 DOWNTO 0) := (OTHERS => '0');
-SIGNAL EXPECTED_DATA : STD_LOGIC_VECTOR(7 DOWNTO 0) := (OTHERS => '0');
-SIGNAL DO_READ : STD_LOGIC := '0';
-SIGNAL CHECK_DATA : STD_LOGIC := '0';
-SIGNAL CHECK_DATA_R : STD_LOGIC := '0';
-SIGNAL CHECK_DATA_2R : STD_LOGIC := '0';
-SIGNAL DO_READ_REG: STD_LOGIC_VECTOR(4 DOWNTO 0) :=(OTHERS => '0');
-CONSTANT DEFAULT_DATA  : STD_LOGIC_VECTOR(7 DOWNTO 0):= hex_to_std_logic_vector("0",8);
+CONSTANT WR_RD_DEEP_COUNT :INTEGER :=8;
+CONSTANT WR_DEEP_COUNT    : INTEGER := if_then_else((11 <= 11),WR_RD_DEEP_COUNT,
+                                              ((8/8)*WR_RD_DEEP_COUNT));
+CONSTANT RD_DEEP_COUNT    : INTEGER := if_then_else((11 <= 11),WR_RD_DEEP_COUNT,
+                                              ((8/8)*WR_RD_DEEP_COUNT));
 
 BEGIN
 
-
-SYNTH_COE:  IF(C_ROM_SYNTH =0 ) GENERATE
-
-type mem_type is array (2047 downto 0) of std_logic_vector(7 downto 0);
-
-  FUNCTION bit_to_sl(input: BIT) RETURN STD_LOGIC IS
-    VARIABLE temp_return : STD_LOGIC;
-  BEGIN
-    IF (input = '0') THEN
-      temp_return := '0';
-    ELSE
-      temp_return := '1';
-    END IF;
-    RETURN temp_return;
-  END bit_to_sl;
-
-     function char_to_std_logic (
-      char : in character)
-      return std_logic is
-
-      variable data : std_logic;
-
-   begin
-      if char = '0' then
-         data := '0';
-
-      elsif char = '1' then
-         data := '1';
-
-      elsif char = 'X' then
-         data := 'X';
-
-      else
-         assert false
-            report "character which is not '0', '1' or 'X'."
-            severity warning;
-
-         data := 'U';
-      end if;
-
-      return data;
-
-   end char_to_std_logic;
-
-impure FUNCTION init_memory( C_USE_DEFAULT_DATA : INTEGER;
-                       C_LOAD_INIT_FILE : INTEGER ;
-					   C_INIT_FILE_NAME : STRING ;
-                       DEFAULT_DATA   :  STD_LOGIC_VECTOR(7 DOWNTO 0);
-                       width : INTEGER;
-                       depth         : INTEGER)
-  RETURN mem_type IS
-  VARIABLE init_return   : mem_type := (OTHERS => (OTHERS => '0'));
-  FILE     init_file     : TEXT;
-  VARIABLE mem_vector    : BIT_VECTOR(width-1 DOWNTO 0);
-  VARIABLE bitline     : LINE;
-  variable bitsgood    : boolean := true;
-  variable bitchar     : character;
-  VARIABLE i             : INTEGER;
-  VARIABLE j             : INTEGER;
-  BEGIN
-
-    --Display output message indicating that the behavioral model is being
-    --initialized
-    ASSERT (NOT (C_USE_DEFAULT_DATA=1 OR C_LOAD_INIT_FILE=1)) REPORT " Block Memory Generator CORE Generator module loading initial data..." SEVERITY NOTE;
-
-    -- Setup the default data
-    -- Default data is with respect to write_port_A and may be wider
-    -- or narrower than init_return width.  The following loops map
-    -- default data into the memory
-    IF (C_USE_DEFAULT_DATA=1) THEN
-      FOR i IN 0 TO depth-1 LOOP
-          init_return(i) := DEFAULT_DATA;
-        END LOOP;
-    END IF;
-
-    -- Read in the .mif file
-    -- The init data is formatted with respect to write port A dimensions.
-    -- The init_return vector is formatted with respect to minimum width and
-    -- maximum depth; the following loops map the .mif file into the memory
-    IF (C_LOAD_INIT_FILE=1) THEN
-      file_open(init_file, C_INIT_FILE_NAME, read_mode);
-      i := 0;
-      WHILE (i < depth AND NOT endfile(init_file)) LOOP
-        mem_vector := (OTHERS => '0');
-        readline(init_file, bitline);
---        read(file_buffer, mem_vector(file_buffer'LENGTH-1 DOWNTO 0));
-
-        FOR j IN 0 TO width-1 LOOP
-		  read(bitline,bitchar,bitsgood);
-          init_return(i)(width-1-j) := char_to_std_logic(bitchar);
-        END LOOP;
-        i := i + 1;
-    END LOOP;
-      file_close(init_file);
-    END IF;
-    RETURN init_return;
-
-  END FUNCTION;
-
-
-  --***************************************************************
-  -- convert bit to STD_LOGIC
-  --***************************************************************
-
-constant c_init : mem_type := init_memory(0,
-                                          1,
-										  "rom_font.mif",
-                                           DEFAULT_DATA,
-                                          8,
-                                          2048);
-
-
-constant rom : mem_type := c_init;
-BEGIN
-
- EXPECTED_DATA <= rom(conv_integer(unsigned(check_read_addr)));
-
-  CHECKER_RD_ADDR_GEN_INST:ENTITY work.ADDR_GEN
-    GENERIC MAP( C_MAX_DEPTH =>2048 )
-
-     PORT MAP(
-        CLK => CLK,
-     	RST => RST,
-   	    EN  => CHECK_DATA_2R,
-        LOAD => '0',
-     	LOAD_VALUE => ZERO,
-    	ADDR_OUT => CHECK_READ_ADDR
-       );
- 
-
-  PROCESS(CLK)
-   BEGIN
-     IF(RISING_EDGE(CLK)) THEN
-       IF(CHECK_DATA_2R ='1') THEN
-    	 IF(EXPECTED_DATA = DATA_IN) THEN
-	        STATUS<='0';
-    	 ELSE
-	        STATUS <= '1';
-     	 END IF;
-       END IF;
-	 END IF;
-  END PROCESS;
-END GENERATE; 
--- Simulatable ROM 
-
---Synthesizable ROM
-SYNTH_CHECKER: IF(C_ROM_SYNTH = 1) GENERATE
-  PROCESS(CLK)
-  BEGIN
-     IF(RISING_EDGE(CLK)) THEN
-	   IF(CHECK_DATA_2R='1') THEN
-		 IF(DATA_IN=DEFAULT_DATA) THEN
-		   STATUS <= '0';
-	     ELSE
-		   STATUS <= '1';
-		 END IF;
-	   END IF;
-	 END IF;
-  END PROCESS;
-
-END GENERATE;
-
-
-    READ_ADDR_INT(10 DOWNTO 0) <= READ_ADDR(10 DOWNTO 0);
-    ADDRA <= READ_ADDR_INT ;
-
+   ADDRA <= WRITE_ADDR(10 DOWNTO 0) ;
+   DINA  <= DINA_INT ;
+   ADDRB <= READ_ADDR(10 DOWNTO 0) when (DO_READ='1') else (OTHERS=>'0');
    CHECK_DATA <= DO_READ;
 
-
-
-
   RD_ADDR_GEN_INST:ENTITY work.ADDR_GEN
-    GENERIC MAP( C_MAX_DEPTH => 2048 )
+    GENERIC MAP(
+      C_MAX_DEPTH => 2048 ,
+      RST_INC => 1    )
+    PORT MAP(
+       CLK        => CLKB,
+       RST        => TB_RST,
+       EN         => DO_READ,
+       LOAD       => '0',
+   	   LOAD_VALUE => ZERO,
+       ADDR_OUT   => READ_ADDR
+    );
 
-     PORT MAP(
-        CLK => CLK,
-     	RST => RST,
-   	    EN  => DO_READ,
-        LOAD => '0',
-     	LOAD_VALUE => ZERO,
-    	ADDR_OUT => READ_ADDR
-       );
+  WR_ADDR_GEN_INST:ENTITY work.ADDR_GEN
+    GENERIC MAP( 
+      C_MAX_DEPTH => 2048,
+      RST_INC => 1    )
+    PORT MAP(
+       CLK        => CLKA,
+       RST        => TB_RST,
+  	   EN         => DO_WRITE,
+       LOAD       => '0',
+       LOAD_VALUE => ZERO,
+  	   ADDR_OUT   => WRITE_ADDR
+      );
 
-RD_PROCESS: PROCESS (CLK)
-       BEGIN
-     IF (RISING_EDGE(CLK)) THEN
-          IF(RST='1') THEN
-    	     DO_READ <= '0';
-		  ELSE
-             DO_READ <= '1';
-	    END IF;
-	 END IF;
-END PROCESS;
+  WR_DATA_GEN_INST:ENTITY work.DATA_GEN 
+    GENERIC MAP ( 
+       DATA_GEN_WIDTH => 8,
+       DOUT_WIDTH     => 8 ,
+       DATA_PART_CNT  => 1,
+       SEED           => 2)
+    PORT MAP (
+       CLK      => CLKA,
+	   RST      => TB_RST,
+       EN       => DO_WRITE,
+       DATA_OUT => DINA_INT          
+    );
 
-  BEGIN_SHIFT_REG: FOR I IN 0 TO 4 GENERATE
+
+  PORTA_WR_PROCESS: PROCESS(CLKA)
+  BEGIN
+    IF(RISING_EDGE(CLKA)) THEN
+      IF(TB_RST='1') THEN
+        PORTA_WR<='1';
+      ELSE
+        PORTA_WR<=PORTB_RD_COMPLETE;
+      END IF;
+    END IF;
+  END PROCESS;
+
+  PORTB_RD_PROCESS: PROCESS(CLKB)
+  BEGIN
+    IF(RISING_EDGE(CLKB)) THEN
+      IF(TB_RST='1') THEN
+        PORTB_RD<='0';
+      ELSE
+        PORTB_RD<=PORTA_WR_L2;
+      END IF;
+    END IF;
+  END PROCESS;
+
+  PORTB_RD_COMPLETE_LATCH: PROCESS(CLKB) 
+    BEGIN
+    IF(RISING_EDGE(CLKB)) THEN
+      IF(TB_RST='1') THEN
+        LATCH_PORTB_RD_COMPLETE<='0';
+      ELSIF(PORTB_RD_COMPLETE='1') THEN
+        LATCH_PORTB_RD_COMPLETE <='1';
+      ELSIF(PORTA_WR_HAPPENED='1') THEN
+        LATCH_PORTB_RD_COMPLETE<='0';
+      END IF;
+    END IF;
+  END PROCESS;
+  
+  PROCESS(CLKA)
+  BEGIN
+    IF(RISING_EDGE(CLKA)) THEN
+      IF(TB_RST='1') THEN
+        PORTB_RD_L1 <='0';
+        PORTB_RD_L2 <='0';
+      ELSE
+       PORTB_RD_L1 <= LATCH_PORTB_RD_COMPLETE;
+       PORTB_RD_L2 <= PORTB_RD_L1;
+      END IF;
+   END IF;
+  END PROCESS;
+  
+  PROCESS(CLKB)
+  BEGIN
+    IF(RISING_EDGE(CLKB)) THEN
+      IF(TB_RST='1') THEN
+        PORTA_WR_R1 <='0';
+        PORTA_WR_R2 <='0';
+      ELSE
+       PORTA_WR_R1 <= PORTA_WR;
+       PORTA_WR_R2 <= PORTA_WR_R1;
+      END IF;
+   END IF;
+  END PROCESS;
+  
+  PORTA_WR_HAPPENED <= PORTA_WR_R2;
+  
+  PORTA_WR_COMPLETE_LATCH: PROCESS(CLKA) 
+    BEGIN
+    IF(RISING_EDGE(CLKA)) THEN
+      IF(TB_RST='1') THEN
+        LATCH_PORTA_WR_COMPLETE<='0';
+      ELSIF(PORTA_WR_COMPLETE='1') THEN
+        LATCH_PORTA_WR_COMPLETE <='1';
+      --ELSIF(PORTB_RD_HAPPENED='1') THEN
+      ELSE
+        LATCH_PORTA_WR_COMPLETE<='0';
+      END IF;
+    END IF;
+  END PROCESS;
+  
+  PROCESS(CLKB)
+  BEGIN
+    IF(RISING_EDGE(CLKB)) THEN
+      IF(TB_RST='1') THEN
+        PORTA_WR_L1 <='0';
+        PORTA_WR_L2 <='0';
+      ELSE
+       PORTA_WR_L1 <= LATCH_PORTA_WR_COMPLETE;
+       PORTA_WR_L2 <= PORTA_WR_L1;
+      END IF;
+   END IF;
+  END PROCESS;
+  
+  PROCESS(CLKA)
+  BEGIN
+    IF(RISING_EDGE(CLKA)) THEN
+      IF(TB_RST='1') THEN
+        PORTB_RD_R1 <='0';
+        PORTB_RD_R2 <='0';
+      ELSE
+       PORTB_RD_R1 <= PORTB_RD;
+       PORTB_RD_R2 <= PORTB_RD_R1;
+      END IF;
+   END IF;
+  END PROCESS;
+  
+  PORTB_RD_HAPPENED <= PORTB_RD_R2;
+  
+  PORTB_RD_COMPLETE <= '1' when (count_rd=RD_DEEP_COUNT) else '0';
+  
+  start_rd_counter: process(clkb)
+  begin
+    if(rising_edge(clkb)) then
+      if(tb_rst='1') then
+         incr_rd_cnt <= '0';
+       elsif(portb_rd ='1') then
+         incr_rd_cnt <='1';
+       elsif(portb_rd_complete='1') then
+         incr_rd_cnt <='0';
+       end if;
+    end if;
+  end process;
+  
+  RD_COUNTER: process(clkb)
+  begin
+    if(rising_edge(clkb)) then
+      if(tb_rst='1') then
+        count_rd <= 0;
+      elsif(incr_rd_cnt='1') then
+        count_rd<=count_rd+1;
+      end if;
+      --if(count_rd=(wr_rd_deep_count)) then
+     if(count_rd=(RD_DEEP_COUNT)) then
+        count_rd<=0;
+      end if;
+   end if;
+  end process;
+  
+  DO_READ<='1' when (count_rd <RD_DEEP_COUNT and incr_rd_cnt='1') else '0';
+  
+  PORTA_WR_COMPLETE <= '1' when (count=WR_DEEP_COUNT) else '0';
+  
+  start_counter: process(clka)
+  begin
+    if(rising_edge(clka)) then
+      if(tb_rst='1') then
+         incr_wr_cnt <= '0';
+       elsif(porta_wr ='1') then
+         incr_wr_cnt <='1';
+       elsif(porta_wr_complete='1') then
+         incr_wr_cnt <='0';
+       end if;
+    end if;
+  end process;
+  
+  COUNTER: process(clka)
+  begin
+    if(rising_edge(clka)) then
+      if(tb_rst='1') then
+        count <= 0;
+      elsif(incr_wr_cnt='1') then
+        count<=count+1;
+      end if;
+      if(count=(WR_DEEP_COUNT)) then
+        count<=0;
+      end if;
+   end if;
+  end process;
+  
+  DO_WRITE<='1' when (count <WR_DEEP_COUNT and incr_wr_cnt='1') else '0';
+  
+  
+  BEGIN_SHIFT_REG: FOR I IN 0 TO 5 GENERATE
   BEGIN
     DFF_RIGHT: IF I=0 GENERATE
-     BEGIN
-     SHIFT_INST_0: ENTITY work.REGISTER_LOGIC_SROM
+    BEGIN
+      SHIFT_INST_0: ENTITY work.REGISTER_LOGIC
         PORT MAP(
-                 Q  => DO_READ_REG(0),
-                 CLK =>CLK,
-                 RST=>RST,
-                 D  =>DO_READ
-                );
+           Q    => DO_READ_REG(0),
+           CLK  => CLKB,
+           RST  => TB_RST,
+           D    => DO_READ
+        );
      END GENERATE DFF_RIGHT;
-    DFF_OTHERS: IF ((I>0) AND (I<=4)) GENERATE
-     BEGIN
-       SHIFT_INST: ENTITY work.REGISTER_LOGIC_SROM
-         PORT MAP(
-                 Q  => DO_READ_REG(I),
-                 CLK =>CLK,
-                 RST=>RST,
-                 D  =>DO_READ_REG(I-1)
-                );
-      END GENERATE DFF_OTHERS;
-   END GENERATE BEGIN_SHIFT_REG;
 
-
-CHECK_DATA_REG_1: ENTITY work.REGISTER_LOGIC_SROM
+    DFF_OTHERS: IF ((I>0) AND (I<=5)) GENERATE
+    BEGIN
+      SHIFT_INST: ENTITY work.REGISTER_LOGIC
         PORT MAP(
-                 Q  => CHECK_DATA_2R,
-                 CLK =>CLK,
-                 RST=>RST,
-                 D  =>CHECK_DATA_R
-                );
+           Q   => DO_READ_REG(I),
+           CLK =>CLKB,
+           RST =>TB_RST,
+           D   =>DO_READ_REG(I-1)
+        );
+    END GENERATE DFF_OTHERS;
+ END GENERATE BEGIN_SHIFT_REG;
+  
+ REGCE_PROCESS: PROCESS(CLKB) 
+   BEGIN
+     IF(RISING_EDGE(CLKB)) THEN
+       IF(TB_RST='1') THEN
+ 	     DO_READ_R <= '0';
+       ELSE
+ 	     DO_READ_R <= DO_READ;
+       END IF;
+     END IF;
+ END PROCESS;
 
-CHECK_DATA_REG: ENTITY work.REGISTER_LOGIC_SROM
-        PORT MAP(
-                 Q  => CHECK_DATA_R,
-                 CLK =>CLK,
-                 RST=>RST,
-                 D  =>CHECK_DATA
-                );
-
-
-
-
-
+ 
+ 
+   WEA(0) <= DO_WRITE ;
+ 
 
 END ARCHITECTURE;
+
+
+
 
 

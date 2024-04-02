@@ -55,7 +55,10 @@ vcom -work work ../../example_design/rom_font_exdes.vhd
 echo "Compiling Test Bench Files"
 
 vcom -work work    ../bmg_tb_pkg.vhd
+vcom -work work    ../random.vhd
+vcom -work work    ../data_gen.vhd
 vcom -work work    ../addr_gen.vhd
+vcom -work work    ../checker.vhd
 vcom -work work    ../bmg_stim_gen.vhd
 vcom -work work    ../rom_font_synth.vhd 
 vcom -work work    ../rom_font_tb.vhd

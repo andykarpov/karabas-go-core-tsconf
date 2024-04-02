@@ -55,6 +55,10 @@ isim set radix hex
 wave add /rom_font_tb/status
       wave add  /rom_font_tb/rom_font_synth_inst/BMG_PORT/CLKA
       wave add  /rom_font_tb/rom_font_synth_inst/BMG_PORT/ADDRA
-      wave add  /rom_font_tb/rom_font_synth_inst/BMG_PORT/DOUTA
+      wave add  /rom_font_tb/rom_font_synth_inst/BMG_PORT/DINA
+      wave add  /rom_font_tb/rom_font_synth_inst/BMG_PORT/WEA
+      wave add  /rom_font_tb/rom_font_synth_inst/BMG_PORT/CLKB
+      wave add  /rom_font_tb/rom_font_synth_inst/BMG_PORT/ADDRB
+      wave add  /rom_font_tb/rom_font_synth_inst/BMG_PORT/DOUTB
 run all
 quit
