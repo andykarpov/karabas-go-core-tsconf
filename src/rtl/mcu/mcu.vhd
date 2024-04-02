@@ -19,6 +19,8 @@ entity mcu is
     MCU_MISO    : out std_logic := 'Z';
     MCU_SCK     : in std_logic;
 	 MCU_SS 		 : in std_logic;
+	 MCU_SPI_FT_SS : in std_logic;
+	 MCU_SPI_SD2_SS : in std_logic;
 
 	 -- usb mouse
 	 MS_X 	 	: out std_logic_vector(7 downto 0) := "00000000";
@@ -155,22 +157,6 @@ architecture rtl of mcu is
 	--state machine for queue writes
 	type qmachine IS(idle, rtc_wr_req, rtc_wr_ack);
 	signal qstate : qmachine := idle;
-	
-	-- ft command
-	signal ft_cmd : std_logic_vector(23 downto 0);
-	signal ft_cmd_wr : std_logic := '0';
-
-	-- ft transaction
-	signal ft_transaction_len : std_logic_vector(7 downto 0);
-	signal ft_addr : std_logic_vector(31 downto 0);
-	signal ft_buf_a : std_logic_vector(7 downto 0);
-	signal ft_buf_di : std_logic_vector(7 downto 0);
-	signal ft_buf_wr : std_logic := '0';
-	signal ft_transaction_wr : std_logic := '0';
-		 
-	signal ft_spi_ss_n : std_logic_vector(0 downto 0);
-	signal ft_spi_busy : std_logic;
-	signal ft_rx_data : std_logic_vector(23 downto 0);
 		 
 begin
 	
@@ -205,10 +191,24 @@ begin
 
 	spi_di <= queue_do; -- when queue_rd_empty = '0' else x"FFFFFF";
 --	queue_rd_req <= spi_di_req;
-	MCU_MISO	<= spi_miso when MCU_SS = '0' else 'Z';
+	
+	MCU_MISO <= 
+		spi_miso when MCU_SS = '0' else 
+--		SD2_MISO when MCU_SPI_SD2_SS = '0' else
+		FT_MISO when MCU_SPI_FT_SS = '0' else 
+		'1';
+	
+	FT_SCK <= MCU_SCK;
+	FT_CS_N <= MCU_SPI_FT_SS;
+	FT_MOSI <= MCU_MOSI;
+	
+--	SD2_SCK <= MCU_SCK;
+--	SD2_CS_N <= MCU_SPI_SD2_SS;
+--	SD2_MOSI <= MCU_MOSI;
+	
 	
 	-- pull queue data  
-	process (CLK, spi_di_req)
+	process (CLK)
 	begin 
 		if rising_edge(CLK) then 
 			queue_rd_req <= '0';
@@ -219,13 +219,9 @@ begin
 		end if;
 	end process;
 
-	process (CLK, spi_do_valid, spi_do)
+	process (CLK)
 	begin
 		if (rising_edge(CLK)) then
-		
-			ft_cmd_wr <= '0';
-			ft_buf_wr <= '0';
-			ft_transaction_wr <= '0';
 		
 			if spi_do_valid = '1' then
 				case spi_do(23 downto 16) is 
@@ -324,36 +320,15 @@ begin
 						UART_RX_DATA <= spi_do(7 downto 0);
 						UART_RX_IDX <= spi_do(15 downto 8);
 						
-					-- ft812
+					-- ft812 control register
 					when CMD_FT => 
 						case spi_do(15 downto 8) is
 							-- control spi, vga
 							when x"00" => 
 								FT_SPI_ON <= spi_do(0);
 								FT_VGA_ON <= spi_do(1);
-							
-							-- command register
-							when x"01" => ft_cmd(23 downto 16) <= spi_do(7 downto 0);
-							when x"02" => ft_cmd(15 downto 8) <= spi_do(7 downto 0);
-							when x"03" => ft_cmd(7 downto 0) <= spi_do(7 downto 0); ft_cmd_wr <= '1'; -- todo: trigger cmd execution from here
-							
-							-- transaction length, address
-							when x"04" => ft_transaction_len(7 downto 0) <= spi_do(7 downto 0);
-							when x"05" => ft_addr(31 downto 24) <= spi_do(7 downto 0);
-							when x"06" => ft_addr(23 downto 16) <= spi_do(7 downto 0);
-							when x"07" => ft_addr(15 downto 8) <= spi_do(7 downto 0);
-							when x"08" => ft_addr(7 downto 0) <= spi_do(7 downto 0); -- todo: trigger ft transaction from here
 							when others => null;
 						end case;
-						
-					-- ft812 transaction data
-					when CMD_FT_DATA => 
-						ft_buf_a <= spi_do(15 downto 8);
-						ft_buf_di <= spi_do(7 downto 0);
-						ft_buf_wr <= '1';
-						if (ft_transaction_len = spi_do(15 downto 8)) then
-							ft_transaction_wr <= '1';
-						end if;
 						
 					-- ps/2 scancode from mcu
 					when CMD_PS2_SCANCODE => 
@@ -375,7 +350,7 @@ begin
 	end process;
 	
 	-- romload wr signal
-	process (CLK, ROMLOAD_ADDR, prev_romload_addr, ROMLOADER_ACTIVE)
+	process (CLK)
 	begin
 		if rising_edge(CLK) then 
 			ROMLOAD_WR <= '0';
@@ -487,31 +462,6 @@ begin
 			end if;
 		end if;
 	end process;
-	
-	U_FT_SPI: entity work.spi_master
-	generic map(
-		slaves => 1,
-		d_width => 24
-	)
-	port map(
-		clock => CLK,
-		reset_n => '1',
-		enable => ft_cmd_wr,
-		cpol => '0',
-		cpha => '0',
-		cont => '0',
-		clk_div => 1,
-		addr => 1,
-		tx_data => ft_cmd,
-		miso => FT_MISO,
-		sclk => FT_SCK,
-		ss_n => ft_spi_ss_n,
-		mosi => FT_MOSI,
-		busy => ft_spi_busy,
-		rx_data => ft_rx_data
-	);
-	
-FT_CS_N <= ft_spi_ss_n(0);
 
 end RTL;
 

@@ -114,7 +114,9 @@ module karabas_go_top (
 	input wire MCU_SCK,
 	inout wire MCU_MOSI,
 	output wire MCU_MISO,
-	input wire [3:0] MCU_IO,
+	input wire MCU_SPI_FT_CS_N,
+	input wire MCU_SPI_SD2_CS_N,	
+	inout wire [1:0] MCU_SPI_IO,
 	
 	//---------------------------
 	output wire MIDI_TX,
@@ -390,6 +392,9 @@ mcu mcu(
 	.MCU_MISO(MCU_MISO),
 	.MCU_SCK(MCU_SCK),
 	.MCU_SS(MCU_CS_N),
+	
+	.MCU_SPI_FT_SS(MCU_SPI_FT_CS_N),
+	.MCU_SPI_SD2_SS(MCU_SPI_SD2_CS_N),	
 	
 	.MS_X(ms_x),
 	.MS_Y(ms_y),
