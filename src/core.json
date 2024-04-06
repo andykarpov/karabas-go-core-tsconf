@@ -1,7 +1,7 @@
 {
     "id": "tsconf",
     "name": "TS-Conf +",
-    "build": "24040216",
+    "build": "24040622",
     "bitstream": "karabas_go_top.bin",
     "visible": true,
     "type": "osd",
@@ -17,6 +17,7 @@
         {"type": "S", "name": "PSG Type", "options": ["AY3-8912", "YM2149F"], "default": 0, "hotkey": "Menu+F8"},
         {"type": "S", "name": "Joystick L", "options": ["Kempston", "Sinclair1", "Sinclair2", "Cursor", "QAOPM", "QAOPS"], "default": 0, "hotkey": "Menu+J"},
         {"type": "S", "name": "Joystick R", "options": ["Kempston", "Sinclair1", "Sinclair2", "Cursor", "QAOPM", "QAOPS"], "default": 1, "hotkey": "Menu+R"},
+        {"type": "S", "name": "VGA Hsync", "options": ["50 Hz", "60 Hz"], "default": 0, "hotkey": "Menu+F9"},
         {"type": "N", "name": "Pause", "options": ["Off", "On"], "default": 0, "hotkey": "Menu+P"},
         {"type": "T", "name": "GS Reset", "options": null, "default": 0, "hotkey": "Menu+G"},
         {"type": "T", "name": "NMI", "options": null, "default": 0, "hotkey": "F11"},

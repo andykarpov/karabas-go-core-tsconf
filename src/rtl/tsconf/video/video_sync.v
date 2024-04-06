@@ -206,7 +206,8 @@ module video_sync
 `ifdef FORCE_60HZ
       v60hz <= 1'b1;
 `elsif ENABLE_60HZ
-      v60hz <= !cfg_60hz;
+      //v60hz <= !cfg_60hz;
+		v60hz <= cfg_60hz;
 `else
       v60hz <= 1'b0;
 `endif

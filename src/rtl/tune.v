@@ -24,3 +24,6 @@
 // `define DISABLE_TSU  // disable TSU
 
 // `define PENT_312    // for Pentagon 71680 tacts emulation with 312 video lines
+
+`define ENABLE_60HZ    // Enable 60Hz support
+

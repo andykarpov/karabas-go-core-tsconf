@@ -88,6 +88,7 @@ module tsconf
 	input wire covox_en,
 	input wire [1:0] psg_mix,
 	input wire psg_type,
+	input wire vga_60hz,
 	
 	// fdc
 	input wire clk_16,
@@ -654,7 +655,7 @@ assign clk_bus = clk_28mhz;
     .hsync(hsync),
     .vsync(vsync),
     .csync(/*vcsync*/),
-    .cfg_60hz(1'b0/*cfg_60hz*/),
+    .cfg_60hz(vga_60hz),
     .vga_on(1'b1/*1'b1cfg_vga_on*/),
     .border_wr(border_wr),
     .zborder_wr(zborder_wr),

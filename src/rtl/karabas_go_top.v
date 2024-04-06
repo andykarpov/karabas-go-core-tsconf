@@ -240,6 +240,7 @@ module karabas_go_top (
 	wire [15:0] osd_command;
 	wire [2:0] kb_joy_type_l;
 	wire [2:0] kb_joy_type_r;
+	wire kb_vga_60hz;
 	wire [7:0] joy_bus;
 	wire kb_pause;
 	wire kb_reset;
@@ -320,6 +321,7 @@ module karabas_go_top (
 	  .covox_en(covox_en),
 	  .psg_mix(psg_mix),
 	  .psg_type(psg_type),
+	  .vga_60hz(kb_vga_60hz),
 	  
 	  .clk_16(clk_16mhz),
 	  .fdc_side(FDC_SIDE_N),
@@ -503,6 +505,7 @@ soft_switches soft_switches(
 	.PSG_TYPE(psg_type),
 	.JOY_TYPE_L(kb_joy_type_l),
 	.JOY_TYPE_R(kb_joy_type_r),
+	.VGA_60HZ(kb_vga_60hz),
 	.PAUSE(kb_pause),
 	.RESET_GS(kb_reset_gs),
 	.NMI(kb_nmi),
