@@ -1,0 +1,26 @@
+{
+    "id": "tsconf",
+    "name": "TS-Conf +",
+    "build": "24041523",
+    "bitstream": "karabas_mini_top.bin",
+    "visible": true,
+    "type": "osd",
+    "order": 3,
+    "eeprom_bank": 0,
+    "roms": [
+        {"filename": "roms/ts-bios.rom", "address": 0},
+        {"filename": "roms/gs105b.rom", "address": 2147483648}
+    ],
+    "osd": [
+        {"type": "S", "name": "Covox", "options": ["Off", "On"], "default": 1, "hotkey": "Menu+F6"},
+        {"type": "S", "name": "PSG Mix", "options": ["ABC", "ACB", "Mono"], "default": 1, "hotkey": "Menu+F7"},
+        {"type": "S", "name": "PSG Type", "options": ["AY3-8912", "YM2149F"], "default": 0, "hotkey": "Menu+F8"},
+        {"type": "S", "name": "Joystick L", "options": ["Kempston", "Sinclair1", "Sinclair2", "Cursor", "QAOPM", "QAOPS"], "default": 0, "hotkey": "Menu+J"},
+        {"type": "S", "name": "Joystick R", "options": ["Kempston", "Sinclair1", "Sinclair2", "Cursor", "QAOPM", "QAOPS"], "default": 1, "hotkey": "Menu+R"},
+        {"type": "S", "name": "VGA Hsync", "options": ["50 Hz", "60 Hz"], "default": 0, "hotkey": "Menu+F9"},
+        {"type": "N", "name": "Pause", "options": ["Off", "On"], "default": 0, "hotkey": "Menu+P"},
+        {"type": "T", "name": "GS Reset", "options": null, "default": 0, "hotkey": "Menu+G"},
+        {"type": "T", "name": "NMI", "options": null, "default": 0, "hotkey": "F11"},
+        {"type": "T", "name": "Reset", "options": null, "default": 0, "hotkey": "F12"}
+    ]
+}

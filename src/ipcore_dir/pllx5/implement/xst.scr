@@ -1,0 +1,9 @@
+run
+-ifmt MIXED
+-top pllx5_exdes
+-p xc6slx25-ftg256-2
+-ifn xst.prj
+-ofn pllx5_exdes
+-keep_hierarchy soft 
+-equivalent_register_removal no 
+-max_fanout 65535

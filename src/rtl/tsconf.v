@@ -25,6 +25,7 @@ module tsconf
 	output wire [7:0] VGA_B,
 	output wire       VGA_HS,
 	output wire       VGA_VS,
+	output wire VGA_BLANK,
 	
 	// SPI SD-Card
 	output wire sdcs_n,
@@ -91,6 +92,7 @@ module tsconf
 	input wire vga_60hz,
 	
 	// fdc
+`ifndef HW_ID2
 	input wire clk_16,
 	output wire fdc_side,
 	input wire fdc_rdata,
@@ -103,6 +105,7 @@ module tsconf
 	output wire fdc_dir,
 	output wire fdc_motor,
 	output reg [1:0] fdc_ds,
+`endif
 	
 	// rom loader
 	input wire loader_act,
@@ -655,6 +658,7 @@ assign clk_bus = clk_28mhz;
     .hsync(hsync),
     .vsync(vsync),
     .csync(/*vcsync*/),
+	 .blank(VGA_BLANK),
     .cfg_60hz(vga_60hz),
     .vga_on(1'b1/*1'b1cfg_vga_on*/),
     .border_wr(border_wr),
@@ -1319,7 +1323,9 @@ assign cpu_di_bus =
 		(ts_enable && ~cpu_rd_n)										?	ts_do					:	// TurboSound
 		(~zifi_oe_n)														?  zifi_do_bus       :  // zifi
       (gs_oe)																?  gs_do_bus 			:  // gs
+`ifndef HW_ID2
 		(fdc_oe)																?  fdc_do_bus 			:  // floppy
+`endif
 		(ena_ports)															?	dout_ports			:  // zports
 		(intack)																?	im2vect 				:
 																					8'b11111111; 
@@ -1358,6 +1364,7 @@ zifi zifi(
 );
 
 // fdc
+`ifndef HW_ID2
 
 wire fdc_oe;
 wire [7:0] fdc_do_bus;
@@ -1408,6 +1415,8 @@ Firefly_FDC fdc
 	.oFDC_MOTOR(fdc_motor),
 	.oFDC_DS()
 );	
+
+`endif
 
 // gs cpu clock 14 mhz
 

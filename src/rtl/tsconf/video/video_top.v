@@ -29,6 +29,7 @@ module video_top
   output wire hsync,
   output wire vsync,
   output wire csync,
+  output wire blank,
 
   // Z80 controls
   input wire [ 7:0] d,
@@ -94,6 +95,8 @@ module video_top
   input wire vga_on
   
 );
+
+  assign blank = vga_blank;
 
   // video config
   wire [7:0] vpage;      // re-latched at line_start
