@@ -167,7 +167,7 @@ jt03 ym2203_1
 	.fm_snd(opn_1)
 );
 
-assign DO = ay_select ? DO_1 : DO_0;
+assign DO = ay_select ? DO_0 : DO_1;
 
 always @(*) begin
 	SSG0_AUDIO_A <= psg_ch_a_0;
