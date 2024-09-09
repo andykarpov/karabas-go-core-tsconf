@@ -332,7 +332,10 @@ begin
 						
 					-- ps/2 scancode from mcu
 					when CMD_PS2_SCANCODE => 
-						KB_SCANCODE <= spi_do(7 downto 0); KB_SCANCODE_UPD <= not(KB_SCANCODE_UPD);
+						case spi_do(15 downto 8) is
+							when x"00" => KB_SCANCODE <= spi_do(7 downto 0); KB_SCANCODE_UPD <= not(KB_SCANCODE_UPD);
+							when others => null;
+						end case;
 
 					-- init start
 					when CMD_INIT_START => BUSY <= '1';
