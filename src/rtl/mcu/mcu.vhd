@@ -42,6 +42,10 @@ entity mcu is
 	 KB_SCANCODE : out std_logic_vector(7 downto 0) := "00000000";
 	 KB_SCANCODE_UPD : buffer std_logic := '0';
 
+	 -- xt scancode (simplified)
+	 XT_SCANCODE : out std_logic_vector(7 downto 0) := "00000000";
+	 XT_SCANCODE_UPD : buffer std_logic := '0';
+
 	 -- joysticks
 	 JOY_L			: out std_logic_vector(12 downto 0) := "000000000000";
 	 JOY_R			: out std_logic_vector(12 downto 0) := "000000000000";
@@ -334,6 +338,7 @@ begin
 					when CMD_PS2_SCANCODE => 
 						case spi_do(15 downto 8) is
 							when x"00" => KB_SCANCODE <= spi_do(7 downto 0); KB_SCANCODE_UPD <= not(KB_SCANCODE_UPD);
+							when x"01" => XT_SCANCODE <= spi_do(7 downto 0); XT_SCANCODE_UPD <= not(XT_SCANCODE_UPD);
 							when others => null;
 						end case;
 

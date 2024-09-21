@@ -105,7 +105,7 @@ module karabas_mini_top (
 	//---------------------------
 	input wire MCU_CS_N,
 	input wire MCU_SCK,
-	inout wire MCU_MOSI,
+	input wire MCU_MOSI,
 	output wire MCU_MISO,
 	input wire [4:0] MCU_IO,
 	
@@ -491,6 +491,9 @@ mcu mcu(
 	.KB_SCANCODE(ps2_scancode),
 	.KB_SCANCODE_UPD(ps2_scancode_upd),
 	
+	.XT_SCANCODE(),
+	.XT_SCANCODE_UPD(),	
+	
 	.JOY_L(joy_l),
 	.JOY_R(joy_r),
 	
@@ -545,7 +548,7 @@ hid_parser hid_parser(
 	
 	.KB_SCANCODE(ps2_scancode),
 	.KB_SCANCODE_UPD(ps2_scancode_upd),
-
+	
 	.JOY_TYPE_L(kb_joy_type_l),
 	.JOY_TYPE_R(kb_joy_type_r),
 	.JOY_L(joy_l),
