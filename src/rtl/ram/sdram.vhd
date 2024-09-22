@@ -111,8 +111,8 @@ begin
 					sdr_cmd <= SdrCmd_xx;			-- NOP
 					sdr_dq <= (others => 'Z');
 					idle1 <= '1';
-					--if temp(2) /= RD and RD = '1' then					
-					if RD = '1' then
+					if temp(2) /= RD and RD = '1' then					
+					--if RD = '1' then
 						idle1 <= '0';
 						address <= A;
 						sdr_cmd <= SdrCmd_ac;		-- ACTIVE
@@ -120,8 +120,8 @@ begin
 						sdr_a <= A(24 downto 12);					 
 						state <= "10101";			-- s15 Read
 
-					--elsif temp(1) /= WR and WR = '1' then
-					elsif WR = '1' then
+					elsif temp(1) /= WR and WR = '1' then
+					--elsif WR = '1' then
 						idle1 <= '0';
 						address <= A;
 						data <= DI;
@@ -130,8 +130,8 @@ begin
 						sdr_a <= A(24 downto 12);
 						state <= "10111";			-- s17 Write
 
-					--elsif temp(0) /= RFSH and RFSH = '1' then
-					elsif RFSH = '1' then
+					elsif temp(0) /= RFSH and RFSH = '1' then
+					--elsif RFSH = '1' then
 						idle1 <= '0';
 						rfsh_req <= '0';
 						sdr_cmd <= SdrCmd_re;		-- REFRESH
