@@ -136,10 +136,15 @@ module karabas_mini_top (
 	wire clk_bus;
 	wire clk_16mhz;
 	wire clk_12mhz;
-	wire v_clk_int;
+	wire v_clk_int, v_clk_div2;
+	wire p_clk_int;
 	wire clk_hdmi, clk_hdmi_n;
    wire locked, lockedx5;
 	wire areset;
+	
+	wire [7:0] hdmi_freq;
+	reg [7:0] prev_hdmi_freq;
+	reg hdmi_reset;
 
    pll pll (
 	  .CLK_IN1(CLK_50MHZ),
@@ -150,12 +155,42 @@ module karabas_mini_top (
 	  .LOCKED(locked)
 	);
 	
-	pllx5 pllx5(
+	/*pllx5 pllx5(
 		.CLK_IN1(v_clk_int),
 		.CLK_OUT1(clk_hdmi),
 		.CLK_OUT2(clk_hdmi_n),
 		.LOCKED(lockedx5)
-	);	
+	);*/
+	
+	wire clk0, clkfx, clkfx180, clkdv;
+	reg [23:0] pll_rst_cnt = 24'd0;
+	wire pll_rst;
+	reg prev_vdac2_sel;
+	DCM_SP #(.CLKFX_DIVIDE(1), .CLKFX_MULTIPLY(5), .CLKDV_DIVIDE(2.0)) pllx5
+   (
+	 .CLKIN(v_clk_int),
+	 .CLKFB(p_clk_int),
+    .CLK0(clk0),
+    .CLKFX(clkfx),
+    .CLKFX180(clkfx180),
+	 .CLKDV(clkdv),
+    .LOCKED(lockedx5),
+    .RST(pll_rst));
+  BUFG clkout1_buf (.O(clk_hdmi), .I(clkfx));
+  BUFG clkout2_buf (.O(clk_hdmi_n), .I(clkfx180));
+  BUFG clkout3_buf (.O(p_clk_int), .I(clk0));
+  BUFG clkout4_buf (.O(v_clk_div2), .I(clkdv));
+//  assign p_clk_int = v_clk_int;
+
+  always @(posedge v_clk_int)
+  begin
+	if ((prev_vdac2_sel != vdac2_sel) || kb_reset || areset || hdmi_reset) begin
+		pll_rst_cnt <= 24'b100000000000000000000000;
+	end
+	prev_vdac2_sel <= vdac2_sel;
+	if (pll_rst_cnt > 0) pll_rst_cnt <= pll_rst_cnt+1;
+  end
+  assign pll_rst = pll_rst_cnt[23];
 
 	// midi clk
 	ODDR2 u_midi_clk (
@@ -358,26 +393,46 @@ module karabas_mini_top (
 wire [7:0] rtc_do_mapped;
 	 
 wire ftcs_n, ftclk, ftdo, ftdi, ftint, vdac2_sel;
-wire mcu_ft_spi_on, mcu_ft_vga_on, mcu_ft_sck, mcu_ft_mosi, mcu_ft_cs_n;
+wire mcu_ft_spi_on, mcu_ft_vga_on, mcu_ft_sck, mcu_ft_mosi, mcu_ft_cs_n, mcu_ft_reset;
 
 wire [7:0] host_vga_r, host_vga_g, host_vga_b;
 wire host_vga_hs, host_vga_vs, host_vga_blank;
 
-assign host_vga_r[7:0] = (vdac2_sel ? VGA_R[7:0] : osd_r[7:0]);
-assign host_vga_g[7:0] = (vdac2_sel ? VGA_G[7:0] : osd_g[7:0]);
-assign host_vga_b[7:0] = (vdac2_sel ? VGA_B[7:0] : osd_b[7:0]);
+reg host_vga_hs_r, host_vga_vs_r, host_vga_blank_r, host_vga_hs_r2, host_vga_vs_r2, host_vga_blank_r2;
+reg [7:0] host_vga_r_r, host_vga_g_r, host_vga_b_r, host_vga_r_r2, host_vga_g_r2, host_vga_b_r2;
+
+always @(posedge v_clk_int)
+begin
+	host_vga_hs_r <= (vdac2_sel ? VGA_HS : video_hsync); host_vga_hs_r2 <= host_vga_hs_r;
+	host_vga_vs_r <= (vdac2_sel ? VGA_VS : video_vsync); host_vga_vs_r2 <= host_vga_vs_r;
+	host_vga_blank_r <= (vdac2_sel ? ~FT_DE : video_blank);   host_vga_blank_r2  <= host_vga_blank_r;
+	host_vga_r_r <= (vdac2_sel ? VGA_R : osd_r);    host_vga_r_r2 <= host_vga_r_r;
+	host_vga_g_r <= (vdac2_sel ? VGA_G : osd_g);    host_vga_g_r2 <= host_vga_g_r;
+	host_vga_b_r <= (vdac2_sel ? VGA_B : osd_b);    host_vga_b_r2 <= host_vga_b_r;
+end
+
+/*assign host_vga_r = (vdac2_sel ? VGA_R[7:0] : osd_r[7:0]);
+assign host_vga_g = (vdac2_sel ? VGA_G[7:0] : osd_g[7:0]);
+assign host_vga_b = (vdac2_sel ? VGA_B[7:0] : osd_b[7:0]);
 assign host_vga_hs = (vdac2_sel ? VGA_HS : video_hsync);
 assign host_vga_vs = (vdac2_sel ? VGA_VS : video_vsync);
-assign host_vga_blank = (vdac2_sel ? ~FT_DE : video_blank);
-//assign V_CLK = (vdac2_sel ? FT_CLK : ce_28m);
+assign host_vga_blank = (vdac2_sel ? ~FT_DE : video_blank);*/
+
+assign host_vga_r = host_vga_r_r2;
+assign host_vga_g = host_vga_g_r2;
+assign host_vga_b = host_vga_b_r2;
+assign host_vga_hs = host_vga_hs_r2;
+assign host_vga_vs = host_vga_vs_r2;
+assign host_vga_blank = host_vga_blank_r2;
+
 assign FT_SPI_CS_N = mcu_ft_spi_on ? mcu_ft_cs_n : ftcs_n;
 assign FT_SPI_SCK = mcu_ft_spi_on ? mcu_ft_sck : ftclk;
 assign ftdi = FT_SPI_MISO;
 assign FT_SPI_MOSI = mcu_ft_spi_on ? mcu_ft_mosi : ftdo;
 assign ftint = FT_INT_N;
-assign FT_RESET = 1'b1;
+assign FT_RESET = ~mcu_ft_reset; // 1'b1
 
-BUFGMUX_1 v_clk_mux(
+BUFGMUX v_clk_mux(
  .I0(ce_28m),
  .I1(FT_CLK),
  .O(v_clk_int),
@@ -386,8 +441,24 @@ BUFGMUX_1 v_clk_mux(
 
 wire [9:0] tmds_red, tmds_green, tmds_blue;
 
+always @(posedge v_clk_int)
+begin
+	hdmi_reset <= 1'b0;
+	if (prev_hdmi_freq != hdmi_freq) hdmi_reset <= 1'b1;
+	prev_hdmi_freq <= hdmi_freq;
+end
+
+freq_counter freq_counter_inst(
+	.i_clk_ref(clk_bus),
+	.i_clk_test(v_clk_int),
+	.i_reset(areset),
+	.o_freq(hdmi_freq)
+);
+
 hdmi hdmi(
 	.I_CLK_PIXEL(v_clk_int),
+	.I_RESET(pll_rst || hdmi_reset),
+	.I_FREQ(hdmi_freq),
 	.I_R(host_vga_r),
 	.I_G(host_vga_g),
 	.I_B(host_vga_b),
@@ -428,12 +499,22 @@ dac dac_r(
 	.O_DAC(AUDIO_R)
 );
 
+wire adc_clk_int;
+BUFGMUX ADC_CLK_MUX(
+ .I0(v_clk_int),
+ .I1(v_clk_div2),
+ .O(adc_clk_int),
+ .S(adc_div2)
+);
+
+wire adc_div2 = (hdmi_freq > 32) ? 1'b1 : 1'b0;
+
 // ------- PCM1808 ADC ---------
 wire signed [23:0] adc_l, adc_r;
 
 i2s_transceiver adc(
 	.reset_n(~areset),
-	.mclk(clk_bus),
+	.mclk(adc_clk_int),
 	.sclk(ADC_BCK),
 	.ws(ADC_LRCK),
 	.sd_tx(),
@@ -447,8 +528,8 @@ i2s_transceiver adc(
 // ------- ADC_CLK output buf
 ODDR2 oddr_adc2(
 	.Q(ADC_CLK),
-	.C0(clk_bus),
-	.C1(~clk_bus),
+	.C0(adc_clk_int),
+	.C1(~adc_clk_int),
 	.CE(1'b1),
 	.D0(1'b1),
 	.D1(1'b0),
@@ -528,6 +609,10 @@ mcu mcu(
 	.FT_MISO(FT_SPI_MISO),
 	.FT_MOSI(mcu_ft_mosi),
 	.FT_CS_N(mcu_ft_cs_n),
+	.FT_RESET(mcu_ft_reset),
+	
+	.DEBUG_ADDR(16'd0),
+	.DEBUG_DATA({8'd0, hdmi_freq}),
 	
 	.BUSY(mcu_busy)
 );

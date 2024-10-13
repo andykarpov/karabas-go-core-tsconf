@@ -18,15 +18,17 @@ use IEEE.STD_LOGIC_UNSIGNED.ALL;
 
 entity hdmi is
    generic (
-      FREQ: integer := 28000000;              -- pixel clock frequency
+--      FREQ: integer := 25000000;              -- pixel clock frequency
       FS: integer := 48000;                   -- audio sample rate - should be 32000, 44100 or 48000
-      CTS: integer := 28000;                  -- CTS = Freq(pixclk) * N / (128 * Fs)
+--      CTS: integer := 25000;                  -- CTS = Freq(pixclk) * N / (128 * Fs)
       N: integer := 6144                      -- N = 128 * Fs /1000,  128 * Fs /1500 <= N <= 128 * Fs /300
                           -- Check HDMI spec 7.2 for details
    );
    port (
       -- clocks
       I_CLK_PIXEL    : in std_logic;
+		I_RESET : in std_logic;
+		I_FREQ : std_logic_vector(7 downto 0);
       -- components
       I_R            : in std_logic_vector(7 downto 0);
       I_G            : in std_logic_vector(7 downto 0);
@@ -50,13 +52,15 @@ architecture rtl of hdmi is
 component hdmidataencoder
 generic
 (
-   FREQ: integer := FREQ;
+--   FREQ: integer := FREQ;
    FS: integer := FS;
-   CTS: integer := CTS;
+--   CTS: integer := CTS;
    N: integer := N
 );
 port (
    i_pixclk : in std_logic;
+	i_freq : in std_logic_vector(7 downto 0);
+	i_reset : in std_logic;
    i_hSync     : in std_logic;
    i_vSync     : in std_logic;
    i_blank     : in std_logic;
@@ -116,6 +120,9 @@ end component;
    
    signal ctl_10: std_logic_vector(1 downto 0);
    signal ctl_32: std_logic_vector(1 downto 0);
+	
+	signal s_data : std_logic_vector(29 downto 0);
+	signal tmds_data : std_logic_vector(14 downto 0);
    
    -- states
    type count_state is (
@@ -132,57 +139,7 @@ end component;
    signal state: count_state; 
 
    signal clockCounter: integer range 0 to 2047;
-   
-   -- Horizontal Timing constants  
-   constant h_pixels_across   : integer := 720 - 1;
-   constant h_sync_on      : integer := 736 - 1;
-   constant h_sync_off     : integer := 798 - 1;
-   constant h_end_count    : integer := 858 - 1;
-   -- Vertical Timing constants
-   constant v_pixels_down  : integer := 480 - 1;
-   constant v_sync_on      : integer := 489 - 1;
-   constant v_sync_off     : integer := 495 - 1;
-   constant v_end_count    : integer := 525 - 2;
-   
-   --signal I_BLANK        :  std_logic;
-   --signal I_HSYNC        :  std_logic;
-   --signal I_VSYNC        :  std_logic;
-
-
-   signal shift      : std_logic_vector(7 downto 0);
-   signal hcnt    : std_logic_vector(11 downto 0) := "000000000000";    -- horizontal pixel counter
-   signal vcnt    : std_logic_vector(11 downto 0) := "000000000000";    -- vertical line counter
-   
 begin
-
-   process (I_CLK_PIXEL, hcnt)
-   begin
-      if rising_edge(I_CLK_PIXEL) then
-         if hcnt = h_end_count then
-            hcnt <= (others => '0');
-         else
-            hcnt <= hcnt + 1;
-         end if;
-         if hcnt = h_sync_on then
-            if vcnt = v_end_count then
-               vcnt <= (others => '0');
-               shift <= shift + 1;
-            else
-               vcnt <= vcnt + 1;
-            end if;
-         end if;
-      end if;
-   end process;
-   
-   --I_HSYNC   <= '1' when (hcnt <= h_sync_on) or (hcnt > h_sync_off) else '0';
-   --I_VSYNC   <= '1' when (vcnt <= v_sync_on) or (vcnt > v_sync_off) else '0'; 
-   --I_BLANK   <= '1' when (hcnt > h_pixels_across) or (vcnt > v_pixels_down) else '0'; -- 1 when blanking
-   
--- I_R   <= "11111111" when hcnt = 0 or hcnt = h_pixels_across or vcnt = 0 or vcnt = v_pixels_down else (hcnt(7 downto 0) + shift) and "11111111";
--- I_G   <= "11111111" when hcnt = 0 or hcnt = h_pixels_across or vcnt = 0 or vcnt = v_pixels_down else (vcnt(7 downto 0) + shift) and "11111111";
--- I_B   <= "11111111" when hcnt = 0 or hcnt = h_pixels_across or vcnt = 0 or vcnt = v_pixels_down else (hcnt(7 downto 0) + vcnt(7 downto 0) - shift) and "11111111";
-
-   
 
 -- data should be delayed for 11 clocks to allow preamble and guard band generation
 
@@ -215,9 +172,13 @@ vhSyncOut <= vSyncOut & hSyncOut;
 ctl_10 <= ctl1&ctl0;
 ctl_32 <= ctl3&ctl2;
 
-FSA: process(I_CLK_PIXEL) is 
+FSA: process(I_CLK_PIXEL, I_RESET) is 
 begin 
-   if(rising_edge(I_CLK_PIXEL)) then
+	if (I_RESET = '1') then
+		state <= controlData;
+		clockCounter <= 0;
+		
+   elsif(rising_edge(I_CLK_PIXEL)) then
       if(prevBlank = '0' and i_BLANK = '1') then
          state <= controlData;
          clockCounter <= 0;
@@ -340,13 +301,15 @@ port map (
 
 dataenc: hdmidataencoder
 generic map (
-   FREQ => FREQ,
+--   FREQ => FREQ,
    FS => FS,
-   CTS => CTS,
+--  CTS => CTS,
    N => N
 )
 port map(
    i_pixclk    => I_CLK_PIXEL,
+	i_freq      => I_FREQ,
+	i_reset     => I_RESET,
    i_blank     => I_BLANK,
    i_hSync     => I_HSYNC,
    i_vSync     => I_VSYNC,
