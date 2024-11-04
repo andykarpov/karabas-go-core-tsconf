@@ -9,9 +9,11 @@
 //-- design of HDMI output for Neo Geo MVS
 
 module hdmidataencoder 
-#(parameter FREQ=27000000, FS=48000, CTS=27000, N=6144) 
+#(FS=48000, N=6144) 
 (
    input wire         i_pixclk,
+	input wire [7:0]   i_freq,
+	input wire         i_reset,
    input wire         i_hSync,
    input wire         i_vSync,
    input wire         i_blank,
@@ -25,9 +27,20 @@ module hdmidataencoder
 );
 
 `define AUDIO_TIMER_ADDITION  FS/1000
-`define AUDIO_TIMER_LIMIT  FREQ/1000
+//`define AUDIO_TIMER_LIMIT  FREQ/1000
 localparam [191:0] channelStatus = (FS == 48000)?192'hc202004004:(FS == 44100)?192'hc200004004:192'hc203004004;
-localparam [55:0] audioRegenPacket = {N[7:0], N[15:8], 8'h00, CTS[7:0], CTS[15:8], 16'h0000};
+reg [31:0] AUDIO_TIMER_LIMIT;
+reg [31:0] CTS;
+reg [55:0] audioRegenPacket;
+
+always @(posedge i_pixclk)
+begin
+	AUDIO_TIMER_LIMIT <= i_freq * 1000;
+	CTS <= i_freq * 1000;
+	audioRegenPacket <= {N[7:0], N[15:8], 8'h00, CTS[7:0], CTS[15:8], 16'h0000};
+end
+
+//localparam [55:0] audioRegenPacket = {N[7:0], N[15:8], 8'h00, CTS[7:0], CTS[15:8], 16'h0000};
 reg [23:0] audioPacketHeader;
 reg [55:0] audioSubPacket[3:0];
 reg [7:0] channelStatusIdx;
@@ -202,8 +215,8 @@ begin
    // Buffer up an audio sample
    // Don't add to the audio output if we're currently sending that packet though
    if (!( allowGeneration && counterX >= 32 && counterX < 64)) begin
-      if (audioTimer>=`AUDIO_TIMER_LIMIT) begin
-         audioTimer<=audioTimer-`AUDIO_TIMER_LIMIT+`AUDIO_TIMER_ADDITION;
+      if (audioTimer>=AUDIO_TIMER_LIMIT) begin
+         audioTimer<=audioTimer-AUDIO_TIMER_LIMIT+`AUDIO_TIMER_ADDITION;
          audioPacketHeader<=audioPacketHeader|24'h000002|((channelStatusIdx==0?24'h100100:24'h000100)<<samplesHead);
          audioSubPacket[samplesHead]<=((audioLAvg<<8)|(audioRAvg<<32)
                         |((^audioLAvg)?56'h08000000000000:56'h0)  // parity bit for left channel
@@ -242,41 +255,79 @@ begin
 end
 endtask
 
-always @(posedge i_pixclk)
+always @(posedge i_pixclk, posedge i_reset)
 begin
    
-   AudioGen();
+	if (i_reset) begin
+		audioPacketHeader<=0;
+		audioSubPacket[0]<=0;
+		audioSubPacket[1]<=0;
+		audioSubPacket[2]<=0;
+		audioSubPacket[3]<=0;
+		channelStatusIdx<=0;
+		audioTimer<=0;
+		samplesHead<=0;
+		//ctsTimer = 0;
+		dataChannel0<=0;
+		dataChannel1<=0;
+		dataChannel2<=0;
+		packetHeader<=0;
+		subpacket[0]<=0;
+		subpacket[1]<=0;
+		subpacket[2]<=0;
+		subpacket[3]<=0;
+		bchHdr<=0;
+		bchCode[0]<=0;
+		bchCode[1]<=0;
+		bchCode[2]<=0;
+		bchCode[3]<=0;
+		dataOffset<=0;
+		tercData<=0;
+		oddLine<=0;
+		counterX<=0;
+		//prevHSync = 0;
+		//prevBlank = 0;
+		//firstHSyncChange = 0;
+		//allowGeneration = 0;
+		//audioRAvg = 0;
+		//audioLAvg = 0;	
+	end
+	else
+	begin
+	
+		AudioGen();
 
-   // Send 2 packets each line
-   if(allowGeneration & i_audio_enable) begin
-      SendPackets(tercData);
-   end else begin
-      tercData<=0;
-   end   
+		// Send 2 packets each line
+		if(allowGeneration & i_audio_enable) begin
+			SendPackets(tercData);
+		end else begin
+			tercData<=0;
+		end   
 
-   ctsTimer <= ctsTimer + 1;  
+		ctsTimer <= ctsTimer + 1;  
 
-   if((prevBlank == 0) && (i_blank == 1)) 
-      firstHSyncChange <= 1;
-   
-   if((prevBlank == 1) && (i_blank == 0)) 
-      allowGeneration <= 0;
+		if((prevBlank == 0) && (i_blank == 1)) 
+			firstHSyncChange <= 1;
+		
+		if((prevBlank == 1) && (i_blank == 0)) 
+			allowGeneration <= 0;
 
-   if(prevHSync != i_hSync) begin
-      if(firstHSyncChange) begin
-         InfoGen(ctsTimer);
-         oddLine <= ! oddLine;
-         counterX  <= 0;
-         allowGeneration <= 1;
-      end else begin
-         counterX  <= counterX + 1; 
-      end
-      firstHSyncChange <= !firstHSyncChange;
-   end else 
-      counterX  <= counterX + 1; 
-   
-   prevBlank <= i_blank;
-   prevHSync <= i_hSync;
+		if(prevHSync != i_hSync) begin
+			if(firstHSyncChange) begin
+				InfoGen(ctsTimer);
+				oddLine <= ! oddLine;
+				counterX  <= 0;
+				allowGeneration <= 1;
+			end else begin
+				counterX  <= counterX + 1; 
+			end
+			firstHSyncChange <= !firstHSyncChange;
+		end else 
+			counterX  <= counterX + 1; 
+		
+		prevBlank <= i_blank;
+		prevHSync <= i_hSync;
+	end
 end
 
 assign o_d0 = dataChannel0;

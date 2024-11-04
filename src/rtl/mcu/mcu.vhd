@@ -82,11 +82,16 @@ entity mcu is
 
 	 -- ft812 exclusive access by mcu
 	 FT_SPI_ON : out std_logic := '0'; -- spi access
-	 FT_VGA_ON : out std_logic := '0';  -- vga access
+	 FT_VGA_ON : out std_logic := '0'; -- vga access
 	 FT_SCK	  : out std_logic := '1';
 	 FT_MOSI	  : out std_logic := '1';
 	 FT_MISO	  : in  std_logic := '1';
 	 FT_CS_N   : out std_logic := '1';
+	 FT_RESET  : out std_logic := '0'; -- ft hw reset by mcu side (active 1)
+	 
+	 -- debug
+	 DEBUG_ADDR : in std_logic_vector(15 downto 0) := (others => '0');
+	 DEBUG_DATA : in std_logic_vector(15 downto 0) := (others => '0');	 
 
     -- osd command
 	 OSD_COMMAND: out std_logic_vector(15 downto 0);
@@ -114,6 +119,8 @@ architecture rtl of mcu is
 	-- 11, 12 - usb gamepad, joy : todo
 
 	constant CMD_OSD 			: std_logic_vector(7 downto 0) := x"20";
+	constant CMD_DEBUG_ADDR : std_logic_vector(7 downto 0) := x"30";
+	constant CMD_DEBUG_DATA : std_logic_vector(7 downto 0) := x"31";	
 	constant CMD_RTC 			: std_logic_vector(7 downto 0) := x"FA";
 	constant CMD_FLASHBOOT  : std_logic_vector(7 downto 0) := x"FB";
 	constant CMD_UART			: std_logic_vector(7 downto 0) := x"FC";
@@ -161,6 +168,10 @@ architecture rtl of mcu is
 	--state machine for queue writes
 	type qmachine IS(idle, rtc_wr_req, rtc_wr_ack);
 	signal qstate : qmachine := idle;
+	
+	-- debug
+	signal prev_debug_addr  : std_logic_vector(15 downto 0) := (others => '0');
+	signal prev_debug_data  : std_logic_vector(15 downto 0) := (others => '0');
 		 
 begin
 	
@@ -331,6 +342,9 @@ begin
 							when x"00" => 
 								FT_SPI_ON <= spi_do(0);
 								FT_VGA_ON <= spi_do(1);
+								-- 2 = enable sd2
+								-- 3 = enable esp8266
+								FT_RESET <= spi_do(4);
 							when others => null;
 						end case;
 						
@@ -443,6 +457,14 @@ begin
 			elsif RTC_WR_N = '0' AND RTC_CS = '1' and BUSY = '0' and (RTC_A /= x"0C" and RTC_A < x"F0") then -- add rtc register write to queue
 				queue_wr_req <= '1';
 				queue_di <= CMD_RTC & RTC_A & RTC_DI;
+			elsif DEBUG_ADDR /= prev_debug_addr then -- debug address
+				queue_wr_req <= '1';
+				queue_di <= CMD_DEBUG_ADDR & DEBUG_ADDR;
+				prev_debug_addr <= DEBUG_ADDR;
+			elsif DEBUG_DATA /= prev_debug_data then -- debug data
+				queue_wr_req <= '1';
+				queue_di <= CMD_DEBUG_DATA & DEBUG_DATA;
+				prev_debug_data <= DEBUG_DATA;
 			elsif queue_rd_empty = '1' or queue_data_count < 5 then -- anti-empty queue
 				queue_wr_req <= '1';
 				queue_di <= CMD_NOPE & x"0000";
