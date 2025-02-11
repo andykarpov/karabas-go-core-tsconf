@@ -460,12 +460,13 @@ assign FT_SPI_MOSI = mcu_ft_spi_on ? mcu_ft_mosi : ftdo;
 assign ftint = FT_INT_N;
 assign FT_RESET = ~mcu_ft_reset; // 1'b1
 
-wire ft_clk_ibuf;
-IBUF ft_clk_buf0 (.I(FT_CLK), .O(ft_clk_ibuf));
+//wire ft_clk_ibuf;
+//IBUF ft_clk_buf0 (.I(FT_CLK), .O(ft_clk_ibuf));
 
 BUFGMUX v_clk_mux(
  .I0(ce_28m),
- .I1(ft_clk_ibuf),
+// .I1(ft_clk_ibuf),
+ .I1(FT_CLK),
  .O(v_clk_int),
  .S(vdac2_sel)
 );
@@ -518,14 +519,14 @@ hdmi_out_xilinx hdmiio(
 
 //------- Sigma-Delta DAC ---------
 dac dac_l(
-	.I_CLK(clk_sys),
+	.I_CLK(v_clk_int),
 	.I_RESET(areset),
 	.I_DATA({2'b00, !audio_mix_l[15], audio_mix_l[14:4], 2'b00}),
 	.O_DAC(AUDIO_L)
 );
 
 dac dac_r(
-	.I_CLK(clk_sys),
+	.I_CLK(v_clk_int),
 	.I_RESET(areset),
 	.I_DATA({2'b00, !audio_mix_r[15], audio_mix_r[14:4], 2'b00}),
 	.O_DAC(AUDIO_R)
