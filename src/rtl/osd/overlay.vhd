@@ -175,9 +175,7 @@ begin
 								addr_read <= VCNT(7 downto 3) & HCNT(7 downto 3);
 							end if;
 						when "111" => 
-							attr2 <= vram_do(7 downto 0);
-						when "000" => 
-							attr <= attr2;
+							attr <= vram_do(7 downto 0);
 							when others => null;						
 					end case;
 				end if;
@@ -228,16 +226,9 @@ begin
 		(attr(1) and attr(0)) & attr(1) & attr(1) & "00000";
 
     RGB_O <= 
-				rgb_fg(23 downto 0) when paper = '1' and (selector="1111" or selector="1001" or selector="1100" or selector="1110") else 
-            
-				rgb_bg(23 downto 21) & RGB_I(23 downto 19) & 
-				rgb_bg(15 downto 13) & RGB_I(15 downto 11) & 
-				rgb_bg(7 downto 5)   & RGB_I(7 downto 3) when paper = '1' and (selector="1011" or selector="1101" or selector="1000" or selector="1010") else 
-				
-				"000" & RGB_I(23 downto 19) & 
-				"000" & RGB_I(15 downto 11) & 
-				"000" & RGB_I(7 downto 3) when video_on = '1' else 
-				
+				rgb_fg(23 downto 0) when rgb_fg /= x"000000" and paper = '1' and (selector="1111" or selector="1001" or selector="1100" or selector="1110") else
+				rgb_bg(23 downto 0) when rgb_bg /= x"000000" and paper = '1' and (selector="1011" or selector="1101" or selector="1000" or selector="1010") else
+				"000" & RGB_I(23 downto 19) & "000" & RGB_I(15 downto 11) & "000" & RGB_I(7 downto 3) when video_on = '1' else
 				RGB_I;
 
 	process(CLK, osd_command, last_osd_command)
