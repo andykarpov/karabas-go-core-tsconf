@@ -85,7 +85,7 @@ begin
 		elsif (freq > 60000/time_div) then
 			o_freq <= x"40"; -- 64 MHz
 		elsif (freq > 53000/time_div) then 
-			o_freq <= x"38"; -- 38 MHz
+			o_freq <= x"38"; -- 56 MHz
 		elsif (freq >= 43000/time_div) then 
 			o_freq <= x"30"; -- 48 MHz
 		elsif (freq >= 35000/time_div) then 
@@ -94,8 +94,10 @@ begin
 			o_freq <= x"20"; -- 32 MHz
 		elsif (freq >= 26000/time_div) then
 			o_freq <= x"1C"; -- 28 MHz
+		elsif (freq >= 22000/time_div) then
+			o_freq <= x"18"; -- 24 MHz
 		else 
-			o_freq <= x"18"; -- 24 MHz (default fallback)
+			o_freq <= x"00"; -- 0 MHz (default fallback)
 		end if;
 	end if;
 end process;

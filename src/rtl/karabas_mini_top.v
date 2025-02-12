@@ -136,8 +136,8 @@ module karabas_mini_top (
 	wire clk_bus;
 	wire clk_16mhz;
 	wire clk_12mhz;
-	wire v_clk_int, v_clk_div2;
-	wire p_clk_int;
+	wire v_clk_int;
+	wire p_clk_int, p_clk_div2;
 	wire clk_hdmi, clk_hdmi_n;
    wire locked, lockedx5;
 	wire areset;
@@ -198,9 +198,9 @@ PLL_BASE #(
   BUFG clkout1_buf (.O(clk_hdmi), .I(clkfx));
   BUFG clkout2_buf (.O(clk_hdmi_n), .I(clkfx180));
   BUFG clkout3_buf (.O(p_clk_int), .I(clk0));
-  BUFG clkout4_buf (.O(v_clk_div2), .I(clkdv));
+  BUFG clkout4_buf (.O(p_clk_div2), .I(clkdv));
 
-  always @(posedge v_clk_int)
+  always @(posedge clk_bus)
   begin
 	if ((prev_vdac2_sel != vdac2_sel) || kb_reset || areset || hdmi_reset) begin
 		pll_rst_cnt <= 8'b10000000;
@@ -419,18 +419,37 @@ wire host_vga_hs, host_vga_vs, host_vga_blank;
 reg host_vga_hs_r, host_vga_vs_r, host_vga_blank_r, host_vga_hs_r2, host_vga_vs_r2, host_vga_blank_r2;
 reg [7:0] host_vga_r_r, host_vga_g_r, host_vga_b_r, host_vga_r_r2, host_vga_g_r2, host_vga_b_r2;
 reg [15:0] audio_mix_l_r, audio_mix_r_r, audio_mix_l_r2, audio_mix_r_r2;
+//wire [15:0] audio_mix_l_r2, audio_mix_r_r2;
+
 wire vga_hs_ibuf, vga_vs_ibuf, ft_de_ibuf;
 wire vga_hs_buf, vga_vs_buf, ft_de_buf;
 
-IBUF vga_hs_buf0 (.I(VGA_HS), .O(vga_hs_buf));
-IBUF vga_vs_buf0 (.I(VGA_VS), .O(vga_vs_buf));
-IBUF ft_de_buf0 (.I(FT_DE), .O(ft_de_buf));
+// todo: transfer signals VGA_HS, VGA_CS, FT_DE, VGA_R, VGA_G, VGA_B from FT_CLK to p_clk_int via async fifo
+/*afifo afifo(
+  .wr_clk(v_clk_int),
+  .rd_clk(p_clk_int),
+  .din({
+		(vdac2_sel ? VGA_R : osd_r), 
+		(vdac2_sel ? VGA_G : osd_g), 
+		(vdac2_sel ? VGA_B : osd_b), 
+		(vdac2_sel ? VGA_HS : video_hsync), 
+		(vdac2_sel ? VGA_VS : video_vsync), 
+		(vdac2_sel ? ~FT_DE : video_blank), 
+		audio_mix_l, 
+		audio_mix_r
+	}),
+  .wr_en(1'b1),
+  .rd_en(1'b1),
+  .dout({host_vga_r, host_vga_g, host_vga_b, host_vga_hs, host_vga_vs, host_vga_blank, audio_mix_l_r2, audio_mix_r_r2}),
+  .full(),
+  .empty()
+);*/
 
-always @(posedge v_clk_int)
+always @(negedge p_clk_int)
 begin
-	host_vga_hs_r <= (vdac2_sel ? vga_hs_buf : video_hsync); host_vga_hs_r2 <= host_vga_hs_r;
-	host_vga_vs_r <= (vdac2_sel ? vga_vs_buf : video_vsync); host_vga_vs_r2 <= host_vga_vs_r;
-	host_vga_blank_r <= (vdac2_sel ? ~ft_de_buf : video_blank);   host_vga_blank_r2  <= host_vga_blank_r;
+	host_vga_hs_r <= (vdac2_sel ? VGA_HS : video_hsync); host_vga_hs_r2 <= host_vga_hs_r;
+	host_vga_vs_r <= (vdac2_sel ? VGA_VS : video_vsync); host_vga_vs_r2 <= host_vga_vs_r;
+	host_vga_blank_r <= (vdac2_sel ? ~FT_DE : video_blank);   host_vga_blank_r2  <= host_vga_blank_r;
 	host_vga_r_r <= (vdac2_sel ? VGA_R : osd_r);    host_vga_r_r2 <= host_vga_r_r;
 	host_vga_g_r <= (vdac2_sel ? VGA_G : osd_g);    host_vga_g_r2 <= host_vga_g_r;
 	host_vga_b_r <= (vdac2_sel ? VGA_B : osd_b);    host_vga_b_r2 <= host_vga_b_r;
@@ -473,7 +492,7 @@ BUFGMUX v_clk_mux(
 
 wire [9:0] tmds_red, tmds_green, tmds_blue;
 
-always @(posedge v_clk_int)
+always @(posedge clk_bus)
 begin
 	hdmi_reset <= 1'b0;
 	if (prev_hdmi_freq != hdmi_freq) hdmi_reset <= 1'b1;
@@ -488,9 +507,9 @@ freq_counter freq_counter_inst(
 );
 
 hdmi hdmi(
-	.I_CLK_PIXEL(v_clk_int),
+	.I_CLK_PIXEL(p_clk_int),
 	//.I_RESET(pll_rst || hdmi_reset),
-	.I_RESET(hdmi_reset || ~lockedx5),
+	.I_RESET(pll_rst || ~lockedx5),
 	.I_FREQ(hdmi_freq),
 	.I_R(host_vga_r),
 	.I_G(host_vga_g),
@@ -507,7 +526,7 @@ hdmi hdmi(
 );
 
 hdmi_out_xilinx hdmiio(
-	.clock_pixel_i(v_clk_int),
+	.clock_pixel_i(p_clk_int),
 	.clock_tdms_i(clk_hdmi),
 	.clock_tdms_n_i(clk_hdmi_n),
 	.red_i(tmds_red),
@@ -519,14 +538,14 @@ hdmi_out_xilinx hdmiio(
 
 //------- Sigma-Delta DAC ---------
 dac dac_l(
-	.I_CLK(v_clk_int),
+	.I_CLK(p_clk_int),
 	.I_RESET(areset),
 	.I_DATA({2'b00, !audio_mix_l[15], audio_mix_l[14:4], 2'b00}),
 	.O_DAC(AUDIO_L)
 );
 
 dac dac_r(
-	.I_CLK(v_clk_int),
+	.I_CLK(p_clk_int),
 	.I_RESET(areset),
 	.I_DATA({2'b00, !audio_mix_r[15], audio_mix_r[14:4], 2'b00}),
 	.O_DAC(AUDIO_R)
@@ -534,8 +553,8 @@ dac dac_r(
 
 wire adc_clk_int;
 BUFGMUX ADC_CLK_MUX(
- .I0(v_clk_int),
- .I1(v_clk_div2),
+ .I0(p_clk_int),
+ .I1(p_clk_div2),
  .O(adc_clk_int),
  .S(adc_div2)
 );
@@ -645,7 +664,8 @@ mcu mcu(
 	.FT_RESET(mcu_ft_reset),
 	
 	.DEBUG_ADDR(16'd0),
-	.DEBUG_DATA({8'd0, hdmi_freq}),
+	.DEBUG_DATA(16'd0),
+	//.DEBUG_DATA({8'd0, hdmi_freq}),
 	
 	.BUSY(mcu_busy)
 );

@@ -242,7 +242,12 @@ NET "FT_CLK" CLOCK_DEDICATED_ROUTE = FALSE;
 NET "ADC_BCK" CLOCK_DEDICATED_ROUTE = FALSE;
 
 NET "FT_CLK" TNM_NET = "clk_ft";
-TIMESPEC "TS_CLK_FT" = PERIOD "clk_ft" 64 MHz;
+TIMESPEC "TS_CLK_FT" = PERIOD "clk_ft" 72 MHz;
+
+NET "FT_DE" TNM_NET = "ft_de";
+TIMESPEC "TS_FT_DE" = PERIOD "ft_de" 10 MHz;
+NET "VGA_HS" TNM_NET = "vga_hs";
+TIMESPEC "TS_VGA_HS" = PERIOD "vga_hs" 35 kHz;
 
 NET "MCU_SCK" TNM_NET = "clk_mcu";
 TIMESPEC "TS_CLK_MCU" = PERIOD "clk_mcu" 30 MHz;
@@ -253,12 +258,4 @@ NET "clk_hdmi" TNM_NET = "CLK_HDMI";
 NET "clk_hdmi_n" TNM_NET = "CLK_HDMI_n";
 TIMESPEC "TS_CLK_HDMI" = PERIOD "CLK_HDMI" TS_CLK_BUS*5;
 TIMESPEC "TS_CLK_HDMI_n" = PERIOD "CLK_HDMI_n" TS_CLK_BUS*5; # PHASE + 1 ns;
-
-# ignoring
-#TIMESPEC "Tign1" = FROM "hdmi/enc1/ENCODED" TO "hdmiio/shift_g" TIG;
-
-TIMESPEC "TS_clk_bus_to_clk_hdmi" = FROM "clk_bus" TO "clk_hdmi" TIG; 
-TIMESPEC "TS_ft_clk_to_clk_hdmi" = FROM "FT_CLK" TO "clk_hdmi" TIG;
-TIMESPEC "TS_clk_bus_to_clk_hdmi_n" = FROM "clk_bus" TO "clk_hdmi_n" TIG; 
-TIMESPEC "TS_ft_clk_to_clk_hdmi_n" = FROM "FT_CLK" TO "clk_hdmi_n" TIG;
 
