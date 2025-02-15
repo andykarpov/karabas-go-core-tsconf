@@ -291,7 +291,7 @@ begin
             if TState = "001" then
                IORQ_int <= not IntCycle_n;
             end if;
-            if TState = "010" then
+            if TState = "010" and Wait_s = '1' then
                IORQ_int <= '0';
             end if;
          end if;
@@ -318,7 +318,7 @@ begin
    process(Reset_s, CLK_n)
    begin
       if Reset_s = '0' then
-         IORQ_t1 <= '1'
+         IORQ_t1 <= '1';
       elsif CLK_n'event and CLK_n = '0' then
          if TState = "001" then
             IORQ_t1 <= not IntCycle_n;
