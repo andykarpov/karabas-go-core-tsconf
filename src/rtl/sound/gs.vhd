@@ -174,37 +174,43 @@ end process;
 -- INT#
 process (CLK, CE, cpu_iorq_n, cpu_m1_n, cnt)
 begin
-	if cpu_iorq_n = '0' and cpu_m1_n = '0' then
-		int_n <= '1';
-	elsif CLK'event and CLK = '1' and CE = '1' then
-		if cnt = "0101110101" then
-			int_n <= '0';
+	if CLK'event and CLK = '1' and CE = '1' then
+		if cpu_iorq_n = '0' and cpu_m1_n = '0' then
+			int_n <= '1';
+		else
+			if cnt = "0101110101" then
+				int_n <= '0';
+			end if;
 		end if;
 	end if;
 end process;
 
 process (CLK, CE, cpu_iorq_n, cpu_m1_n, cpu_a_bus, IORQ_n, RD_n, A, WR_n)
 begin
-	if (cpu_iorq_n = '0' and cpu_m1_n = '1' and cpu_a_bus(3 downto 0) = X"2") or (IORQ_n = '0' and RD_n = '0' and A(7 downto 0) = X"B3") then
-		bit7_flag <= '0';
-	elsif (cpu_iorq_n = '0' and cpu_m1_n = '1' and cpu_a_bus(3 downto 0) = X"3") or (IORQ_n = '0' and WR_n = '0' and A(7 downto 0) = X"B3") then
-		bit7_flag <= '1';
-	elsif CLK'event and CLK = '1' and CE = '1' then
-		if (cpu_iorq_n = '0' and cpu_m1_n = '1' and cpu_a_bus(3 downto 0) = X"A") then
-			bit7_flag <= not port_xx00_reg(0);
+	if CLK'event and CLK = '1' and CE = '1' then
+		if (cpu_iorq_n = '0' and cpu_m1_n = '1' and cpu_a_bus(3 downto 0) = X"2") or (IORQ_n = '0' and RD_n = '0' and A(7 downto 0) = X"B3") then
+			bit7_flag <= '0';
+		elsif (cpu_iorq_n = '0' and cpu_m1_n = '1' and cpu_a_bus(3 downto 0) = X"3") or (IORQ_n = '0' and WR_n = '0' and A(7 downto 0) = X"B3") then
+			bit7_flag <= '1';
+		else
+			if (cpu_iorq_n = '0' and cpu_m1_n = '1' and cpu_a_bus(3 downto 0) = X"A") then
+				bit7_flag <= not port_xx00_reg(0);
+			end if;
 		end if;
 	end if;
 end process;
 
 process (CLK, CE, cpu_iorq_n, cpu_m1_n, cpu_a_bus, IORQ_n, RD_n, A, WR_n)
 begin
-	if cpu_iorq_n = '0' and cpu_m1_n = '1' and cpu_a_bus(3 downto 0) = X"5" then
-		bit0_flag <= '0';
-	elsif IORQ_n = '0' and WR_n = '0' and A(7 downto 0) = X"BB" then
-		bit0_flag <= '1';
-	elsif CLK'event and CLK = '1' and CE = '1' then
-		if (cpu_iorq_n = '0' and cpu_m1_n = '1' and cpu_a_bus(3 downto 0) = X"B") then
-			bit0_flag <= port_xx06_reg(5);
+	if CLK'event and CLK = '1' and CE = '1' then
+		if cpu_iorq_n = '0' and cpu_m1_n = '1' and cpu_a_bus(3 downto 0) = X"5" then
+			bit0_flag <= '0';
+		elsif IORQ_n = '0' and WR_n = '0' and A(7 downto 0) = X"BB" then
+			bit0_flag <= '1';
+		else
+			if (cpu_iorq_n = '0' and cpu_m1_n = '1' and cpu_a_bus(3 downto 0) = X"B") then
+				bit0_flag <= port_xx06_reg(5);
+			end if;
 		end if;
 	end if;
 end process;
@@ -222,12 +228,13 @@ begin
 end process;
 
 process (A, bit7_flag, bit0_flag, port_xx03_reg)
-begin	
+begin 
 	-- чтение со стороны спектрума
-	if A(3) = '1' then	-- port #xxBB
-		DO <= bit7_flag & "111111" & bit0_flag;
-	else				-- port #xxB3
-		DO <= port_xx03_reg;
+		if A(3) = '1' then	-- port #xxBB
+			DO <= bit7_flag & "111111" & bit0_flag;
+		else				-- port #xxB3
+			DO <= port_xx03_reg;
+		end if;
 	end if;
 end process;
 
@@ -257,16 +264,16 @@ begin
 		if cpu_mreq_n = '0' and cpu_rd_n = '0' and cpu_a_bus(15 downto 13) = "011" and cpu_a_bus(9 downto 8) = "01" then ch_b_reg <= MDI; end if;
 		if cpu_mreq_n = '0' and cpu_rd_n = '0' and cpu_a_bus(15 downto 13) = "011" and cpu_a_bus(9 downto 8) = "10" then ch_c_reg <= MDI; end if;
 		if cpu_mreq_n = '0' and cpu_rd_n = '0' and cpu_a_bus(15 downto 13) = "011" and cpu_a_bus(9 downto 8) = "11" then ch_d_reg <= MDI; end if;
+		
+		case cpu_a_bus(15 downto 14) is
+			when "00" => mem <= "0000000";										--#0000 - #3FFF  -   16Kb 
+			when "01" => mem <= "0000010";										--#4000 - #7FFF  -   16Kb   
+			when others => mem <= port_xx00_reg(5 downto 0) & cpu_a_bus(14);	--#8000 - #FFFF  -     32Kb
+		end case;
 	end if;
-
-	case cpu_a_bus(15 downto 14) is
-		when "00" => mem <= "0000000";										--#0000 - #3FFF  -  первые 16Kb ПЗУ
-		when "01" => mem <= "0000010";										--#4000 - #7FFF  -  первые 16Kb первой страницы ОЗУ
-		when others => mem <= port_xx00_reg(5 downto 0) & cpu_a_bus(14);	--#8000 - #FFFF  -  листаемые страницы по 32Kb
-	end case;
 end process;
 
---   CPU
+-- Шина данных CPU
 cpu_di_bus <=	MDI when (cpu_mreq_n = '0' and cpu_rd_n = '0') else
 				bit7_flag & "111111" & bit0_flag when (cpu_iorq_n = '0' and cpu_rd_n = '0' and cpu_a_bus(3 downto 0) = X"4") else
 				port_xxbb_reg when (cpu_iorq_n = '0' and cpu_rd_n = '0' and cpu_a_bus(3 downto 0) = X"1") else
