@@ -469,8 +469,42 @@ freq_counter freq_counter_inst(
 	.o_freq(hdmi_freq)
 );
 
-reg clk_audio = 1'b0; // todo
+// 32kHz audio samplerate
+// prescaler = (clock_speed/desired_clock_speed)/2
+reg clk_audio;
+wire [9:0] prescaler = ((hdmi_freq * 1000000) / 32000) / 2;
+reg [9:0] cnt_audio;
+always @(posedge p_clk_int)
+begin
+		if (pll_rst || ~lockedx5) 
+		begin
+			cnt_audio <= 0;
+			clk_audio <= 0;
+		end
+		else 
+		begin
+			if (cnt_audio > prescaler) 
+			begin
+				cnt_audio <= 0;
+				clk_audio <= ~clk_audio;
+			end
+			else
+				cnt_audio <= cnt_audio + 1;
+		end
+end
 
+// hdmi audio (downsample with 32000 samplerate)
+reg [23:0] hdmi_audio_l, hdmi_audio_r;
+always @(posedge p_clk_int)
+begin
+	if (!clk_audio) 
+	begin
+		hdmi_audio_l <= {audio_mix_l[15:0], 8'b0};
+		hdmi_audio_r <= {audio_mix_r[15:0], 8'b0};
+	end
+end
+
+// hdmi tx
 hdmi_tx hdmi_tx(
 	.clk(p_clk_int),
 	.sclk(clk_hdmi),
@@ -481,10 +515,11 @@ hdmi_tx hdmi_tx(
 	.hsync(host_vga_hs),
 	.de(~host_vga_blank),
 	
-	.audio_en(1'b0),
-	.audio_l(audio_mix_l[15:0]),
-	.audio_r(audio_mix_r[15:0]),
+	.audio_en(1'b1),
+	.audio_l(hdmi_audio_l),
+	.audio_r(hdmi_audio_r),
 	.audio_clk(clk_audio),
+	
 	.tx_clk_n(TMDS_N[3]),
 	.tx_clk_p(TMDS_P[3]),
 	.tx_d_n(TMDS_N[2:0]),
