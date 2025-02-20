@@ -407,23 +407,37 @@ wire host_vga_hs, host_vga_vs, host_vga_blank;
 reg ft_vga_hs_r, ft_vga_vs_r, ft_vga_blank_r, ft_vga_hs_r2, ft_vga_vs_r2, ft_vga_blank_r2;
 reg [7:0] ft_vga_r_r, ft_vga_g_r, ft_vga_b_r, ft_vga_r_r2, ft_vga_g_r2, ft_vga_b_r2;
 
+reg ts_vga_hs_r, ts_vga_vs_r, ts_vga_blank_r, ts_vga_hs_r2, ts_vga_vs_r2, ts_vga_blank_r2;
+reg [7:0] ts_vga_r_r, ts_vga_g_r, ts_vga_b_r, ts_vga_r_r2, ts_vga_g_r2, ts_vga_b_r2;
+
 // grab FT rgb and sync into p_clk_int registers on negedge
 always @(negedge p_clk_int)
 begin
-	ft_vga_hs_r <= VGA_HS; ft_vga_hs_r2 <= ft_vga_hs_r;
-	ft_vga_vs_r <= VGA_VS; ft_vga_vs_r2 <= ft_vga_vs_r;
-	ft_vga_blank_r <= ~FT_DE;   ft_vga_blank_r2  <= ft_vga_blank_r;
-	ft_vga_r_r <= VGA_R;    ft_vga_r_r2 <= ft_vga_r_r;
-	ft_vga_g_r <= VGA_G;    ft_vga_g_r2 <= ft_vga_g_r;
-	ft_vga_b_r <= VGA_B;    ft_vga_b_r2 <= ft_vga_b_r;
+	ft_vga_hs_r <= VGA_HS; 				ft_vga_hs_r2 <= ft_vga_hs_r;
+	ft_vga_vs_r <= VGA_VS; 				ft_vga_vs_r2 <= ft_vga_vs_r;
+	ft_vga_blank_r <= ~FT_DE;  		ft_vga_blank_r2  <= ft_vga_blank_r;
+	ft_vga_r_r <= VGA_R;    			ft_vga_r_r2 <= ft_vga_r_r;
+	ft_vga_g_r <= VGA_G;    			ft_vga_g_r2 <= ft_vga_g_r;
+	ft_vga_b_r <= VGA_B;    			ft_vga_b_r2 <= ft_vga_b_r;
 end
 
-assign host_vga_r = (vdac2_sel ? (ft_vga_blank_r2 ? 8'b0 : ft_vga_r_r2) : osd_r[7:0]);
-assign host_vga_g = (vdac2_sel ? (ft_vga_blank_r2 ? 8'b0 : ft_vga_g_r2) : osd_g[7:0]);
-assign host_vga_b = (vdac2_sel ? (ft_vga_blank_r2 ? 8'b0 : ft_vga_b_r2) : osd_b[7:0]);
-assign host_vga_hs = (vdac2_sel ? ft_vga_hs_r2 : video_hsync);
-assign host_vga_vs = (vdac2_sel ? ft_vga_vs_r2 : video_vsync);
-assign host_vga_blank = (vdac2_sel ? ft_vga_blank_r2 : video_blank);
+// grab TS rgb and sync into p_clk_int registers on posedge
+always @(posedge p_clk_int)
+begin
+	ts_vga_hs_r <= video_hsync; 		ts_vga_hs_r2 <= ts_vga_hs_r;
+	ts_vga_vs_r <= video_vsync; 		ts_vga_vs_r2 <= ts_vga_vs_r;
+	ts_vga_blank_r <= video_blank; 	ts_vga_blank_r2  <= ts_vga_blank_r;
+	ts_vga_r_r <= osd_r;    			ts_vga_r_r2 <= ts_vga_r_r;
+	ts_vga_g_r <= osd_g;    			ts_vga_g_r2 <= ts_vga_g_r;
+	ts_vga_b_r <= osd_b;    			ts_vga_b_r2 <= ts_vga_b_r;
+end
+
+assign host_vga_r = (vdac2_sel ? (ft_vga_blank_r2 ? 8'b0 : ft_vga_r_r2) : (ts_vga_blank_r2 ? 8'b0 : ts_vga_r_r2));
+assign host_vga_g = (vdac2_sel ? (ft_vga_blank_r2 ? 8'b0 : ft_vga_g_r2) : (ts_vga_blank_r2 ? 8'b0 : ts_vga_g_r2));
+assign host_vga_b = (vdac2_sel ? (ft_vga_blank_r2 ? 8'b0 : ft_vga_b_r2) : (ts_vga_blank_r2 ? 8'b0 : ts_vga_b_r2));
+assign host_vga_hs = (vdac2_sel ? ft_vga_hs_r2 : ts_vga_hs_r2);
+assign host_vga_vs = (vdac2_sel ? ft_vga_vs_r2 : ts_vga_vs_r2);
+assign host_vga_blank = (vdac2_sel ? ft_vga_blank_r2 : ts_vga_blank_r2);
 
 assign FT_SPI_CS_N = mcu_ft_spi_on ? mcu_ft_cs_n : ftcs_n;
 assign FT_SPI_SCK = mcu_ft_spi_on ? mcu_ft_sck : ftclk;
