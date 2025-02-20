@@ -65,6 +65,7 @@ xlnx_auto_0_xdb/
 xst/
 _ngo/
 _xmsgs/
+ipcore_dir/tmp/
 
 # special scripts
 make_core.py
