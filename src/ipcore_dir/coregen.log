@@ -11,73 +11,6 @@ Regenerate all project IP (under current project settings)INFO:sim:953 - Generat
 INFO:sim:172 - Generating IP...
 Applying current project options...
 Finished applying current project options.
-Resolving generics for 'afifo'...
-WARNING:sim - A core named 'afifo' already exists in the project. Output
-   products for this core may be overwritten.
-Applying external generics to 'afifo'...
-Delivering associated files for 'afifo'...
-Delivering EJava files for 'afifo'...
-Generating implementation netlist for 'afifo'...
-INFO:sim - Pre-processing HDL files for 'afifo'...
-WARNING:sim - BlackBox generator run option '-ifmt' found multiple times. Only
-   the first occurence is considered.
-Running synthesis for 'afifo'
-Running ngcbuild...
-Writing VEO instantiation template for 'afifo'...
-Writing Verilog behavioral simulation model for 'afifo'...
-WARNING:sim - Overwriting existing file
-   /home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-cor
-   e-tsconf/src/ipcore_dir/tmp/_cg/afifo/doc/fifo_generator_v9_3_vinfo.html with
-   file from view xilinx_documentation
-Delivered 3 files into directory
-/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
-sconf/src/ipcore_dir/tmp/_cg/afifo
-Delivered 1 file into directory
-/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
-sconf/src/ipcore_dir/tmp/_cg/afifo
-Generating ASY schematic symbol...
-INFO:sim:949 - Finished generation of ASY schematic symbol.
-Generating metadata file...
-Regenerating ISE project file for 'afifo'...
-Generating ISE project...
-XCO file found: afifo.xco
-XMDF file found: afifo_xmdf.tcl
-Adding
-/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
-sconf/src/ipcore_dir/tmp/_cg/afifo.asy -view all -origin_type imported
-Adding
-/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
-sconf/src/ipcore_dir/tmp/_cg/afifo.ngc -view all -origin_type created
-Checking file
-"/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-
-tsconf/src/ipcore_dir/tmp/_cg/afifo.ngc" for project device match ...
-File
-"/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-
-tsconf/src/ipcore_dir/tmp/_cg/afifo.ngc" device information matches project
-device.
-Adding
-/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
-sconf/src/ipcore_dir/tmp/_cg/afifo.v -view all -origin_type created
-INFO:HDLCompiler:1845 - Analyzing Verilog file
-   "/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-co
-   re-tsconf/src/ipcore_dir/tmp/_cg/afifo.v" into library work
-INFO:ProjectMgmt - Parsing design hierarchy completed successfully.
-Adding
-/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
-sconf/src/ipcore_dir/tmp/_cg/afifo.veo -view all -origin_type imported
-INFO:TclTasksC:2116 - The automatic calculation of top has been turned-off.
-   Please set the new top explicitly by running the "project set top" command.
-   To re-calculate the new top automatically, set the "Auto Implementation Top"
-   property to true.
-Top level has been set to "/afifo"
-Generating README file...
-Generating FLIST file...
-INFO:sim:948 - Finished FLIST file generation.
-Moving files to output directory...
-Finished moving files to output directory
-INFO:sim:172 - Generating IP...
-Applying current project options...
-Finished applying current project options.
 Resolving generics for 'blk_ram'...
 WARNING:sim - A core named 'blk_ram' already exists in the project. Output
    products for this core may be overwritten.
@@ -692,64 +625,6 @@ Finished moving files to output directory
 INFO:sim:172 - Generating IP...
 Applying current project options...
 Finished applying current project options.
-Resolving generics for 'rom_font2'...
-ERROR:sim - Unable to find ../rtl/osd/icons.coe
-ERROR:sim -    Coregen is looking for
-ERROR:sim -   
-   /home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-cor
-ERROR:sim -    e-tsconf/src/rtl/osd/icons.coe
-ERROR:sim - Unable to find ../rtl/osd/icons.coe
-ERROR:sim -    Coregen is looking for
-ERROR:sim -   
-   /home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-cor
-ERROR:sim -    e-tsconf/src/rtl/osd/icons.coe
-ERROR:sim - IP initializer could not set IP core parameters on IP model
-ERROR:sim - Unable to find ../rtl/osd/icons.coe
-ERROR:sim -    Coregen is looking for
-ERROR:sim -   
-   /home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-cor
-ERROR:sim -    e-tsconf/src/rtl/osd/icons.coe
-ERROR:sim - Failed to initialize IP model.
-ERROR:sim - Failed executing Tcl generator.
-Recustomize and Generate (Under Original Project Settings)INFO:sim:172 - Generating IP...
-ERROR:sim - Unable to find ../rtl/osd/icons.coe
-ERROR:sim -    Coregen is looking for
-ERROR:sim -   
-   /home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-cor
-ERROR:sim -    e-tsconf/src/rtl/osd/icons.coe
-ERROR:sim - Unable to find ../rtl/osd/icons.coe
-ERROR:sim -    Coregen is looking for
-ERROR:sim -   
-   /home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-cor
-ERROR:sim -    e-tsconf/src/rtl/osd/icons.coe
-ERROR:sim - An invalid core configuration has been detected during
-ERROR:sim -    Customization. Core parameters will be reset to their default
-   values.
-Cancelled executing Tcl generator.
-Recustomize and Generate (Under Original Project Settings)INFO:sim:172 - Generating IP...
-Cancelled executing Tcl generator.
-Recustomize and Generate (Under Original Project Settings)INFO:sim:172 - Generating IP...
-ERROR:sim - Unable to find ../rtl/osd/icons.coe
-ERROR:sim -    Coregen is looking for
-ERROR:sim -   
-   /home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-cor
-ERROR:sim -    e-tsconf/src/rtl/osd/icons.coe
-ERROR:sim - Unable to find ../rtl/osd/icons.coe
-ERROR:sim -    Coregen is looking for
-ERROR:sim -   
-   /home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-cor
-ERROR:sim -    e-tsconf/src/rtl/osd/icons.coe
-ERROR:sim - An invalid core configuration has been detected during
-ERROR:sim -    Customization. Core parameters will be reset to their default
-   values.
-Cancelled executing Tcl generator.
-WARNING:sim:381 - Unable to determine location of PDF viewer
-WARNING:sim:381 - Unable to determine location of PDF viewer
-Recustomize and Generate (Under Original Project Settings)INFO:sim:172 - Generating IP...
-Cancelled executing Tcl generator.
-Regenerate (Under Current Project Settings)INFO:sim:172 - Generating IP...
-Applying current project options...
-Finished applying current project options.
 Resolving generics for 'rtc'...
 WARNING:sim - A core named 'rtc' already exists in the project. Output products
    for this core may be overwritten.
@@ -809,5 +684,3 @@ Generating FLIST file...
 INFO:sim:948 - Finished FLIST file generation.
 Moving files to output directory...
 Finished moving files to output directory
-Saved CGP file for project 'coregen'.
-Closed project file.
