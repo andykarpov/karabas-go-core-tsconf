@@ -219,10 +219,6 @@ utilities_xmdf::xmdfSetData $instance FileSet $fcount relative_path osd_vram.ngc
 utilities_xmdf::xmdfSetData $instance FileSet $fcount type ngc
 incr fcount
 
-utilities_xmdf::xmdfSetData $instance FileSet $fcount relative_path osd_vram.sym
-utilities_xmdf::xmdfSetData $instance FileSet $fcount type symbol
-incr fcount
-
 utilities_xmdf::xmdfSetData $instance FileSet $fcount relative_path osd_vram.v
 utilities_xmdf::xmdfSetData $instance FileSet $fcount type verilog
 incr fcount

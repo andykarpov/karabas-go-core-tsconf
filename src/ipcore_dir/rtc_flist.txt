@@ -47,7 +47,6 @@ rtc/simulation/timing/wave_ncsim.sv
 rtc.asy
 rtc.gise
 rtc.ngc
-rtc.sym
 rtc.v
 rtc.veo
 rtc.xco

@@ -1,7 +1,7 @@
 ##############################################################
 #
 # Xilinx Core Generator version 14.7
-# Date: Tue Apr  2 12:11:13 2024
+# Date: Thu Feb 20 16:58:00 2025
 #
 ##############################################################
 #
@@ -46,7 +46,7 @@ CSET axi_id_width=4
 CSET axi_slave_type=Memory_Slave
 CSET axi_type=AXI4_Full
 CSET byte_size=9
-CSET coe_file=../rtl/osd/osd_font.coe
+CSET coe_file=/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-tsconf/src/rtl/osd/osd_font.coe
 CSET collision_warnings=ALL
 CSET component_name=rom_font
 CSET disable_collision_warnings=false
@@ -105,4 +105,4 @@ CSET write_width_b=8
 MISC pkg_timestamp=2012-11-19T16:22:25Z
 # END Extra information
 GENERATE
-# CRC: 12e1df69
+# CRC: 1f34758d

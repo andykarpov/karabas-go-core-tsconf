@@ -223,10 +223,6 @@ utilities_xmdf::xmdfSetData $instance FileSet $fcount relative_path rom_font.ngc
 utilities_xmdf::xmdfSetData $instance FileSet $fcount type ngc
 incr fcount
 
-utilities_xmdf::xmdfSetData $instance FileSet $fcount relative_path rom_font.sym
-utilities_xmdf::xmdfSetData $instance FileSet $fcount type symbol
-incr fcount
-
 utilities_xmdf::xmdfSetData $instance FileSet $fcount relative_path rom_font.v
 utilities_xmdf::xmdfSetData $instance FileSet $fcount type verilog
 incr fcount

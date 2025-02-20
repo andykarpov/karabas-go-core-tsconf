@@ -74,7 +74,7 @@ use unisim.vcomponents.all;
 entity queue_exdes is
    PORT (
            CLK                       : IN  std_logic;
-     	   DATA_COUNT                : OUT std_logic_vector(10-1 DOWNTO 0);
+     	   DATA_COUNT                : OUT std_logic_vector(9-1 DOWNTO 0);
            WR_EN 		     : IN  std_logic;
            RD_EN                     : IN  std_logic;
            DIN                       : IN  std_logic_vector(24-1 DOWNTO 0);
@@ -95,7 +95,7 @@ architecture xilinx of queue_exdes is
   component queue is
    PORT (
            CLK                       : IN  std_logic;
-     	   DATA_COUNT                : OUT std_logic_vector(10-1 DOWNTO 0);
+     	   DATA_COUNT                : OUT std_logic_vector(9-1 DOWNTO 0);
            WR_EN 		     : IN  std_logic;
            RD_EN                     : IN  std_logic;
            DIN                       : IN  std_logic_vector(24-1 DOWNTO 0);

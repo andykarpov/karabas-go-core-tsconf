@@ -44,7 +44,6 @@ pll/simulation/timing/vcs_session.tcl
 pll/simulation/timing/wave.do
 pll.asy
 pll.gise
-pll.sym
 pll.ucf
 pll.v
 pll.veo

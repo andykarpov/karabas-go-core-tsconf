@@ -48,7 +48,6 @@ rom_font.asy
 rom_font.gise
 rom_font.mif
 rom_font.ngc
-rom_font.sym
 rom_font.v
 rom_font.veo
 rom_font.xco

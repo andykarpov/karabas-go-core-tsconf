@@ -95,7 +95,7 @@ ARCHITECTURE simulation_arch OF fifo2_synth IS
 
     -- FIFO interface signal declarations
     SIGNAL clk_i	                  :   STD_LOGIC;
-    SIGNAL data_count                     :   STD_LOGIC_VECTOR(12-1 DOWNTO 0);
+    SIGNAL data_count                     :   STD_LOGIC_VECTOR(11-1 DOWNTO 0);
     SIGNAL srst                           :   STD_LOGIC;
     SIGNAL wr_en                          :   STD_LOGIC;
     SIGNAL rd_en                          :   STD_LOGIC;
@@ -233,8 +233,8 @@ ARCHITECTURE simulation_arch OF fifo2_synth IS
               C_APPLICATION_TYPE  => 0,
 	      C_DOUT_WIDTH        => 8,
 	      C_DIN_WIDTH         => 8,
-	      C_WR_PNTR_WIDTH     => 12,
-    	      C_RD_PNTR_WIDTH     => 12,
+	      C_WR_PNTR_WIDTH     => 11,
+    	      C_RD_PNTR_WIDTH     => 11,
  	      C_CH_TYPE           => 0,
               FREEZEON_ERROR      => FREEZEON_ERROR,
 	      TB_SEED             => TB_SEED, 

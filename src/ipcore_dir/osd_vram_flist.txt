@@ -47,7 +47,6 @@ osd_vram/simulation/timing/wave_ncsim.sv
 osd_vram.asy
 osd_vram.gise
 osd_vram.ngc
-osd_vram.sym
 osd_vram.v
 osd_vram.veo
 osd_vram.xco

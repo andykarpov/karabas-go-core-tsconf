@@ -49,7 +49,6 @@ fifo_keybuf/simulation/timing/wave_ncsim.sv
 fifo_keybuf.asy
 fifo_keybuf.gise
 fifo_keybuf.ngc
-fifo_keybuf.sym
 fifo_keybuf.v
 fifo_keybuf.veo
 fifo_keybuf.xco

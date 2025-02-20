@@ -44,7 +44,6 @@ pllx5/simulation/timing/vcs_session.tcl
 pllx5/simulation/timing/wave.do
 pllx5.asy
 pllx5.gise
-pllx5.sym
 pllx5.ucf
 pllx5.v
 pllx5.veo

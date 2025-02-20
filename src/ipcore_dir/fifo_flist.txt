@@ -49,7 +49,6 @@ fifo/simulation/timing/wave_ncsim.sv
 fifo.asy
 fifo.gise
 fifo.ngc
-fifo.sym
 fifo.v
 fifo.veo
 fifo.xco
