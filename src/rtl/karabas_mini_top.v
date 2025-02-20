@@ -23,7 +23,7 @@
 -- FPGA TS-Conf core for Karabas-Go Mini
 --
 -- @author Andy Karpov <andy.karpov@gmail.com>
--- EU, 2024
+-- EU, 2024-2025
 ------------------------------------------------------------------------------------------------------------------*/
 
 module karabas_mini_top (
@@ -160,40 +160,28 @@ module karabas_mini_top (
 	wire pll_rst;
 	reg prev_vdac2_sel;
 
-/*	DCM_SP #(.CLKFX_DIVIDE(1), .CLKFX_MULTIPLY(5), .CLKDV_DIVIDE(2.0), .DESKEW_ADJUST("SOURCE_SYNCHRONOUS")) pllx5
-   (
-	 .CLKIN(v_clk_int),
-	 .CLKFB(p_clk_int),
-    .CLK0(clk0),
-    .CLKFX(clkfx),
-    .CLKFX180(clkfx180),
-	 .CLKDV(clkdv),
-    .LOCKED(lockedx5),
-    .RST(pll_rst));
-*/
-
-wire clkfbout;
-PLL_BASE #(
-    .CLKIN_PERIOD(13.0),
-	 .CLKFBOUT_MULT(10),
-	 .CLKOUT0_DIVIDE(2),
-	 .CLKOUT1_DIVIDE(2),
-	 .CLKOUT1_PHASE(180.0),
-	 .CLKOUT2_DIVIDE(10),
-	 .CLKOUT3_DIVIDE(20),
-	 .COMPENSATION("INTERNAL")
-  ) pllx5 
-  (
-	.CLKIN(v_clk_int),
-	.CLKFBIN(clkfbout),
-	.CLKFBOUT(clkfbout),
-	.RST(pll_rst),
-	.LOCKED(lockedx5),
-	.CLKOUT0(clkfx), // 5x
-	.CLKOUT1(clkfx180), // 5x 180deg
-	.CLKOUT2(clk0), // 1x
-	.CLKOUT3(clkdv) // div2
-  );
+	wire clkfbout;
+	PLL_BASE #(
+		 .CLKIN_PERIOD(13.0),
+		 .CLKFBOUT_MULT(10),
+		 .CLKOUT0_DIVIDE(2),
+		 .CLKOUT1_DIVIDE(2),
+		 .CLKOUT1_PHASE(180.0),
+		 .CLKOUT2_DIVIDE(10),
+		 .CLKOUT3_DIVIDE(20),
+		 .COMPENSATION("INTERNAL")
+	  ) pllx5 
+	  (
+		.CLKIN(v_clk_int),
+		.CLKFBIN(clkfbout),
+		.CLKFBOUT(clkfbout),
+		.RST(pll_rst),
+		.LOCKED(lockedx5),
+		.CLKOUT0(clkfx), // 5x
+		.CLKOUT1(clkfx180), // 5x 180deg
+		.CLKOUT2(clk0), // 1x
+		.CLKOUT3(clkdv) // div2
+	  );
 	 
   BUFG clkout1_buf (.O(clk_hdmi), .I(clkfx));
   BUFG clkout2_buf (.O(clk_hdmi_n), .I(clkfx180));
@@ -416,61 +404,26 @@ wire mcu_ft_spi_on, mcu_ft_vga_on, mcu_ft_sck, mcu_ft_mosi, mcu_ft_cs_n, mcu_ft_
 wire [7:0] host_vga_r, host_vga_g, host_vga_b;
 wire host_vga_hs, host_vga_vs, host_vga_blank;
 
-reg host_vga_hs_r, host_vga_vs_r, host_vga_blank_r, host_vga_hs_r2, host_vga_vs_r2, host_vga_blank_r2;
-reg [7:0] host_vga_r_r, host_vga_g_r, host_vga_b_r, host_vga_r_r2, host_vga_g_r2, host_vga_b_r2;
-reg [15:0] audio_mix_l_r, audio_mix_r_r, audio_mix_l_r2, audio_mix_r_r2;
-//wire [15:0] audio_mix_l_r2, audio_mix_r_r2;
+reg ft_vga_hs_r, ft_vga_vs_r, ft_vga_blank_r, ft_vga_hs_r2, ft_vga_vs_r2, ft_vga_blank_r2;
+reg [7:0] ft_vga_r_r, ft_vga_g_r, ft_vga_b_r, ft_vga_r_r2, ft_vga_g_r2, ft_vga_b_r2;
 
-wire vga_hs_ibuf, vga_vs_ibuf, ft_de_ibuf;
-wire vga_hs_buf, vga_vs_buf, ft_de_buf;
-
-// todo: transfer signals VGA_HS, VGA_CS, FT_DE, VGA_R, VGA_G, VGA_B from FT_CLK to p_clk_int via async fifo
-/*afifo afifo(
-  .wr_clk(v_clk_int),
-  .rd_clk(p_clk_int),
-  .din({
-		(vdac2_sel ? VGA_R : osd_r), 
-		(vdac2_sel ? VGA_G : osd_g), 
-		(vdac2_sel ? VGA_B : osd_b), 
-		(vdac2_sel ? VGA_HS : video_hsync), 
-		(vdac2_sel ? VGA_VS : video_vsync), 
-		(vdac2_sel ? ~FT_DE : video_blank), 
-		audio_mix_l, 
-		audio_mix_r
-	}),
-  .wr_en(1'b1),
-  .rd_en(1'b1),
-  .dout({host_vga_r, host_vga_g, host_vga_b, host_vga_hs, host_vga_vs, host_vga_blank, audio_mix_l_r2, audio_mix_r_r2}),
-  .full(),
-  .empty()
-);*/
-
+// grab FT rgb and sync into p_clk_int registers on negedge
 always @(negedge p_clk_int)
 begin
-	host_vga_hs_r <= (vdac2_sel ? VGA_HS : video_hsync); host_vga_hs_r2 <= host_vga_hs_r;
-	host_vga_vs_r <= (vdac2_sel ? VGA_VS : video_vsync); host_vga_vs_r2 <= host_vga_vs_r;
-	host_vga_blank_r <= (vdac2_sel ? ~FT_DE : video_blank);   host_vga_blank_r2  <= host_vga_blank_r;
-	host_vga_r_r <= (vdac2_sel ? VGA_R : osd_r);    host_vga_r_r2 <= host_vga_r_r;
-	host_vga_g_r <= (vdac2_sel ? VGA_G : osd_g);    host_vga_g_r2 <= host_vga_g_r;
-	host_vga_b_r <= (vdac2_sel ? VGA_B : osd_b);    host_vga_b_r2 <= host_vga_b_r;
-	audio_mix_l_r <= audio_mix_l; audio_mix_l_r2 <= audio_mix_l_r;
-	audio_mix_r_r <= audio_mix_r; audio_mix_r_r2 <= audio_mix_r_r;
+	ft_vga_hs_r <= VGA_HS; ft_vga_hs_r2 <= ft_vga_hs_r;
+	ft_vga_vs_r <= VGA_VS; ft_vga_vs_r2 <= ft_vga_vs_r;
+	ft_vga_blank_r <= ~FT_DE;   ft_vga_blank_r2  <= ft_vga_blank_r;
+	ft_vga_r_r <= VGA_R;    ft_vga_r_r2 <= ft_vga_r_r;
+	ft_vga_g_r <= VGA_G;    ft_vga_g_r2 <= ft_vga_g_r;
+	ft_vga_b_r <= VGA_B;    ft_vga_b_r2 <= ft_vga_b_r;
 end
 
-assign host_vga_r = host_vga_blank_r2 ? 8'b0 : host_vga_r_r2;
-assign host_vga_g = host_vga_blank_r2 ? 8'b0 : host_vga_g_r2;
-assign host_vga_b = host_vga_blank_r2 ? 8'b0 : host_vga_b_r2;
-assign host_vga_hs = host_vga_hs_r2;
-assign host_vga_vs = host_vga_vs_r2;
-assign host_vga_blank = host_vga_blank_r2;
-
-/*assign host_vga_r = (vdac2_sel ? VGA_R[7:0] : osd_r[7:0]);
-assign host_vga_g = (vdac2_sel ? VGA_G[7:0] : osd_g[7:0]);
-assign host_vga_b = (vdac2_sel ? VGA_B[7:0] : osd_b[7:0]);
-assign host_vga_hs = (vdac2_sel ? VGA_HS : video_hsync);
-assign host_vga_vs = (vdac2_sel ? VGA_VS : video_vsync);
-assign host_vga_blank = (vdac2_sel ? ~FT_DE : video_blank);
-*/
+assign host_vga_r = (vdac2_sel ? (ft_vga_blank_r2 ? 8'b0 : ft_vga_r_r2) : osd_r[7:0]);
+assign host_vga_g = (vdac2_sel ? (ft_vga_blank_r2 ? 8'b0 : ft_vga_g_r2) : osd_g[7:0]);
+assign host_vga_b = (vdac2_sel ? (ft_vga_blank_r2 ? 8'b0 : ft_vga_b_r2) : osd_b[7:0]);
+assign host_vga_hs = (vdac2_sel ? ft_vga_hs_r2 : video_hsync);
+assign host_vga_vs = (vdac2_sel ? ft_vga_vs_r2 : video_vsync);
+assign host_vga_blank = (vdac2_sel ? ft_vga_blank_r2 : video_blank);
 
 assign FT_SPI_CS_N = mcu_ft_spi_on ? mcu_ft_cs_n : ftcs_n;
 assign FT_SPI_SCK = mcu_ft_spi_on ? mcu_ft_sck : ftclk;
@@ -479,12 +432,8 @@ assign FT_SPI_MOSI = mcu_ft_spi_on ? mcu_ft_mosi : ftdo;
 assign ftint = FT_INT_N;
 assign FT_RESET = ~mcu_ft_reset; // 1'b1
 
-//wire ft_clk_ibuf;
-//IBUF ft_clk_buf0 (.I(FT_CLK), .O(ft_clk_ibuf));
-
 BUFGMUX v_clk_mux(
  .I0(ce_28m),
-// .I1(ft_clk_ibuf),
  .I1(FT_CLK),
  .O(v_clk_int),
  .S(vdac2_sel)
@@ -508,7 +457,6 @@ freq_counter freq_counter_inst(
 
 hdmi hdmi(
 	.I_CLK_PIXEL(p_clk_int),
-	//.I_RESET(pll_rst || hdmi_reset),
 	.I_RESET(pll_rst || ~lockedx5),
 	.I_FREQ(hdmi_freq),
 	.I_R(host_vga_r),
