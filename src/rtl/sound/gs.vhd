@@ -266,7 +266,7 @@ begin
 	end case;
 end process;
 
--- Шина данных CPU
+--   CPU
 cpu_di_bus <=	MDI when (cpu_mreq_n = '0' and cpu_rd_n = '0') else
 				bit7_flag & "111111" & bit0_flag when (cpu_iorq_n = '0' and cpu_rd_n = '0' and cpu_a_bus(3 downto 0) = X"4") else
 				port_xxbb_reg when (cpu_iorq_n = '0' and cpu_rd_n = '0' and cpu_a_bus(3 downto 0) = X"1") else
