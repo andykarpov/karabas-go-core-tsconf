@@ -230,11 +230,10 @@ end process;
 process (A, bit7_flag, bit0_flag, port_xx03_reg)
 begin 
 	-- чтение со стороны спектрума
-		if A(3) = '1' then	-- port #xxBB
-			DO <= bit7_flag & "111111" & bit0_flag;
-		else				-- port #xxB3
-			DO <= port_xx03_reg;
-		end if;
+	if A(3) = '1' then	-- port #xxBB
+		DO <= bit7_flag & "111111" & bit0_flag;
+	else				-- port #xxB3
+		DO <= port_xx03_reg;
 	end if;
 end process;
 
