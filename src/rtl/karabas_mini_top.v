@@ -466,8 +466,8 @@ hdmi hdmi(
 	.I_HSYNC(host_vga_hs),
 	.I_VSYNC(host_vga_vs),
 	.I_AUDIO_ENABLE(1'b1),
-	.I_AUDIO_PCM_L(audio_mix_l_r2[15:0]),
-	.I_AUDIO_PCM_R(audio_mix_r_r2[15:0]),
+	.I_AUDIO_PCM_L(audio_mix_l[15:0]),
+	.I_AUDIO_PCM_R(audio_mix_r[15:0]),
 	.O_RED(tmds_red),
 	.O_GREEN(tmds_green),
 	.O_BLUE(tmds_blue)
