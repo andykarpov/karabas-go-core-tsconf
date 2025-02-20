@@ -469,33 +469,26 @@ freq_counter freq_counter_inst(
 	.o_freq(hdmi_freq)
 );
 
-hdmi hdmi(
-	.I_CLK_PIXEL(p_clk_int),
-	.I_RESET(pll_rst || ~lockedx5),
-	.I_FREQ(hdmi_freq),
-	.I_R(host_vga_r),
-	.I_G(host_vga_g),
-	.I_B(host_vga_b),
-	.I_BLANK(host_vga_blank),
-	.I_HSYNC(host_vga_hs),
-	.I_VSYNC(host_vga_vs),
-	.I_AUDIO_ENABLE(1'b1),
-	.I_AUDIO_PCM_L(audio_mix_l[15:0]),
-	.I_AUDIO_PCM_R(audio_mix_r[15:0]),
-	.O_RED(tmds_red),
-	.O_GREEN(tmds_green),
-	.O_BLUE(tmds_blue)
-);
+reg clk_audio = 1'b0; // todo
 
-hdmi_out_xilinx hdmiio(
-	.clock_pixel_i(p_clk_int),
-	.clock_tdms_i(clk_hdmi),
-	.clock_tdms_n_i(clk_hdmi_n),
-	.red_i(tmds_red),
-	.green_i(tmds_green),
-	.blue_i(tmds_blue),
-	.tmds_out_p(TMDS_P),
-	.tmds_out_n(TMDS_N)
+hdmi_tx hdmi_tx(
+	.clk(p_clk_int),
+	.sclk(clk_hdmi),
+	.sclk_n(clk_hdmi_n),
+	.reset(pll_rst || ~lockedx5),
+	.rgb({host_vga_r, host_vga_g, host_vga_b}),
+	.vsync(host_vga_vs),
+	.hsync(host_vga_hs),
+	.de(~host_vga_blank),
+	
+	.audio_en(1'b0),
+	.audio_l(audio_mix_l[15:0]),
+	.audio_r(audio_mix_r[15:0]),
+	.audio_clk(clk_audio),
+	.tx_clk_n(TMDS_N[3]),
+	.tx_clk_p(TMDS_P[3]),
+	.tx_d_n(TMDS_N[2:0]),
+	.tx_d_p(TMDS_P[2:0]) // 0:blue, 1:green, 2:red
 );
 
 //------- Sigma-Delta DAC ---------
