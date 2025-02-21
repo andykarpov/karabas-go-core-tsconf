@@ -252,10 +252,10 @@ TIMESPEC "TS_VGA_HS" = PERIOD "vga_hs" 35 kHz;
 NET "MCU_SCK" TNM_NET = "clk_mcu";
 TIMESPEC "TS_CLK_MCU" = PERIOD "clk_mcu" 30 MHz;
 
-#NET "clk_hdmi" TNM_NET = "CLK_HDMI" | S;
-#NET "clk_hdmi_n" TNM_NET = "CLK_HDMI_n" | S;
-NET "clk_hdmi" TNM_NET = "CLK_HDMI";
-NET "clk_hdmi_n" TNM_NET = "CLK_HDMI_n";
+NET "clk_hdmi" TNM_NET = "CLK_HDMI" | S;
+NET "clk_hdmi_n" TNM_NET = "CLK_HDMI_n" | S;
+#NET "clk_hdmi" TNM_NET = "CLK_HDMI";
+#NET "clk_hdmi_n" TNM_NET = "CLK_HDMI_n";
 TIMESPEC "TS_CLK_HDMI" = PERIOD "CLK_HDMI" TS_CLK_BUS*5;
 TIMESPEC "TS_CLK_HDMI_n" = PERIOD "CLK_HDMI_n" TS_CLK_BUS*5; # PHASE + 1 ns;
 

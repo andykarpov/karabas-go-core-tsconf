@@ -158,7 +158,6 @@ module karabas_mini_top (
 	wire clk0, clkfx, clkfx180, clkdv;
 	reg [7:0] pll_rst_cnt = 8'd0;
 	wire pll_rst;
-	reg prev_vdac2_sel;
 
 	wire clkfbout;
 	PLL_BASE #(
@@ -169,7 +168,9 @@ module karabas_mini_top (
 		 .CLKOUT1_PHASE(180.0),
 		 .CLKOUT2_DIVIDE(10),
 		 .CLKOUT3_DIVIDE(20),
-		 .COMPENSATION("INTERNAL")
+		 .COMPENSATION("INTERNAL"), // default: SYSTEM_SYNCHRONOUS. try: INTERNAL, SOURCE_SYNCHRONOUS
+		 .BANDWIDTH("LOW"), // default: OPTIMIZED. try LOW, HIGH
+		 .REF_JITTER(0.100) // default: 0.100, range: 0.100 - 0.999
 	  ) pllx5 
 	  (
 		.CLKIN(v_clk_int),
@@ -186,14 +187,36 @@ module karabas_mini_top (
   BUFG clkout1_buf (.O(clk_hdmi), .I(clkfx));
   BUFG clkout2_buf (.O(clk_hdmi_n), .I(clkfx180));
   BUFG clkout3_buf (.O(p_clk_int), .I(clk0));
+  //assign p_clk_int = v_clk_int;
   BUFG clkout4_buf (.O(p_clk_div2), .I(clkdv));
-
+  
+  // todo: try DCM_CLKGEN: https://stackoverflow.com/questions/32081933/new-dcm-clk-instantiation-error
+  
+   // clk_hdmi
+   /*DCM_CLKGEN
+    # (
+		.CLKFX_MULTIPLY(10),      // Multiply value - M - (2-256)
+		.CLKFX_DIVIDE(2),         // Divide value - D - (1-256)
+      .CLKFXDV_DIVIDE(32),       // CLKFXDV divide value (2, 4, 8, 16, 32)
+		.CLKFX_MD_MAX(5.0),       // Specify maximum M/D ratio for timing anlysis
+      //.CLKIN_PERIOD(20.0),      // Input clock period specified in nS
+      .SPREAD_SPECTRUM("NONE"), // Spread Spectrum mode "NONE", "CENTER_LOW_SPREAD", "CENTER_HIGH_SPREAD",
+		.STARTUP_WAIT("FALSE")
+   ) pllx5 (
+		.CLKIN(clk0),             // 1-bit input: Input clock
+		.RST(pll_rst),            // 1-bit input: Reset input pin
+		.FREEZEDCM(1'b0),         // Prevents tap adjustment drift in the event of a lost CLKIN input. The DCM is then configured into a free-run mode.
+      .CLKFX(clkfx),            // 1-bit output: Generated clock output
+      .CLKFX180(clkfx180),      // 1-bit output: Generated clock output 180 degree out of phase from CLKFX.
+      .CLKFXDV(clkdv),               // 1-bit output: Divided clock output
+      .LOCKED(lockedx5)         // 1-bit output: Locked output
+   );*/
+	
   always @(posedge clk_bus)
   begin
-	if ((prev_vdac2_sel != vdac2_sel) || kb_reset || areset || hdmi_reset) begin
+	if (kb_reset || areset || hdmi_reset) begin
 		pll_rst_cnt <= 8'b10000000;
 	end
-	prev_vdac2_sel <= vdac2_sel;
 	if (pll_rst_cnt > 0) pll_rst_cnt <= pll_rst_cnt+1;
   end
   assign pll_rst = pll_rst_cnt[7];
@@ -446,6 +469,7 @@ assign FT_SPI_MOSI = mcu_ft_spi_on ? mcu_ft_mosi : ftdo;
 assign ftint = FT_INT_N;
 assign FT_RESET = ~mcu_ft_reset; // 1'b1
 
+// pixelclock mux
 BUFGMUX v_clk_mux(
  .I0(ce_28m),
  .I1(FT_CLK),
@@ -453,8 +477,7 @@ BUFGMUX v_clk_mux(
  .S(vdac2_sel)
 );
 
-wire [9:0] tmds_red, tmds_green, tmds_blue;
-
+// hdmi reset pulse when freq changes
 always @(posedge clk_bus)
 begin
 	hdmi_reset <= 1'b0;
@@ -462,6 +485,7 @@ begin
 	prev_hdmi_freq <= hdmi_freq;
 end
 
+// freq counter (in Mhz)
 freq_counter freq_counter_inst(
 	.i_clk_ref(clk_bus),
 	.i_clk_test(v_clk_int),
@@ -509,7 +533,7 @@ hdmi_tx hdmi_tx(
 	.clk(p_clk_int),
 	.sclk(clk_hdmi),
 	.sclk_n(clk_hdmi_n),
-	.reset(pll_rst || ~lockedx5),
+	.reset(~lockedx5),
 	.rgb({host_vga_r, host_vga_g, host_vga_b}),
 	.vsync(host_vga_vs),
 	.hsync(host_vga_hs),
@@ -528,35 +552,25 @@ hdmi_tx hdmi_tx(
 
 //------- Sigma-Delta DAC ---------
 dac dac_l(
-	.I_CLK(p_clk_int),
+	.I_CLK(clk_bus),
 	.I_RESET(areset),
 	.I_DATA({2'b00, !audio_mix_l[15], audio_mix_l[14:4], 2'b00}),
 	.O_DAC(AUDIO_L)
 );
 
 dac dac_r(
-	.I_CLK(p_clk_int),
+	.I_CLK(clk_bus),
 	.I_RESET(areset),
 	.I_DATA({2'b00, !audio_mix_r[15], audio_mix_r[14:4], 2'b00}),
 	.O_DAC(AUDIO_R)
 );
-
-wire adc_clk_int;
-BUFGMUX ADC_CLK_MUX(
- .I0(p_clk_int),
- .I1(p_clk_div2),
- .O(adc_clk_int),
- .S(adc_div2)
-);
-
-wire adc_div2 = (hdmi_freq > 32) ? 1'b1 : 1'b0;
 
 // ------- PCM1808 ADC ---------
 wire signed [23:0] adc_l, adc_r;
 
 i2s_transceiver adc(
 	.reset_n(~areset),
-	.mclk(adc_clk_int),
+	.mclk(clk_bus),
 	.sclk(ADC_BCK),
 	.ws(ADC_LRCK),
 	.sd_tx(),
@@ -570,8 +584,8 @@ i2s_transceiver adc(
 // ------- ADC_CLK output buf
 ODDR2 oddr_adc2(
 	.Q(ADC_CLK),
-	.C0(adc_clk_int),
-	.C1(~adc_clk_int),
+	.C0(clk_bus),
+	.C1(~clk_bus),
 	.CE(1'b1),
 	.D0(1'b1),
 	.D1(1'b0),
