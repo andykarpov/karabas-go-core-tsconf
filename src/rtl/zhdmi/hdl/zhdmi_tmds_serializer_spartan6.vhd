@@ -24,8 +24,9 @@ use unisim.vcomponents.all;
 entity tmds_serializer is
 	port (
 		clk    : in std_logic;
+		clk2x  : in std_logic;
 		sclk   : in std_logic;		-- serial clock; frequency = 5 times clk
-		sclk_n : in std_logic;
+		strobe : in std_logic;
 		reset  : in std_logic;
 		tmds_d : in std_logic_vector(9 downto 0);
 		tx_d_n : out std_logic;
@@ -35,52 +36,48 @@ end tmds_serializer;
 
 architecture rtl of tmds_serializer is
 	signal tx_d        : std_logic;
-	signal shiftin1    : std_logic;
-	signal shiftin2    : std_logic;	
-	signal mod5        : std_logic_vector(2 downto 0);
-   signal shift_r     : std_logic_vector(9 downto 0);
-   signal output_bits : std_logic_vector(1 downto 0);	
+	signal phase       : std_logic := '0';
+   signal output_bits : std_logic_vector(4 downto 0);	
 begin
 
-	process (sclk, reset)
-   begin
-		if reset = '1' then
-			mod5 <= "000";
-			shift_r <= (others => '0');
-      elsif rising_edge(sclk) then
-         if mod5(2) = '1' then
-            mod5    <= "000";
-            shift_r <= tmds_d;
-         else
-            mod5    <= mod5 + "001";
-            shift_r <= "00" & shift_r(9 downto 2);
-         end if;
-      end if;
-   end process;
+--	process (clk2x, reset)
+--   begin
+--		if reset = '1' then
+--			phase <= '0';
+--			output_bits <= (others => '0'); 
+--      elsif rising_edge(clk2x) then
+--			if phase = '1' then 
+--				output_bits <= tmds_d(9 downto 5);
+--			else
+--				output_bits <= tmds_d(4 downto 0);
+--			end if;
+--			phase <= not phase;
+--      end if;
+--   end process;
+	
+	convertor: entity work.convert_10to5_fifo
+	port map(
+		rst => reset,
+		clk => clk,
+		clkx2 => clk2x,
+		datain => tmds_d,
+		dataout => output_bits
+	);
 
-   output_bits <= shift_r(1 downto 0);
-
-	serializer: ODDR2
-      generic map (
-         DDR_ALIGNMENT => "C0",
-         INIT          => '0',
-         SRTYPE        => "ASYNC"
-      )
-      port map (
-         C0  => sclk,
-         C1  => sclk_n,
-         CE  => '1',
-         R   => '0',
-         S   => '0',
-         D0  => output_bits(0),
-         D1  => output_bits(1),
-         Q   => tx_d
-      );
+	serializer: entity work.serdes_n_to_1
+	generic map (
+		SF => 5
+	)
+	port map (
+		iob_data_out => tx_d,
+		ioclk => sclk,
+		serdesstrobe => strobe,
+		gclk => clk2x,
+		reset => reset,
+		datain => output_bits
+	);
 
 	output_buf: OBUFDS
-	generic map (
-		IOSTANDARD => "DEFAULT", -- Specify the output I/O standard
-		SLEW => "SLOW")          -- Specify the output slew rate
 	port map (
 		I =>  tx_d,    -- Buffer input
 		O =>  tx_d_p,  -- Diff_p output (connect directly to top-level port)

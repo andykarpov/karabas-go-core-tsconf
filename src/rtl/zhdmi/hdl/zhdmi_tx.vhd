@@ -28,8 +28,9 @@ entity hdmi_tx is
 	);
 	port (
 		clk      : in std_logic;	-- pixel clock
-		sclk     : in std_logic;	-- serial clock = 5x clk frequency
-		sclk_n   : in std_logic;   -- serial clock 180 degrees
+		clk2x 	: in std_logic;   -- pixel clock x2
+		sclk     : in std_logic;	-- serial clock = 10x clk frequency
+		strobe   : in std_logic;   -- serdesstrobe from bufpll
 		reset    : in std_logic;
 		rgb      : in std_logic_vector(23 downto 0);	-- pixel data
 		vsync    : in std_logic;
@@ -91,8 +92,9 @@ begin
 	-- send the clock through a serializer to keep in sync with the channels
 	serial_clk: entity work.tmds_serializer port map (
 		clk => clk,
+		clk2x => clk2x,
 		sclk => sclk,
-		sclk_n => sclk_n,
+		strobe => strobe,
 		reset => reset,
 		tmds_d => clk_d,
 		tx_d_n => tx_clk_n,
@@ -115,8 +117,9 @@ begin
 
 		serial: entity work.tmds_serializer port map (
 			clk => clk,
+			clk2x => clk2x,
 			sclk => sclk,
-			sclk_n => sclk_n,
+			strobe => strobe,
 			reset => reset,
 			tmds_d => tmds_d(i),
 			tx_d_n => tx_d_n(i),

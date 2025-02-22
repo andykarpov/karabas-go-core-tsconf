@@ -155,62 +155,43 @@ module karabas_mini_top (
 	  .LOCKED(locked)
 	);
 	
-	wire clk0, clkfx, clkfx180, clkdv;
+	wire clk0, clkfx, clkfx2, clkdv;
 	reg [7:0] pll_rst_cnt = 8'd0;
 	wire pll_rst;
 
-	wire clkfbout;
+	wire clkfbout, clkfbin;
 	PLL_BASE #(
-		 .CLKIN_PERIOD(13.0),
+		 .CLKIN_PERIOD(10.0),
 		 .CLKFBOUT_MULT(10),
-		 .CLKOUT0_DIVIDE(2),
-		 .CLKOUT1_DIVIDE(2),
-		 .CLKOUT1_PHASE(180.0),
+		 .CLKOUT0_DIVIDE(1),
+		 .CLKOUT1_DIVIDE(5),
 		 .CLKOUT2_DIVIDE(10),
 		 .CLKOUT3_DIVIDE(20),
-		 .COMPENSATION("INTERNAL"), // default: SYSTEM_SYNCHRONOUS. try: INTERNAL, SOURCE_SYNCHRONOUS
-		 .BANDWIDTH("LOW"), // default: OPTIMIZED. try LOW, HIGH
-		 .REF_JITTER(0.100) // default: 0.100, range: 0.100 - 0.999
+		 .COMPENSATION("SOURCE_SYNCHRONOUS")
 	  ) pllx5 
 	  (
 		.CLKIN(v_clk_int),
-		.CLKFBIN(clkfbout),
+		.CLKFBIN(clkfbin),
 		.CLKFBOUT(clkfbout),
 		.RST(pll_rst),
 		.LOCKED(lockedx5),
-		.CLKOUT0(clkfx), // 5x
-		.CLKOUT1(clkfx180), // 5x 180deg
+		.CLKOUT0(clkfx), // 10x
+		.CLKOUT1(clkfx2), // 2x
 		.CLKOUT2(clk0), // 1x
 		.CLKOUT3(clkdv) // div2
 	  );
-	 
-  BUFG clkout1_buf (.O(clk_hdmi), .I(clkfx));
-  BUFG clkout2_buf (.O(clk_hdmi_n), .I(clkfx180));
+
+  // this buf is needed in order to deskew between PLL clkin and clkout
+  // so 2x and 10x clock will have the same phase as input clock
+  BUFG clkfb_buf (.I(clkfbout), .O(clkfbin));
+
+  wire clkout1_lock;
+  wire serdesstrobe;
+  wire clk_x2;
+  BUFPLL #(.DIVIDE(5)) clkout1_buf (.PLLIN(clkfx), .GCLK(clk_x2), .LOCKED(lockedx5), .IOCLK(clk_hdmi), .SERDESSTROBE(serdesstrobe), .LOCK(clkout1_lock));
+  BUFG clkout2_buf (.O(clk_x2), .I(clkfx2));
   BUFG clkout3_buf (.O(p_clk_int), .I(clk0));
-  //assign p_clk_int = v_clk_int;
   BUFG clkout4_buf (.O(p_clk_div2), .I(clkdv));
-  
-  // todo: try DCM_CLKGEN: https://stackoverflow.com/questions/32081933/new-dcm-clk-instantiation-error
-  
-   // clk_hdmi
-   /*DCM_CLKGEN
-    # (
-		.CLKFX_MULTIPLY(10),      // Multiply value - M - (2-256)
-		.CLKFX_DIVIDE(2),         // Divide value - D - (1-256)
-      .CLKFXDV_DIVIDE(32),       // CLKFXDV divide value (2, 4, 8, 16, 32)
-		.CLKFX_MD_MAX(5.0),       // Specify maximum M/D ratio for timing anlysis
-      //.CLKIN_PERIOD(20.0),      // Input clock period specified in nS
-      .SPREAD_SPECTRUM("NONE"), // Spread Spectrum mode "NONE", "CENTER_LOW_SPREAD", "CENTER_HIGH_SPREAD",
-		.STARTUP_WAIT("FALSE")
-   ) pllx5 (
-		.CLKIN(clk0),             // 1-bit input: Input clock
-		.RST(pll_rst),            // 1-bit input: Reset input pin
-		.FREEZEDCM(1'b0),         // Prevents tap adjustment drift in the event of a lost CLKIN input. The DCM is then configured into a free-run mode.
-      .CLKFX(clkfx),            // 1-bit output: Generated clock output
-      .CLKFX180(clkfx180),      // 1-bit output: Generated clock output 180 degree out of phase from CLKFX.
-      .CLKFXDV(clkdv),               // 1-bit output: Divided clock output
-      .LOCKED(lockedx5)         // 1-bit output: Locked output
-   );*/
 	
   always @(posedge clk_bus)
   begin
@@ -469,10 +450,13 @@ assign FT_SPI_MOSI = mcu_ft_spi_on ? mcu_ft_mosi : ftdo;
 assign ftint = FT_INT_N;
 assign FT_RESET = ~mcu_ft_reset; // 1'b1
 
+wire ft_clk_ibuf;
+IBUF ft_clk_ibuf_inst (.I(FT_CLK), .O(ft_clk_ibuf));
+
 // pixelclock mux
 BUFGMUX v_clk_mux(
  .I0(ce_28m),
- .I1(FT_CLK),
+ .I1(ft_clk_ibuf),
  .O(v_clk_int),
  .S(vdac2_sel)
 );
@@ -531,8 +515,9 @@ end
 // hdmi tx
 hdmi_tx hdmi_tx(
 	.clk(p_clk_int),
+	.clk2x(clk_x2),
 	.sclk(clk_hdmi),
-	.sclk_n(clk_hdmi_n),
+	.strobe(serdesstrobe),
 	.reset(~lockedx5),
 	.rgb({host_vga_r, host_vga_g, host_vga_b}),
 	.vsync(host_vga_vs),
