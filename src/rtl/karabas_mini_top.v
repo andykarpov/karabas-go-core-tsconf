@@ -156,7 +156,7 @@ module karabas_mini_top (
 	);
 	
 	wire clk0, clkfx, clkfx180, clkdv;
-	reg [7:0] pll_rst_cnt = 8'd0;
+	reg [3:0] pll_rst_cnt = 4'd0;
 	wire pll_rst;
 
 	wire clkfbout;
@@ -187,39 +187,16 @@ module karabas_mini_top (
   BUFG clkout1_buf (.O(clk_hdmi), .I(clkfx));
   BUFG clkout2_buf (.O(clk_hdmi_n), .I(clkfx180));
   BUFG clkout3_buf (.O(p_clk_int), .I(clk0));
-  //assign p_clk_int = v_clk_int;
   BUFG clkout4_buf (.O(p_clk_div2), .I(clkdv));
-  
-  // todo: try DCM_CLKGEN: https://stackoverflow.com/questions/32081933/new-dcm-clk-instantiation-error
-  
-   // clk_hdmi
-   /*DCM_CLKGEN
-    # (
-		.CLKFX_MULTIPLY(10),      // Multiply value - M - (2-256)
-		.CLKFX_DIVIDE(2),         // Divide value - D - (1-256)
-      .CLKFXDV_DIVIDE(32),       // CLKFXDV divide value (2, 4, 8, 16, 32)
-		.CLKFX_MD_MAX(5.0),       // Specify maximum M/D ratio for timing anlysis
-      //.CLKIN_PERIOD(20.0),      // Input clock period specified in nS
-      .SPREAD_SPECTRUM("NONE"), // Spread Spectrum mode "NONE", "CENTER_LOW_SPREAD", "CENTER_HIGH_SPREAD",
-		.STARTUP_WAIT("FALSE")
-   ) pllx5 (
-		.CLKIN(clk0),             // 1-bit input: Input clock
-		.RST(pll_rst),            // 1-bit input: Reset input pin
-		.FREEZEDCM(1'b0),         // Prevents tap adjustment drift in the event of a lost CLKIN input. The DCM is then configured into a free-run mode.
-      .CLKFX(clkfx),            // 1-bit output: Generated clock output
-      .CLKFX180(clkfx180),      // 1-bit output: Generated clock output 180 degree out of phase from CLKFX.
-      .CLKFXDV(clkdv),               // 1-bit output: Divided clock output
-      .LOCKED(lockedx5)         // 1-bit output: Locked output
-   );*/
 	
   always @(posedge clk_bus)
   begin
 	if (kb_reset || areset || hdmi_reset) begin
-		pll_rst_cnt <= 8'b10000000;
+		pll_rst_cnt <= 4'b1000;
 	end
 	if (pll_rst_cnt > 0) pll_rst_cnt <= pll_rst_cnt+1;
   end
-  assign pll_rst = pll_rst_cnt[7];
+  assign pll_rst = pll_rst_cnt[3];
 
 	// midi clk
 	ODDR2 u_midi_clk (

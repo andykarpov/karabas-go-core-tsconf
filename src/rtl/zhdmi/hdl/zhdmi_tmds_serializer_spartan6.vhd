@@ -79,8 +79,8 @@ begin
 
 	output_buf: OBUFDS
 	generic map (
-		IOSTANDARD => "DEFAULT", -- Specify the output I/O standard
-		SLEW => "SLOW")          -- Specify the output slew rate
+		IOSTANDARD => "TMDS_33", -- Specify the output I/O standard
+		SLEW => "FAST")          -- Specify the output slew rate
 	port map (
 		I =>  tx_d,    -- Buffer input
 		O =>  tx_d_p,  -- Diff_p output (connect directly to top-level port)
