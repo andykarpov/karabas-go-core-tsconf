@@ -159,22 +159,22 @@ module karabas_mini_top (
 	reg [3:0] pll_rst_cnt = 4'd0;
 	wire pll_rst;
 
-	wire clkfbout;
+	wire clkfbout, clkfbin;
 	PLL_BASE #(
 		 .CLKIN_PERIOD(13.0),
-		 .CLKFBOUT_MULT(10),
-		 .CLKOUT0_DIVIDE(2),
-		 .CLKOUT1_DIVIDE(2),
+		 .CLKFBOUT_MULT(20),
+		 .CLKOUT0_DIVIDE(4),
+		 .CLKOUT1_DIVIDE(4),
 		 .CLKOUT1_PHASE(180.0),
-		 .CLKOUT2_DIVIDE(10),
-		 .CLKOUT3_DIVIDE(20),
+		 .CLKOUT2_DIVIDE(20),
+		 .CLKOUT3_DIVIDE(40),
 		 .COMPENSATION("INTERNAL"), // default: SYSTEM_SYNCHRONOUS. try: INTERNAL, SOURCE_SYNCHRONOUS
-		 .BANDWIDTH("LOW"), // default: OPTIMIZED. try LOW, HIGH
-		 .REF_JITTER(0.100) // default: 0.100, range: 0.100 - 0.999
+		 .BANDWIDTH("LOW"),
+		 .REF_JITTER(0.200)
 	  ) pllx5 
 	  (
 		.CLKIN(v_clk_int),
-		.CLKFBIN(clkfbout),
+		.CLKFBIN(clkfbin),
 		.CLKFBOUT(clkfbout),
 		.RST(pll_rst),
 		.LOCKED(lockedx5),
@@ -183,6 +183,11 @@ module karabas_mini_top (
 		.CLKOUT2(clk0), // 1x
 		.CLKOUT3(clkdv) // div2
 	  );
+	  
+  // this buf is needed in order to deskew between PLL clkin and clkout
+  // so 2x and 10x clock will have the same phase as input clock
+  //BUFG clkfb_buf (.I(clkfbout), .O(clkfbin));	
+  assign clkfbin = clkfbout; // internal compensation should be directly connected
 	 
   BUFG clkout1_buf (.O(clk_hdmi), .I(clkfx));
   BUFG clkout2_buf (.O(clk_hdmi_n), .I(clkfx180));
@@ -404,14 +409,10 @@ wire mcu_ft_spi_on, mcu_ft_vga_on, mcu_ft_sck, mcu_ft_mosi, mcu_ft_cs_n, mcu_ft_
 wire [7:0] host_vga_r, host_vga_g, host_vga_b;
 wire host_vga_hs, host_vga_vs, host_vga_blank;
 
+// grab FT rgb and sync into p_clk_int registers on negedge
 reg ft_vga_hs_r, ft_vga_vs_r, ft_vga_blank_r, ft_vga_hs_r2, ft_vga_vs_r2, ft_vga_blank_r2;
 reg [7:0] ft_vga_r_r, ft_vga_g_r, ft_vga_b_r, ft_vga_r_r2, ft_vga_g_r2, ft_vga_b_r2;
-
-reg ts_vga_hs_r, ts_vga_vs_r, ts_vga_blank_r, ts_vga_hs_r2, ts_vga_vs_r2, ts_vga_blank_r2;
-reg [7:0] ts_vga_r_r, ts_vga_g_r, ts_vga_b_r, ts_vga_r_r2, ts_vga_g_r2, ts_vga_b_r2;
-
-// grab FT rgb and sync into p_clk_int registers on negedge
-always @(negedge p_clk_int)
+always @(posedge p_clk_int)
 begin
 	ft_vga_hs_r <= VGA_HS; 				ft_vga_hs_r2 <= ft_vga_hs_r;
 	ft_vga_vs_r <= VGA_VS; 				ft_vga_vs_r2 <= ft_vga_vs_r;
@@ -421,7 +422,78 @@ begin
 	ft_vga_b_r <= VGA_B;    			ft_vga_b_r2 <= ft_vga_b_r;
 end
 
+// 2-port ram for 2-lines of rgb + hs + vs + de
+/*wire ft_vga_hs_r2, ft_vga_vs_r2, ft_vga_blank_r2;
+wire [7:0] ft_vga_r_r2, ft_vga_g_r2, ft_vga_b_r2;
+reg [11:0] ft_rd_addr, ft_wr_addr;
+reg ft_wr_line, ft_rd_line;
+reg [11:0] line_width, line_width_cnt;
+reg prev_ft_de;
+reg prev_ft_wr_line;
+
+ft_ram ft_ram(
+  .clka(FT_CLK),
+  .wea({1'b1}),
+  .addra({ft_wr_line, ft_wr_addr[10:0]}),
+  .dina({VGA_R, VGA_G, VGA_B, VGA_HS, VGA_VS, ~FT_DE}),
+  .clkb(p_clk_int),
+  .addrb({ft_rd_line, ft_rd_addr[10:0]}),
+  .doutb({ft_vga_r_r2, ft_vga_g_r2, ft_vga_b_r2, ft_vga_hs_r2, ft_vga_vs_r2, ft_vga_blank_r2})
+);
+
+// detect line_width 
+// start of line / rd / wr address
+always @(FT_CLK)
+begin
+	if (~prev_ft_de && FT_DE)
+	begin
+		ft_wr_line <= ~ft_wr_line;
+		ft_wr_addr <= 12'b0;
+		line_width_cnt <= 12'b0;
+	end
+	else if (prev_ft_de && ~FT_DE)
+	begin
+		line_width <= line_width_cnt;
+	end
+	else
+	begin
+		if (FT_DE) line_width_cnt <= line_width_cnt + 1;
+		ft_wr_addr <= ft_wr_addr + 1;
+	end
+	prev_ft_de <= FT_DE;
+end
+
+always @(p_clk_int)
+begin
+	if (prev_ft_wr_line != ft_wr_line) 
+	begin
+		ft_rd_line <= ~ft_wr_line;
+		ft_rd_addr <= 11'b0;
+	end
+	else
+		ft_rd_addr <= ft_rd_addr + 1;
+	prev_ft_wr_line <= ft_wr_line;	
+end*/
+
+// fifo between ft_clk and p_clk signals
+/*wire ft_vga_hs_r2, ft_vga_vs_r2, ft_vga_blank_r2;
+wire [7:0] ft_vga_r_r2, ft_vga_g_r2, ft_vga_b_r2;
+
+ft_fifo ft_fifo(
+  .rst(areset || pll_rst),
+  .wr_clk(FT_CLK),
+  .rd_clk(p_clk_int),
+  .din({VGA_R, VGA_G, VGA_B, VGA_HS, VGA_VS, ~FT_DE}),
+  .wr_en(1'b1),
+  .rd_en(1'b1),
+  .dout({ft_vga_r_r2, ft_vga_g_r2, ft_vga_b_r2, ft_vga_hs_r2, ft_vga_vs_r2, ft_vga_blank_r2}),
+  .full(),
+  .empty()
+);*/
+
 // grab TS rgb and sync into p_clk_int registers on posedge
+reg ts_vga_hs_r, ts_vga_vs_r, ts_vga_blank_r, ts_vga_hs_r2, ts_vga_vs_r2, ts_vga_blank_r2;
+reg [7:0] ts_vga_r_r, ts_vga_g_r, ts_vga_b_r, ts_vga_r_r2, ts_vga_g_r2, ts_vga_b_r2;
 always @(posedge p_clk_int)
 begin
 	ts_vga_hs_r <= video_hsync; 		ts_vga_hs_r2 <= ts_vga_hs_r;
