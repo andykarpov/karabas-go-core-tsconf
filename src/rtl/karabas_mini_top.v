@@ -81,6 +81,7 @@ module karabas_mini_top (
 	input wire FT_DE,
 	input wire FT_DISP,
 	output wire FT_RESET,
+	output wire FT_8MHZ,
 
 	//---------------------------
 	output wire [2:0] WA,
@@ -107,7 +108,7 @@ module karabas_mini_top (
 	input wire MCU_SCK,
 	input wire MCU_MOSI,
 	output wire MCU_MISO,
-	input wire [4:0] MCU_IO,
+	input wire [3:0] MCU_IO,
 	
 	//---------------------------
 	output wire MIDI_TX,
@@ -202,12 +203,26 @@ module karabas_mini_top (
 	if (pll_rst_cnt > 0) pll_rst_cnt <= pll_rst_cnt+1;
   end
   assign pll_rst = pll_rst_cnt[3];
+  
+  // TODO: DCM_CLKGEN with 8mhz input and ft_clk_int output
 
 	// midi clk
 	ODDR2 u_midi_clk (
 		.Q(MIDI_CLK),
 		.C0(clk_12mhz),
 		.C1(~clk_12mhz),
+		.CE(1'b1),
+		.D0(1'b1),
+		.D1(1'b0),
+		.R(1'b0),
+		.S(1'b0)
+	);
+	
+	// ft 8mhz
+	ODDR2 u_ft_8mhz (
+		.Q(FT_8MHZ),
+		.C0(clk_8mhz),
+		.C1(~clk_8mhz),
 		.CE(1'b1),
 		.D0(1'b1),
 		.D1(1'b0),
