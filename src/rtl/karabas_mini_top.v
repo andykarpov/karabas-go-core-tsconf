@@ -412,7 +412,7 @@ wire host_vga_hs, host_vga_vs, host_vga_blank;
 // grab FT rgb and sync into p_clk_int registers on negedge
 reg ft_vga_hs_r, ft_vga_vs_r, ft_vga_blank_r, ft_vga_hs_r2, ft_vga_vs_r2, ft_vga_blank_r2;
 reg [7:0] ft_vga_r_r, ft_vga_g_r, ft_vga_b_r, ft_vga_r_r2, ft_vga_g_r2, ft_vga_b_r2;
-always @(posedge p_clk_int)
+always @(negedge p_clk_int)
 begin
 	ft_vga_hs_r <= VGA_HS; 				ft_vga_hs_r2 <= ft_vga_hs_r;
 	ft_vga_vs_r <= VGA_VS; 				ft_vga_vs_r2 <= ft_vga_vs_r;
