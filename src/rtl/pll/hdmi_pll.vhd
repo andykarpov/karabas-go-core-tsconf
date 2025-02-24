@@ -242,8 +242,8 @@ begin
    (
       CLKFX_MULTIPLY => 10,       -- Multiply value - M - (2-256)
       CLKFX_DIVIDE   => 10,      -- Divide value - D - (1-256)
-      CLKFX_MD_MAX   => 0.2,     -- Specify maximum M/D ratio for timing analysis
-      CLKIN_PERIOD   => 35.7     -- Input clock period specified in nS (28 MHz)
+      CLKFX_MD_MAX   => 5.5,     -- Specify maximum M/D ratio for timing analysis
+      CLKIN_PERIOD   => 13.0     -- Input clock period specified in nS (28 MHz)
    )
    port map
    (
@@ -265,7 +265,12 @@ begin
       PROGDONE  => dcm1_progdone -- 1-bit output: Active high output to indicate the successful re-programming
    );
 
-	clk1 <= clk1_direct;
+	--clk1 <= clk1_direct;
+	clk1_buf: BUFG
+	port map(
+		I => clk1_direct,
+		O => clk1
+	);
 
    dcm_2 : DCM_CLKGEN
    generic map
@@ -273,7 +278,7 @@ begin
       CLKFX_MULTIPLY => 10,      -- Multiply value - M - (2-256)
       CLKFX_DIVIDE   => 10,       -- Divide value - D - (1-256)
       CLKFX_MD_MAX   => 5.5,     -- Specify maximum M/D ratio for timing analysis
-      CLKIN_PERIOD   => 35.7    -- Input clock period specified in nS   (28 MHz)
+      CLKIN_PERIOD   => 13.0    -- Input clock period specified in nS   (28 MHz)
    )
    port map
    (
