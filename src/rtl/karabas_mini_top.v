@@ -159,7 +159,7 @@ module karabas_mini_top (
 	wire clk0, clkfx, clkfx180, clkdv;
 	reg [3:0] pll_rst_cnt = 4'd0;
 	wire pll_rst;
-
+	/*
 	wire clkfbout, clkfbin;
 	PLL_BASE #(
 		 .CLKIN_PERIOD(13.0),
@@ -194,6 +194,24 @@ module karabas_mini_top (
   BUFG clkout2_buf (.O(clk_hdmi_n), .I(clkfx180));
   BUFG clkout3_buf (.O(p_clk_int), .I(clk0));
   BUFG clkout4_buf (.O(p_clk_div2), .I(clkdv));
+  */
+  
+  wire clk_hdmi_valid;
+  
+  hdmi_pll hdmi_pll(
+	.RST(1'b0),
+	.SSTEP(pll_rst),
+	.CLKDRP(clk_bus),
+	.FREQ(hdmi_freq),
+	.CLKIN(v_clk_int),
+	.CLKIN_RDY_N(locked),
+	.CLK0OUT(clk_hdmi),
+	.CLK1OUT(clk_hdmi_n),
+	.CLK2OUT(p_clk_int),
+	.VALID(clk_hdmi_valid)
+  );
+  
+  assign lockedx5 = ~clk_hdmi_valid;
 	
   always @(posedge clk_bus)
   begin
@@ -522,8 +540,8 @@ end
 assign host_vga_r = (vdac2_sel ? (ft_vga_blank_r2 ? 8'b0 : ft_vga_r_r2) : (ts_vga_blank_r2 ? 8'b0 : ts_vga_r_r2));
 assign host_vga_g = (vdac2_sel ? (ft_vga_blank_r2 ? 8'b0 : ft_vga_g_r2) : (ts_vga_blank_r2 ? 8'b0 : ts_vga_g_r2));
 assign host_vga_b = (vdac2_sel ? (ft_vga_blank_r2 ? 8'b0 : ft_vga_b_r2) : (ts_vga_blank_r2 ? 8'b0 : ts_vga_b_r2));
-assign host_vga_hs = (vdac2_sel ? ft_vga_hs_r2 : ts_vga_hs_r2);
-assign host_vga_vs = (vdac2_sel ? ft_vga_vs_r2 : ts_vga_vs_r2);
+assign host_vga_hs = (vdac2_sel ? (ft_vga_blank_r2 ? 1'b1 :ft_vga_hs_r2) : ts_vga_hs_r2);
+assign host_vga_vs = (vdac2_sel ? (ft_vga_blank_r2 ? 1'b1 :ft_vga_vs_r2) : ts_vga_vs_r2);
 assign host_vga_blank = (vdac2_sel ? ft_vga_blank_r2 : ts_vga_blank_r2);
 
 assign FT_SPI_CS_N = mcu_ft_spi_on ? mcu_ft_cs_n : ftcs_n;
@@ -536,7 +554,7 @@ assign FT_RESET = ~mcu_ft_reset; // 1'b1
 // pixelclock mux
 BUFGMUX v_clk_mux(
  .I0(ce_28m),
- .I1(FT_CLK),
+ .I1(clk_8mhz),
  .O(v_clk_int),
  .S(vdac2_sel)
 );
@@ -552,7 +570,7 @@ end
 // freq counter (in Mhz)
 freq_counter freq_counter_inst(
 	.i_clk_ref(clk_bus),
-	.i_clk_test(v_clk_int),
+	.i_clk_test(FT_CLK),
 	.i_reset(areset),
 	.o_freq(hdmi_freq)
 );
