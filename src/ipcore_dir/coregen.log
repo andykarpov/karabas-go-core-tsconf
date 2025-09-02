@@ -4,684 +4,71 @@ The IP Catalog has been reloaded.
 Opening project file
 /home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
 sconf/src/ipcore_dir/coregen.cgp.
-Regenerate all project IP (under current project settings)INFO:sim:953 - Generating composite instance 'coregen' of
-   'xilinx.com:project:coregen:1.0' from
-   '/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-co
-   re-tsconf/src/ipcore_dir/coregen.cgc'.
-INFO:sim:172 - Generating IP...
+Customize and GenerateINFO:sim:172 - Generating IP...
 Applying current project options...
 Finished applying current project options.
-Resolving generics for 'blk_ram'...
-WARNING:sim - A core named 'blk_ram' already exists in the project. Output
-   products for this core may be overwritten.
-Applying external generics to 'blk_ram'...
-Delivering associated files for 'blk_ram'...
-Delivering EJava files for 'blk_ram'...
-Generating implementation netlist for 'blk_ram'...
-INFO:sim - Pre-processing HDL files for 'blk_ram'...
-Running synthesis for 'blk_ram'
-Running ngcbuild...
-Writing VEO instantiation template for 'blk_ram'...
-Writing Verilog behavioral simulation model for 'blk_ram'...
-WARNING:sim - Overwriting existing file
-   /home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-cor
-   e-tsconf/src/ipcore_dir/tmp/_cg/blk_ram/doc/blk_mem_gen_v7_3_vinfo.html with
-   file from view xilinx_documentation
-Delivered 1 file into directory
-/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
-sconf/src/ipcore_dir/tmp/_cg/blk_ram
-Generating ASY schematic symbol...
-INFO:sim:949 - Finished generation of ASY schematic symbol.
-Generating metadata file...
-Regenerating ISE project file for 'blk_ram'...
-Generating ISE project...
-XCO file found: blk_ram.xco
-XMDF file found: blk_ram_xmdf.tcl
-Adding
-/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
-sconf/src/ipcore_dir/tmp/_cg/blk_ram.asy -view all -origin_type imported
-Adding
-/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
-sconf/src/ipcore_dir/tmp/_cg/blk_ram.ngc -view all -origin_type created
-Checking file
-"/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-
-tsconf/src/ipcore_dir/tmp/_cg/blk_ram.ngc" for project device match ...
-File
-"/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-
-tsconf/src/ipcore_dir/tmp/_cg/blk_ram.ngc" device information matches project
-device.
-Adding
-/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
-sconf/src/ipcore_dir/tmp/_cg/blk_ram.v -view all -origin_type created
-INFO:HDLCompiler:1845 - Analyzing Verilog file
-   "/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-co
-   re-tsconf/src/ipcore_dir/tmp/_cg/blk_ram.v" into library work
-INFO:ProjectMgmt - Parsing design hierarchy completed successfully.
-Adding
-/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
-sconf/src/ipcore_dir/tmp/_cg/blk_ram.veo -view all -origin_type imported
-INFO:TclTasksC:2116 - The automatic calculation of top has been turned-off.
-   Please set the new top explicitly by running the "project set top" command.
-   To re-calculate the new top automatically, set the "Auto Implementation Top"
-   property to true.
-Top level has been set to "/blk_ram"
-Generating README file...
-Generating FLIST file...
-INFO:sim:948 - Finished FLIST file generation.
-Moving files to output directory...
-Finished moving files to output directory
-INFO:sim:172 - Generating IP...
-Applying current project options...
-Finished applying current project options.
-Resolving generics for 'fifo'...
-WARNING:sim - A core named 'fifo' already exists in the project. Output products
-   for this core may be overwritten.
-Applying external generics to 'fifo'...
-Delivering associated files for 'fifo'...
-Delivering EJava files for 'fifo'...
-Generating implementation netlist for 'fifo'...
-INFO:sim - Pre-processing HDL files for 'fifo'...
+Resolving generics for 'audio_fifo'...
+Applying external generics to 'audio_fifo'...
+Delivering associated files for 'audio_fifo'...
+Delivering EJava files for 'audio_fifo'...
+Generating implementation netlist for 'audio_fifo'...
+INFO:sim - Pre-processing HDL files for 'audio_fifo'...
 WARNING:sim - BlackBox generator run option '-ifmt' found multiple times. Only
    the first occurence is considered.
-Running synthesis for 'fifo'
+Running synthesis for 'audio_fifo'
 Running ngcbuild...
-Writing VEO instantiation template for 'fifo'...
-Writing Verilog behavioral simulation model for 'fifo'...
+Writing VEO instantiation template for 'audio_fifo'...
+Writing Verilog behavioral simulation model for 'audio_fifo'...
 WARNING:sim - Overwriting existing file
    /home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-cor
-   e-tsconf/src/ipcore_dir/tmp/_cg/fifo/doc/fifo_generator_v9_3_vinfo.html with
-   file from view xilinx_documentation
+   e-tsconf/src/ipcore_dir/tmp/_cg/audio_fifo/doc/fifo_generator_v9_3_vinfo.html
+   with file from view xilinx_documentation
 Delivered 3 files into directory
 /home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
-sconf/src/ipcore_dir/tmp/_cg/fifo
+sconf/src/ipcore_dir/tmp/_cg/audio_fifo
 Delivered 1 file into directory
 /home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
-sconf/src/ipcore_dir/tmp/_cg/fifo
+sconf/src/ipcore_dir/tmp/_cg/audio_fifo
 Generating ASY schematic symbol...
 INFO:sim:949 - Finished generation of ASY schematic symbol.
 Generating metadata file...
-Regenerating ISE project file for 'fifo'...
+Generating ISE project file for 'audio_fifo'...
 Generating ISE project...
-XCO file found: fifo.xco
-XMDF file found: fifo_xmdf.tcl
+XCO file found: audio_fifo.xco
+XMDF file found: audio_fifo_xmdf.tcl
 Adding
 /home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
-sconf/src/ipcore_dir/tmp/_cg/fifo.asy -view all -origin_type imported
+sconf/src/ipcore_dir/tmp/_cg/audio_fifo.asy -view all -origin_type imported
 Adding
 /home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
-sconf/src/ipcore_dir/tmp/_cg/fifo.ngc -view all -origin_type created
+sconf/src/ipcore_dir/tmp/_cg/audio_fifo.ngc -view all -origin_type created
 Checking file
 "/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-
-tsconf/src/ipcore_dir/tmp/_cg/fifo.ngc" for project device match ...
+tsconf/src/ipcore_dir/tmp/_cg/audio_fifo.ngc" for project device match ...
 File
 "/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-
-tsconf/src/ipcore_dir/tmp/_cg/fifo.ngc" device information matches project
+tsconf/src/ipcore_dir/tmp/_cg/audio_fifo.ngc" device information matches project
 device.
 Adding
 /home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
-sconf/src/ipcore_dir/tmp/_cg/fifo.v -view all -origin_type created
+sconf/src/ipcore_dir/tmp/_cg/audio_fifo.v -view all -origin_type created
 INFO:HDLCompiler:1845 - Analyzing Verilog file
    "/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-co
-   re-tsconf/src/ipcore_dir/tmp/_cg/fifo.v" into library work
+   re-tsconf/src/ipcore_dir/tmp/_cg/audio_fifo.v" into library work
 INFO:ProjectMgmt - Parsing design hierarchy completed successfully.
 Adding
 /home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
-sconf/src/ipcore_dir/tmp/_cg/fifo.veo -view all -origin_type imported
+sconf/src/ipcore_dir/tmp/_cg/audio_fifo.veo -view all -origin_type imported
 INFO:TclTasksC:2116 - The automatic calculation of top has been turned-off.
    Please set the new top explicitly by running the "project set top" command.
    To re-calculate the new top automatically, set the "Auto Implementation Top"
    property to true.
-Top level has been set to "/fifo"
+Top level has been set to "/audio_fifo"
 Generating README file...
 Generating FLIST file...
 INFO:sim:948 - Finished FLIST file generation.
+Launching README viewer...
 Moving files to output directory...
 Finished moving files to output directory
-INFO:sim:172 - Generating IP...
-Applying current project options...
-Finished applying current project options.
-Resolving generics for 'fifo2'...
-WARNING:sim - A core named 'fifo2' already exists in the project. Output
-   products for this core may be overwritten.
-Applying external generics to 'fifo2'...
-Delivering associated files for 'fifo2'...
-Delivering EJava files for 'fifo2'...
-Generating implementation netlist for 'fifo2'...
-INFO:sim - Pre-processing HDL files for 'fifo2'...
-WARNING:sim - BlackBox generator run option '-ifmt' found multiple times. Only
-   the first occurence is considered.
-Running synthesis for 'fifo2'
-Running ngcbuild...
-Writing VEO instantiation template for 'fifo2'...
-Writing Verilog behavioral simulation model for 'fifo2'...
-WARNING:sim - Overwriting existing file
-   /home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-cor
-   e-tsconf/src/ipcore_dir/tmp/_cg/fifo2/doc/fifo_generator_v9_3_vinfo.html with
-   file from view xilinx_documentation
-Delivered 3 files into directory
-/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
-sconf/src/ipcore_dir/tmp/_cg/fifo2
-Delivered 1 file into directory
-/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
-sconf/src/ipcore_dir/tmp/_cg/fifo2
-Generating ASY schematic symbol...
-INFO:sim:949 - Finished generation of ASY schematic symbol.
-Generating metadata file...
-Regenerating ISE project file for 'fifo2'...
-Generating ISE project...
-XCO file found: fifo2.xco
-XMDF file found: fifo2_xmdf.tcl
-Adding
-/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
-sconf/src/ipcore_dir/tmp/_cg/fifo2.asy -view all -origin_type imported
-Adding
-/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
-sconf/src/ipcore_dir/tmp/_cg/fifo2.ngc -view all -origin_type created
-Checking file
-"/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-
-tsconf/src/ipcore_dir/tmp/_cg/fifo2.ngc" for project device match ...
-File
-"/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-
-tsconf/src/ipcore_dir/tmp/_cg/fifo2.ngc" device information matches project
-device.
-Adding
-/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
-sconf/src/ipcore_dir/tmp/_cg/fifo2.v -view all -origin_type created
-INFO:HDLCompiler:1845 - Analyzing Verilog file
-   "/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-co
-   re-tsconf/src/ipcore_dir/tmp/_cg/fifo2.v" into library work
-INFO:ProjectMgmt - Parsing design hierarchy completed successfully.
-Adding
-/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
-sconf/src/ipcore_dir/tmp/_cg/fifo2.veo -view all -origin_type imported
-INFO:TclTasksC:2116 - The automatic calculation of top has been turned-off.
-   Please set the new top explicitly by running the "project set top" command.
-   To re-calculate the new top automatically, set the "Auto Implementation Top"
-   property to true.
-Top level has been set to "/fifo2"
-Generating README file...
-Generating FLIST file...
-INFO:sim:948 - Finished FLIST file generation.
-Moving files to output directory...
-Finished moving files to output directory
-INFO:sim:172 - Generating IP...
-Applying current project options...
-Finished applying current project options.
-Resolving generics for 'fifo_keybuf'...
-WARNING:sim - A core named 'fifo_keybuf' already exists in the project. Output
-   products for this core may be overwritten.
-Applying external generics to 'fifo_keybuf'...
-Delivering associated files for 'fifo_keybuf'...
-Delivering EJava files for 'fifo_keybuf'...
-Generating implementation netlist for 'fifo_keybuf'...
-INFO:sim - Pre-processing HDL files for 'fifo_keybuf'...
-WARNING:sim - BlackBox generator run option '-ifmt' found multiple times. Only
-   the first occurence is considered.
-Running synthesis for 'fifo_keybuf'
-Running ngcbuild...
-Writing VEO instantiation template for 'fifo_keybuf'...
-Writing Verilog behavioral simulation model for 'fifo_keybuf'...
-WARNING:sim - Overwriting existing file
-   /home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-cor
-   e-tsconf/src/ipcore_dir/tmp/_cg/fifo_keybuf/doc/fifo_generator_v9_3_vinfo.htm
-   l with file from view xilinx_documentation
-Delivered 3 files into directory
-/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
-sconf/src/ipcore_dir/tmp/_cg/fifo_keybuf
-Delivered 1 file into directory
-/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
-sconf/src/ipcore_dir/tmp/_cg/fifo_keybuf
-Generating ASY schematic symbol...
-INFO:sim:949 - Finished generation of ASY schematic symbol.
-Generating metadata file...
-Regenerating ISE project file for 'fifo_keybuf'...
-Generating ISE project...
-XCO file found: fifo_keybuf.xco
-XMDF file found: fifo_keybuf_xmdf.tcl
-Adding
-/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
-sconf/src/ipcore_dir/tmp/_cg/fifo_keybuf.asy -view all -origin_type imported
-Adding
-/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
-sconf/src/ipcore_dir/tmp/_cg/fifo_keybuf.ngc -view all -origin_type created
-Checking file
-"/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-
-tsconf/src/ipcore_dir/tmp/_cg/fifo_keybuf.ngc" for project device match ...
-File
-"/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-
-tsconf/src/ipcore_dir/tmp/_cg/fifo_keybuf.ngc" device information matches
-project device.
-Adding
-/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
-sconf/src/ipcore_dir/tmp/_cg/fifo_keybuf.v -view all -origin_type created
-INFO:HDLCompiler:1845 - Analyzing Verilog file
-   "/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-co
-   re-tsconf/src/ipcore_dir/tmp/_cg/fifo_keybuf.v" into library work
-INFO:ProjectMgmt - Parsing design hierarchy completed successfully.
-Adding
-/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
-sconf/src/ipcore_dir/tmp/_cg/fifo_keybuf.veo -view all -origin_type imported
-INFO:TclTasksC:2116 - The automatic calculation of top has been turned-off.
-   Please set the new top explicitly by running the "project set top" command.
-   To re-calculate the new top automatically, set the "Auto Implementation Top"
-   property to true.
-Top level has been set to "/fifo_keybuf"
-Generating README file...
-Generating FLIST file...
-INFO:sim:948 - Finished FLIST file generation.
-Moving files to output directory...
-Finished moving files to output directory
-INFO:sim:172 - Generating IP...
-Applying current project options...
-Finished applying current project options.
-Resolving generics for 'gsrom'...
-WARNING:sim - A core named 'gsrom' already exists in the project. Output
-   products for this core may be overwritten.
-Applying external generics to 'gsrom'...
-Delivering associated files for 'gsrom'...
-Delivering EJava files for 'gsrom'...
-Generating implementation netlist for 'gsrom'...
-INFO:sim - Pre-processing HDL files for 'gsrom'...
-Running synthesis for 'gsrom'
-Running ngcbuild...
-Writing VEO instantiation template for 'gsrom'...
-Writing Verilog behavioral simulation model for 'gsrom'...
-WARNING:sim - Overwriting existing file
-   /home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-cor
-   e-tsconf/src/ipcore_dir/tmp/_cg/gsrom/doc/blk_mem_gen_v7_3_vinfo.html with
-   file from view xilinx_documentation
-Delivered 1 file into directory
-/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
-sconf/src/ipcore_dir/tmp/_cg/gsrom
-Generating ASY schematic symbol...
-INFO:sim:949 - Finished generation of ASY schematic symbol.
-Generating metadata file...
-Regenerating ISE project file for 'gsrom'...
-Generating ISE project...
-XCO file found: gsrom.xco
-XMDF file found: gsrom_xmdf.tcl
-Adding
-/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
-sconf/src/ipcore_dir/tmp/_cg/gsrom.asy -view all -origin_type imported
-Adding
-/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
-sconf/src/ipcore_dir/tmp/_cg/gsrom.ngc -view all -origin_type created
-Checking file
-"/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-
-tsconf/src/ipcore_dir/tmp/_cg/gsrom.ngc" for project device match ...
-File
-"/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-
-tsconf/src/ipcore_dir/tmp/_cg/gsrom.ngc" device information matches project
-device.
-Adding
-/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
-sconf/src/ipcore_dir/tmp/_cg/gsrom.v -view all -origin_type created
-INFO:HDLCompiler:1845 - Analyzing Verilog file
-   "/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-co
-   re-tsconf/src/ipcore_dir/tmp/_cg/gsrom.v" into library work
-INFO:ProjectMgmt - Parsing design hierarchy completed successfully.
-Adding
-/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
-sconf/src/ipcore_dir/tmp/_cg/gsrom.veo -view all -origin_type imported
-INFO:TclTasksC:2116 - The automatic calculation of top has been turned-off.
-   Please set the new top explicitly by running the "project set top" command.
-   To re-calculate the new top automatically, set the "Auto Implementation Top"
-   property to true.
-Top level has been set to "/gsrom"
-Generating README file...
-Generating FLIST file...
-INFO:sim:948 - Finished FLIST file generation.
-Moving files to output directory...
-Finished moving files to output directory
-INFO:sim:172 - Generating IP...
-Applying current project options...
-Finished applying current project options.
-Resolving generics for 'osd_vram'...
-WARNING:sim - A core named 'osd_vram' already exists in the project. Output
-   products for this core may be overwritten.
-Applying external generics to 'osd_vram'...
-Delivering associated files for 'osd_vram'...
-Delivering EJava files for 'osd_vram'...
-Generating implementation netlist for 'osd_vram'...
-INFO:sim - Pre-processing HDL files for 'osd_vram'...
-Running synthesis for 'osd_vram'
-Running ngcbuild...
-Writing VEO instantiation template for 'osd_vram'...
-Writing Verilog behavioral simulation model for 'osd_vram'...
-WARNING:sim - Overwriting existing file
-   /home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-cor
-   e-tsconf/src/ipcore_dir/tmp/_cg/osd_vram/doc/blk_mem_gen_v7_3_vinfo.html with
-   file from view xilinx_documentation
-Delivered 1 file into directory
-/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
-sconf/src/ipcore_dir/tmp/_cg/osd_vram
-Generating ASY schematic symbol...
-INFO:sim:949 - Finished generation of ASY schematic symbol.
-Generating metadata file...
-Regenerating ISE project file for 'osd_vram'...
-Generating ISE project...
-XCO file found: osd_vram.xco
-XMDF file found: osd_vram_xmdf.tcl
-Adding
-/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
-sconf/src/ipcore_dir/tmp/_cg/osd_vram.asy -view all -origin_type imported
-Adding
-/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
-sconf/src/ipcore_dir/tmp/_cg/osd_vram.ngc -view all -origin_type created
-Checking file
-"/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-
-tsconf/src/ipcore_dir/tmp/_cg/osd_vram.ngc" for project device match ...
-File
-"/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-
-tsconf/src/ipcore_dir/tmp/_cg/osd_vram.ngc" device information matches project
-device.
-Adding
-/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
-sconf/src/ipcore_dir/tmp/_cg/osd_vram.v -view all -origin_type created
-INFO:HDLCompiler:1845 - Analyzing Verilog file
-   "/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-co
-   re-tsconf/src/ipcore_dir/tmp/_cg/osd_vram.v" into library work
-INFO:ProjectMgmt - Parsing design hierarchy completed successfully.
-Adding
-/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
-sconf/src/ipcore_dir/tmp/_cg/osd_vram.veo -view all -origin_type imported
-INFO:TclTasksC:2116 - The automatic calculation of top has been turned-off.
-   Please set the new top explicitly by running the "project set top" command.
-   To re-calculate the new top automatically, set the "Auto Implementation Top"
-   property to true.
-Top level has been set to "/osd_vram"
-Generating README file...
-Generating FLIST file...
-INFO:sim:948 - Finished FLIST file generation.
-Moving files to output directory...
-Finished moving files to output directory
-INFO:sim:172 - Generating IP...
-Applying current project options...
-Finished applying current project options.
-Resolving generics for 'pll'...
-WARNING:sim - A core named 'pll' already exists in the project. Output products
-   for this core may be overwritten.
-Applying external generics to 'pll'...
-Delivering associated files for 'pll'...
-WARNING:sim - Component clk_wiz_v3_6 does not have a valid model name for
-   Verilog synthesis
-Delivering EJava files for 'pll'...
-Delivered 3 files into directory
-/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
-sconf/src/ipcore_dir/tmp/_cg/pll
-Delivered 1 file into directory
-/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
-sconf/src/ipcore_dir/tmp/_cg/pll
-Generating ASY schematic symbol...
-Loading device for application Rf_Device from file '6slx25.nph' in environment
-/opt/Xilinx/14.7/ISE_DS/ISE/.
-INFO:sim:949 - Finished generation of ASY schematic symbol.
-Generating ISE project...
-XCO file found: pll.xco
-XMDF file found: pll_xmdf.tcl
-Adding
-/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
-sconf/src/ipcore_dir/tmp/_cg/pll.asy -view all -origin_type imported
-Adding
-/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
-sconf/src/ipcore_dir/tmp/_cg/pll.ucf -view all -origin_type created
-Adding
-/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
-sconf/src/ipcore_dir/tmp/_cg/pll.v -view all -origin_type created
-INFO:HDLCompiler:1845 - Analyzing Verilog file
-   "/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-co
-   re-tsconf/src/ipcore_dir/tmp/_cg/pll.v" into library work
-INFO:ProjectMgmt - Parsing design hierarchy completed successfully.
-Adding
-/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
-sconf/src/ipcore_dir/tmp/_cg/pll.veo -view all -origin_type imported
-INFO:TclTasksC:2116 - The automatic calculation of top has been turned-off.
-   Please set the new top explicitly by running the "project set top" command.
-   To re-calculate the new top automatically, set the "Auto Implementation Top"
-   property to true.
-Top level has been set to "/pll"
-Generating README file...
-Generating FLIST file...
-INFO:sim:948 - Finished FLIST file generation.
-Moving files to output directory...
-Finished moving files to output directory
-INFO:sim:172 - Generating IP...
-Applying current project options...
-Finished applying current project options.
-Resolving generics for 'pllx5'...
-WARNING:sim - A core named 'pllx5' already exists in the project. Output
-   products for this core may be overwritten.
-Applying external generics to 'pllx5'...
-Delivering associated files for 'pllx5'...
-WARNING:sim - Component clk_wiz_v3_6 does not have a valid model name for
-   Verilog synthesis
-Delivering EJava files for 'pllx5'...
-Delivered 3 files into directory
-/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
-sconf/src/ipcore_dir/tmp/_cg/pllx5
-Delivered 1 file into directory
-/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
-sconf/src/ipcore_dir/tmp/_cg/pllx5
-Generating ASY schematic symbol...
-INFO:sim:949 - Finished generation of ASY schematic symbol.
-Generating ISE project...
-XCO file found: pllx5.xco
-XMDF file found: pllx5_xmdf.tcl
-Adding
-/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
-sconf/src/ipcore_dir/tmp/_cg/pllx5.asy -view all -origin_type imported
-Adding
-/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
-sconf/src/ipcore_dir/tmp/_cg/pllx5.ucf -view all -origin_type created
-Adding
-/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
-sconf/src/ipcore_dir/tmp/_cg/pllx5.v -view all -origin_type created
-INFO:HDLCompiler:1845 - Analyzing Verilog file
-   "/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-co
-   re-tsconf/src/ipcore_dir/tmp/_cg/pllx5.v" into library work
-INFO:ProjectMgmt - Parsing design hierarchy completed successfully.
-Adding
-/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
-sconf/src/ipcore_dir/tmp/_cg/pllx5.veo -view all -origin_type imported
-INFO:TclTasksC:2116 - The automatic calculation of top has been turned-off.
-   Please set the new top explicitly by running the "project set top" command.
-   To re-calculate the new top automatically, set the "Auto Implementation Top"
-   property to true.
-Top level has been set to "/pllx5"
-Generating README file...
-Generating FLIST file...
-INFO:sim:948 - Finished FLIST file generation.
-Moving files to output directory...
-Finished moving files to output directory
-INFO:sim:172 - Generating IP...
-Applying current project options...
-Finished applying current project options.
-Resolving generics for 'queue'...
-WARNING:sim - A core named 'queue' already exists in the project. Output
-   products for this core may be overwritten.
-Applying external generics to 'queue'...
-Delivering associated files for 'queue'...
-Delivering EJava files for 'queue'...
-Generating implementation netlist for 'queue'...
-INFO:sim - Pre-processing HDL files for 'queue'...
-WARNING:sim - BlackBox generator run option '-ifmt' found multiple times. Only
-   the first occurence is considered.
-Running synthesis for 'queue'
-Running ngcbuild...
-Writing VEO instantiation template for 'queue'...
-Writing Verilog behavioral simulation model for 'queue'...
-WARNING:sim - Overwriting existing file
-   /home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-cor
-   e-tsconf/src/ipcore_dir/tmp/_cg/queue/doc/fifo_generator_v9_3_vinfo.html with
-   file from view xilinx_documentation
-Delivered 3 files into directory
-/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
-sconf/src/ipcore_dir/tmp/_cg/queue
-Delivered 1 file into directory
-/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
-sconf/src/ipcore_dir/tmp/_cg/queue
-Generating ASY schematic symbol...
-INFO:sim:949 - Finished generation of ASY schematic symbol.
-Generating metadata file...
-Regenerating ISE project file for 'queue'...
-Generating ISE project...
-XCO file found: queue.xco
-XMDF file found: queue_xmdf.tcl
-Adding
-/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
-sconf/src/ipcore_dir/tmp/_cg/queue.asy -view all -origin_type imported
-Adding
-/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
-sconf/src/ipcore_dir/tmp/_cg/queue.ngc -view all -origin_type created
-Checking file
-"/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-
-tsconf/src/ipcore_dir/tmp/_cg/queue.ngc" for project device match ...
-File
-"/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-
-tsconf/src/ipcore_dir/tmp/_cg/queue.ngc" device information matches project
-device.
-Adding
-/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
-sconf/src/ipcore_dir/tmp/_cg/queue.v -view all -origin_type created
-INFO:HDLCompiler:1845 - Analyzing Verilog file
-   "/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-co
-   re-tsconf/src/ipcore_dir/tmp/_cg/queue.v" into library work
-INFO:ProjectMgmt - Parsing design hierarchy completed successfully.
-Adding
-/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
-sconf/src/ipcore_dir/tmp/_cg/queue.veo -view all -origin_type imported
-INFO:TclTasksC:2116 - The automatic calculation of top has been turned-off.
-   Please set the new top explicitly by running the "project set top" command.
-   To re-calculate the new top automatically, set the "Auto Implementation Top"
-   property to true.
-Top level has been set to "/queue"
-Generating README file...
-Generating FLIST file...
-INFO:sim:948 - Finished FLIST file generation.
-Moving files to output directory...
-Finished moving files to output directory
-INFO:sim:172 - Generating IP...
-Applying current project options...
-Finished applying current project options.
-Resolving generics for 'rom_font'...
-WARNING:sim - A core named 'rom_font' already exists in the project. Output
-   products for this core may be overwritten.
-Applying external generics to 'rom_font'...
-Delivering associated files for 'rom_font'...
-Delivering EJava files for 'rom_font'...
-Generating implementation netlist for 'rom_font'...
-INFO:sim - Pre-processing HDL files for 'rom_font'...
-Running synthesis for 'rom_font'
-Running ngcbuild...
-Writing VEO instantiation template for 'rom_font'...
-Writing Verilog behavioral simulation model for 'rom_font'...
-WARNING:sim - Overwriting existing file
-   /home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-cor
-   e-tsconf/src/ipcore_dir/tmp/_cg/rom_font/doc/blk_mem_gen_v7_3_vinfo.html with
-   file from view xilinx_documentation
-Delivered 1 file into directory
-/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
-sconf/src/ipcore_dir/tmp/_cg/rom_font
-Generating ASY schematic symbol...
-INFO:sim:949 - Finished generation of ASY schematic symbol.
-Generating metadata file...
-Regenerating ISE project file for 'rom_font'...
-Generating ISE project...
-XCO file found: rom_font.xco
-XMDF file found: rom_font_xmdf.tcl
-Adding
-/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
-sconf/src/ipcore_dir/tmp/_cg/rom_font.asy -view all -origin_type imported
-Adding
-/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
-sconf/src/ipcore_dir/tmp/_cg/rom_font.ngc -view all -origin_type created
-Checking file
-"/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-
-tsconf/src/ipcore_dir/tmp/_cg/rom_font.ngc" for project device match ...
-File
-"/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-
-tsconf/src/ipcore_dir/tmp/_cg/rom_font.ngc" device information matches project
-device.
-Adding
-/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
-sconf/src/ipcore_dir/tmp/_cg/rom_font.v -view all -origin_type created
-INFO:HDLCompiler:1845 - Analyzing Verilog file
-   "/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-co
-   re-tsconf/src/ipcore_dir/tmp/_cg/rom_font.v" into library work
-INFO:ProjectMgmt - Parsing design hierarchy completed successfully.
-Adding
-/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
-sconf/src/ipcore_dir/tmp/_cg/rom_font.veo -view all -origin_type imported
-INFO:TclTasksC:2116 - The automatic calculation of top has been turned-off.
-   Please set the new top explicitly by running the "project set top" command.
-   To re-calculate the new top automatically, set the "Auto Implementation Top"
-   property to true.
-Top level has been set to "/rom_font"
-Generating README file...
-Generating FLIST file...
-INFO:sim:948 - Finished FLIST file generation.
-Moving files to output directory...
-Finished moving files to output directory
-INFO:sim:172 - Generating IP...
-Applying current project options...
-Finished applying current project options.
-Resolving generics for 'rtc'...
-WARNING:sim - A core named 'rtc' already exists in the project. Output products
-   for this core may be overwritten.
-Applying external generics to 'rtc'...
-Delivering associated files for 'rtc'...
-Delivering EJava files for 'rtc'...
-Generating implementation netlist for 'rtc'...
-INFO:sim - Pre-processing HDL files for 'rtc'...
-Running synthesis for 'rtc'
-Running ngcbuild...
-Writing VEO instantiation template for 'rtc'...
-Writing Verilog behavioral simulation model for 'rtc'...
-WARNING:sim - Overwriting existing file
-   /home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-cor
-   e-tsconf/src/ipcore_dir/tmp/_cg/rtc/doc/blk_mem_gen_v7_3_vinfo.html with file
-   from view xilinx_documentation
-Delivered 1 file into directory
-/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
-sconf/src/ipcore_dir/tmp/_cg/rtc
-Generating ASY schematic symbol...
-INFO:sim:949 - Finished generation of ASY schematic symbol.
-Generating metadata file...
-Regenerating ISE project file for 'rtc'...
-Generating ISE project...
-XCO file found: rtc.xco
-XMDF file found: rtc_xmdf.tcl
-Adding
-/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
-sconf/src/ipcore_dir/tmp/_cg/rtc.asy -view all -origin_type imported
-Adding
-/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
-sconf/src/ipcore_dir/tmp/_cg/rtc.ngc -view all -origin_type created
-Checking file
-"/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-
-tsconf/src/ipcore_dir/tmp/_cg/rtc.ngc" for project device match ...
-File
-"/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-
-tsconf/src/ipcore_dir/tmp/_cg/rtc.ngc" device information matches project
-device.
-Adding
-/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
-sconf/src/ipcore_dir/tmp/_cg/rtc.v -view all -origin_type created
-INFO:HDLCompiler:1845 - Analyzing Verilog file
-   "/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-co
-   re-tsconf/src/ipcore_dir/tmp/_cg/rtc.v" into library work
-INFO:ProjectMgmt - Parsing design hierarchy completed successfully.
-Adding
-/home/andy/Documents/Projects/Retrocomp/ZX-Spectrum/karabas-go/karabas-go-core-t
-sconf/src/ipcore_dir/tmp/_cg/rtc.veo -view all -origin_type imported
-INFO:TclTasksC:2116 - The automatic calculation of top has been turned-off.
-   Please set the new top explicitly by running the "project set top" command.
-   To re-calculate the new top automatically, set the "Auto Implementation Top"
-   property to true.
-Top level has been set to "/rtc"
-Generating README file...
-Generating FLIST file...
-INFO:sim:948 - Finished FLIST file generation.
-Moving files to output directory...
-Finished moving files to output directory
+Saved CGP file for project 'coregen'.
 Closed project file.

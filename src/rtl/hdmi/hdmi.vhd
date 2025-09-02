@@ -175,8 +175,9 @@ ctl_32 <= ctl3&ctl2;
 FSA: process(I_CLK_PIXEL, I_RESET) is 
 begin 
 	if (I_RESET = '1') then
-		state <= controlData;
+		state <= videoData;
 		clockCounter <= 0;
+		prevBlank <= '0';
 		
    elsif(rising_edge(I_CLK_PIXEL)) then
       if(prevBlank = '0' and i_BLANK = '1') then

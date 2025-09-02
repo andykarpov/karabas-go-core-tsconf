@@ -81,6 +81,7 @@ module karabas_mini_top (
 	input wire FT_DE,
 	input wire FT_DISP,
 	output wire FT_RESET,
+	output wire FT_CLK_OUT,
 
 	//---------------------------
 	output wire [2:0] WA,
@@ -107,7 +108,7 @@ module karabas_mini_top (
 	input wire MCU_SCK,
 	input wire MCU_MOSI,
 	output wire MCU_MISO,
-	input wire [4:0] MCU_IO,
+	input wire [3:0] MCU_IO,
 	
 	//---------------------------
 	output wire MIDI_TX,
@@ -137,14 +138,8 @@ module karabas_mini_top (
 	wire clk_16mhz;
 	wire clk_12mhz;
 	wire v_clk_int;
-	wire p_clk_int, p_clk_div2;
-	wire clk_hdmi, clk_hdmi_n;
-   wire locked, lockedx5;
+   wire locked;
 	wire areset;
-	
-	wire [7:0] hdmi_freq;
-	reg [7:0] prev_hdmi_freq;
-	reg hdmi_reset;
 
    pll pll (
 	  .CLK_IN1(CLK_50MHZ),
@@ -155,60 +150,11 @@ module karabas_mini_top (
 	  .LOCKED(locked)
 	);
 	
-	wire clk0, clkfx, clkfx180, clkdv;
-	reg [7:0] pll_rst_cnt = 8'd0;
-	wire pll_rst;
-	reg prev_vdac2_sel;
-
-	wire clkfbout;
-	PLL_BASE #(
-		 .CLKIN_PERIOD(13.0),
-		 .CLKFBOUT_MULT(10),
-		 .CLKOUT0_DIVIDE(2),
-		 .CLKOUT1_DIVIDE(2),
-		 .CLKOUT1_PHASE(180.0),
-		 .CLKOUT2_DIVIDE(10),
-		 .CLKOUT3_DIVIDE(20),
-		 .COMPENSATION("INTERNAL")
-	  ) pllx5 
-	  (
-		.CLKIN(v_clk_int),
-		.CLKFBIN(clkfbout),
-		.CLKFBOUT(clkfbout),
-		.RST(pll_rst),
-		.LOCKED(lockedx5),
-		.CLKOUT0(clkfx), // 5x
-		.CLKOUT1(clkfx180), // 5x 180deg
-		.CLKOUT2(clk0), // 1x
-		.CLKOUT3(clkdv) // div2
-	  );
-	 
-  BUFG clkout1_buf (.O(clk_hdmi), .I(clkfx));
-  BUFG clkout2_buf (.O(clk_hdmi_n), .I(clkfx180));
-  BUFG clkout3_buf (.O(p_clk_int), .I(clk0));
-  BUFG clkout4_buf (.O(p_clk_div2), .I(clkdv));
-
-  always @(posedge clk_bus)
-  begin
-	if ((prev_vdac2_sel != vdac2_sel) || kb_reset || areset || hdmi_reset) begin
-		pll_rst_cnt <= 8'b10000000;
-	end
-	prev_vdac2_sel <= vdac2_sel;
-	if (pll_rst_cnt > 0) pll_rst_cnt <= pll_rst_cnt+1;
-  end
-  assign pll_rst = pll_rst_cnt[7];
-
-	// midi clk
-	ODDR2 u_midi_clk (
-		.Q(MIDI_CLK),
-		.C0(clk_12mhz),
-		.C1(~clk_12mhz),
-		.CE(1'b1),
-		.D0(1'b1),
-		.D1(1'b0),
-		.R(1'b0),
-		.S(1'b0)
-	);
+	// midi clk 12mhz
+	ODDR2 u_midi_clk (.Q(MIDI_CLK), .C0(clk_12mhz), .C1(~clk_12mhz), .CE(1'b1), .D0(1'b1), .D1(1'b0), .R(1'b0), .S(1'b0));
+	
+	// ft clk 8mhz
+	ODDR2 u_ft_clk (.Q(FT_CLK_OUT), .C0(clk_8mhz), .C1(~clk_8mhz), .CE(1'b1), .D0(1'b1), .D1(1'b0), .R(1'b0), .S(1'b0));
 	
 	assign areset = ~locked;
 	
@@ -401,44 +347,6 @@ wire [7:0] rtc_do_mapped;
 wire ftcs_n, ftclk, ftdo, ftdi, ftint, vdac2_sel;
 wire mcu_ft_spi_on, mcu_ft_vga_on, mcu_ft_sck, mcu_ft_mosi, mcu_ft_cs_n, mcu_ft_reset;
 
-wire [7:0] host_vga_r, host_vga_g, host_vga_b;
-wire host_vga_hs, host_vga_vs, host_vga_blank;
-
-reg ft_vga_hs_r, ft_vga_vs_r, ft_vga_blank_r, ft_vga_hs_r2, ft_vga_vs_r2, ft_vga_blank_r2;
-reg [7:0] ft_vga_r_r, ft_vga_g_r, ft_vga_b_r, ft_vga_r_r2, ft_vga_g_r2, ft_vga_b_r2;
-
-reg ts_vga_hs_r, ts_vga_vs_r, ts_vga_blank_r, ts_vga_hs_r2, ts_vga_vs_r2, ts_vga_blank_r2;
-reg [7:0] ts_vga_r_r, ts_vga_g_r, ts_vga_b_r, ts_vga_r_r2, ts_vga_g_r2, ts_vga_b_r2;
-
-// grab FT rgb and sync into p_clk_int registers on negedge
-always @(negedge p_clk_int)
-begin
-	ft_vga_hs_r <= VGA_HS; 				ft_vga_hs_r2 <= ft_vga_hs_r;
-	ft_vga_vs_r <= VGA_VS; 				ft_vga_vs_r2 <= ft_vga_vs_r;
-	ft_vga_blank_r <= ~FT_DE;  		ft_vga_blank_r2  <= ft_vga_blank_r;
-	ft_vga_r_r <= VGA_R;    			ft_vga_r_r2 <= ft_vga_r_r;
-	ft_vga_g_r <= VGA_G;    			ft_vga_g_r2 <= ft_vga_g_r;
-	ft_vga_b_r <= VGA_B;    			ft_vga_b_r2 <= ft_vga_b_r;
-end
-
-// grab TS rgb and sync into p_clk_int registers on posedge
-always @(posedge p_clk_int)
-begin
-	ts_vga_hs_r <= video_hsync; 		ts_vga_hs_r2 <= ts_vga_hs_r;
-	ts_vga_vs_r <= video_vsync; 		ts_vga_vs_r2 <= ts_vga_vs_r;
-	ts_vga_blank_r <= video_blank; 	ts_vga_blank_r2  <= ts_vga_blank_r;
-	ts_vga_r_r <= osd_r;    			ts_vga_r_r2 <= ts_vga_r_r;
-	ts_vga_g_r <= osd_g;    			ts_vga_g_r2 <= ts_vga_g_r;
-	ts_vga_b_r <= osd_b;    			ts_vga_b_r2 <= ts_vga_b_r;
-end
-
-assign host_vga_r = (vdac2_sel ? (ft_vga_blank_r2 ? 8'b0 : ft_vga_r_r2) : (ts_vga_blank_r2 ? 8'b0 : ts_vga_r_r2));
-assign host_vga_g = (vdac2_sel ? (ft_vga_blank_r2 ? 8'b0 : ft_vga_g_r2) : (ts_vga_blank_r2 ? 8'b0 : ts_vga_g_r2));
-assign host_vga_b = (vdac2_sel ? (ft_vga_blank_r2 ? 8'b0 : ft_vga_b_r2) : (ts_vga_blank_r2 ? 8'b0 : ts_vga_b_r2));
-assign host_vga_hs = (vdac2_sel ? ft_vga_hs_r2 : ts_vga_hs_r2);
-assign host_vga_vs = (vdac2_sel ? ft_vga_vs_r2 : ts_vga_vs_r2);
-assign host_vga_blank = (vdac2_sel ? ft_vga_blank_r2 : ts_vga_blank_r2);
-
 assign FT_SPI_CS_N = mcu_ft_spi_on ? mcu_ft_cs_n : ftcs_n;
 assign FT_SPI_SCK = mcu_ft_spi_on ? mcu_ft_sck : ftclk;
 assign ftdi = FT_SPI_MISO;
@@ -446,82 +354,57 @@ assign FT_SPI_MOSI = mcu_ft_spi_on ? mcu_ft_mosi : ftdo;
 assign ftint = FT_INT_N;
 assign FT_RESET = ~mcu_ft_reset; // 1'b1
 
-BUFGMUX v_clk_mux(
- .I0(ce_28m),
- .I1(FT_CLK),
- .O(v_clk_int),
- .S(vdac2_sel)
-);
+wire ft_clk_int;
+IBUFG(.I(FT_CLK), .O(ft_clk_int));
 
-wire [9:0] tmds_red, tmds_green, tmds_blue;
+// 28 / FT_CLK mux 
+BUFGMUX v_clk_mux(.I0(ce_28m), .I1(ft_clk_int), .O(v_clk_int), .S(vdac2_sel));
 
-always @(posedge clk_bus)
-begin
-	hdmi_reset <= 1'b0;
-	if (prev_hdmi_freq != hdmi_freq) hdmi_reset <= 1'b1;
-	prev_hdmi_freq <= hdmi_freq;
-end
-
-freq_counter freq_counter_inst(
-	.i_clk_ref(clk_bus),
-	.i_clk_test(v_clk_int),
-	.i_reset(areset),
-	.o_freq(hdmi_freq)
-);
-
-hdmi hdmi(
-	.I_CLK_PIXEL(p_clk_int),
-	.I_RESET(pll_rst || ~lockedx5),
-	.I_FREQ(hdmi_freq),
-	.I_R(host_vga_r),
-	.I_G(host_vga_g),
-	.I_B(host_vga_b),
-	.I_BLANK(host_vga_blank),
-	.I_HSYNC(host_vga_hs),
-	.I_VSYNC(host_vga_vs),
-	.I_AUDIO_ENABLE(1'b1),
-	.I_AUDIO_PCM_L(audio_mix_l[15:0]),
-	.I_AUDIO_PCM_R(audio_mix_r[15:0]),
-	.O_RED(tmds_red),
-	.O_GREEN(tmds_green),
-	.O_BLUE(tmds_blue)
-);
-
-hdmi_out_xilinx hdmiio(
-	.clock_pixel_i(p_clk_int),
-	.clock_tdms_i(clk_hdmi),
-	.clock_tdms_n_i(clk_hdmi_n),
-	.red_i(tmds_red),
-	.green_i(tmds_green),
-	.blue_i(tmds_blue),
-	.tmds_out_p(TMDS_P),
-	.tmds_out_n(TMDS_N)
+// hdmi
+wire [7:0] hdmi_freq;
+hdmi_top hdmi_top(
+	.clk(v_clk_int),
+	.clk_ref(clk_bus),
+	.clk_8(clk_8mhz),
+	.reset(areset || kb_reset),
+	
+	.vga_rgb({osd_r[7:0], osd_g[7:0], osd_b[7:0]}),
+	.vga_hs(video_hsync),
+	.vga_vs(video_vsync),
+	.vga_de(~video_blank),
+	
+	.ft_rgb({VGA_R[7:0], VGA_G[7:0], VGA_B[7:0]}),
+	.ft_hs(VGA_HS),
+	.ft_vs(VGA_VS),
+	.ft_de(FT_DE),
+	
+	.ft_sel(vdac2_sel),
+	
+	.audio_l(audio_mix_l[15:0]),
+	.audio_r(audio_mix_r[15:0]),
+	
+	.tmds_p(TMDS_P),
+	.tmds_n(TMDS_N),
+	
+	.freq(hdmi_freq)
 );
 
 //------- Sigma-Delta DAC ---------
 dac dac_l(
-	.I_CLK(p_clk_int),
+	.I_CLK(clk_bus),
 	.I_RESET(areset),
 	.I_DATA({2'b00, !audio_mix_l[15], audio_mix_l[14:4], 2'b00}),
 	.O_DAC(AUDIO_L)
 );
 
 dac dac_r(
-	.I_CLK(p_clk_int),
+	.I_CLK(clk_bus),
 	.I_RESET(areset),
 	.I_DATA({2'b00, !audio_mix_r[15], audio_mix_r[14:4], 2'b00}),
 	.O_DAC(AUDIO_R)
 );
 
-wire adc_clk_int;
-BUFGMUX ADC_CLK_MUX(
- .I0(p_clk_int),
- .I1(p_clk_div2),
- .O(adc_clk_int),
- .S(adc_div2)
-);
-
-wire adc_div2 = (hdmi_freq > 32) ? 1'b1 : 1'b0;
+wire adc_clk_int = clk_bus;
 
 // ------- PCM1808 ADC ---------
 wire signed [23:0] adc_l, adc_r;
@@ -540,16 +423,7 @@ i2s_transceiver adc(
 );
 
 // ------- ADC_CLK output buf
-ODDR2 oddr_adc2(
-	.Q(ADC_CLK),
-	.C0(adc_clk_int),
-	.C1(~adc_clk_int),
-	.CE(1'b1),
-	.D0(1'b1),
-	.D1(1'b0),
-	.R(1'b0),
-	.S(1'b0)
-);
+ODDR2 oddr_adc2(.Q(ADC_CLK), .C0(adc_clk_int), .C1(~adc_clk_int), .CE(1'b1), .D0(1'b1), .D1(1'b0), .R(1'b0), .S(1'b0));
 
 // ------- audio mix host + adc
 assign audio_mix_l = audio_out_l[15:0] + adc_l[23:8];
@@ -626,8 +500,8 @@ mcu mcu(
 	.FT_RESET(mcu_ft_reset),
 	
 	.DEBUG_ADDR(16'd0),
-	.DEBUG_DATA(16'd0),
-	//.DEBUG_DATA({8'd0, hdmi_freq}),
+//	.DEBUG_DATA(16'd0),
+	.DEBUG_DATA({8'd0, hdmi_freq[7:0]}),
 	
 	.BUSY(mcu_busy)
 );
@@ -713,15 +587,15 @@ cursor cursor(
 	
 	.OUT_X(cursor_x),
 	.OUT_Y(cursor_y),
-	.OUT_Z(),
+	.OUT_Z(cursor_z),
 	.OUT_B(cursor_b)
 );
 
 always @* begin
 	case (mouse_addr)
-		3'b010: mouse_data <= {5'b11111, ~cursor_b[2:0]};
+		3'b010: mouse_data <= {cursor_z[3:0], 1'b1, ~cursor_b[2:0]};
 		3'b011: mouse_data <= cursor_x;
-		3'b110: mouse_data <= {5'b11111, ~cursor_b[2:0]};
+		3'b110: mouse_data <= {cursor_z[3:0], 1'b1, ~cursor_b[2:0]};
 		3'b111: mouse_data <= cursor_y;
 		default: mouse_data <= 8'hFF;
 	endcase

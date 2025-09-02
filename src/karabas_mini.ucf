@@ -147,6 +147,7 @@ NET "FT_AUDIO"       LOC="D11"   | IOSTANDARD = LVCMOS33;
 NET "FT_DE"       LOC="E8"   | IOSTANDARD = LVCMOS33;
 NET "FT_RESET"       LOC="C15"   | IOSTANDARD = LVCMOS33;
 NET "FT_DISP"       LOC="F5"   | IOSTANDARD = LVCMOS33;
+NET "FT_CLK_OUT"    LOC="E7"   | IOSTANDARD = LVCMOS33;
 
 # VGA
 NET "VGA_R<0>"      LOC="B16"  | IOSTANDARD = LVCMOS33;
@@ -225,14 +226,11 @@ NET "FLASH_HOLD_N"  LOC="P12"  | IOSTANDARD = LVCMOS33; # CONF_IO3
 NET "clk_sys" TNM_NET = "clk_sys";
 NET "clk_bus" TNM_NET = "clk_bus";
 NET "tsconf/ce_14m" TNM_NET = "ce_14m";
-#NET "clk_16mhz" TNM_NET = "clk_16mhz";
 NET "clk_8mhz" TNM_NET = "clk_8mhz";
-#NET "tsconf/ce_14m" KEEP | S | PERIOD = 71 ns;
 
 TIMESPEC "TS_CLK_SYS" = PERIOD "clk_sys" 84 MHz;
 TIMESPEC "TS_CLK_BUS" = PERIOD "clk_bus" 28 MHz;
 TIMESPEC "TS_CE_14M" = PERIOD "ce_14m" 14 MHz;
-#TIMESPEC "TS_CLK_16" = PERIOD "clk_16mhz" 16000 kHz;
 TIMESPEC "TS_CLK_8" = PERIOD "clk_8mhz" 8 MHz;
 
 PIN "tsconf/U_BUFG.O" CLOCK_DEDICATED_ROUTE = FALSE;
@@ -244,18 +242,13 @@ NET "ADC_BCK" CLOCK_DEDICATED_ROUTE = FALSE;
 NET "FT_CLK" TNM_NET = "clk_ft";
 TIMESPEC "TS_CLK_FT" = PERIOD "clk_ft" 72 MHz;
 
-NET "FT_DE" TNM_NET = "ft_de";
-TIMESPEC "TS_FT_DE" = PERIOD "ft_de" 10 MHz;
-NET "VGA_HS" TNM_NET = "vga_hs";
-TIMESPEC "TS_VGA_HS" = PERIOD "vga_hs" 35 kHz;
-
 NET "MCU_SCK" TNM_NET = "clk_mcu";
 TIMESPEC "TS_CLK_MCU" = PERIOD "clk_mcu" 30 MHz;
 
-#NET "clk_hdmi" TNM_NET = "CLK_HDMI" | S;
-#NET "clk_hdmi_n" TNM_NET = "CLK_HDMI_n" | S;
-NET "clk_hdmi" TNM_NET = "CLK_HDMI";
-NET "clk_hdmi_n" TNM_NET = "CLK_HDMI_n";
-TIMESPEC "TS_CLK_HDMI" = PERIOD "CLK_HDMI" TS_CLK_BUS*5;
-TIMESPEC "TS_CLK_HDMI_n" = PERIOD "CLK_HDMI_n" TS_CLK_BUS*5; # PHASE + 1 ns;
+NET "hdmi_top/clk_hdmi" TNM_NET = "CLK_HDMI";
+NET "hdmi_top/clk_hdmi_n" TNM_NET = "CLK_HDMI_n";
+#TIMESPEC "TS_CLK_HDMI" = PERIOD "CLK_HDMI" TS_CLK_BUS*5;
+#TIMESPEC "TS_CLK_HDMI_n" = PERIOD "CLK_HDMI_n" TS_CLK_BUS*5; # PHASE + 1 ns;
 
+NET "hdmi_top/hdmi_pll/freq_counter_inst/o_freq*" TIG; // ignore detected freq
+NET "tsconf/video_top/video_ports/vconf*" TIG; // ignore vdac2_sel
