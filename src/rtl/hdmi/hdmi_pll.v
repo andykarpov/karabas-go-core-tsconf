@@ -20,7 +20,8 @@ module hdmi_pll(
 	output wire clk_pix, // x1
 	output wire clk_pix2, // x1/2
 	output wire [7:0] freq, // detected frequency 28,24,32,40,56,64,72,80Mhz
-	output wire locked 
+	output wire locked,
+	output wire o_reset
 );
 
 // freq counter
@@ -123,12 +124,14 @@ pll_reset pll_reset(
 	.i_reset((vdac2_sel) ? (~locked_dcm || reset) : (hdmi_reset || reset)),
 	.o_reset(pll_rst)
 );
+assign o_reset = pll_rst;
 
 // pll to produce x5 clock
 wire clk0, clkfx, clkfx180, clkdv, clkfbout, lockedx5;
-PLL_BASE #(
-  .BANDWIDTH("OPTIMIZED"),
-  .COMPENSATION("SYSTEM_SYNCHRONOUS"),
+
+/*PLL_BASE #(
+  .BANDWIDTH("LOW"),
+  .COMPENSATION("INTERNAL"),
   .REF_JITTER(0.1),
   .RESET_ON_LOSS_OF_LOCK("FALSE"),
   .CLKIN_PERIOD(12.5),
@@ -155,8 +158,48 @@ PLL_BASE #(
   .CLKOUT1(clkfx180), // 5x 180deg
   .CLKOUT2(clk0), // 1x
   .CLKOUT3(clkdv) // div2
-);
+);*/
 
+DCM_SP
+  #(.CLKDV_DIVIDE          (2.000),
+    .CLKFX_DIVIDE          (1),
+    .CLKFX_MULTIPLY        (5),
+    .CLKIN_DIVIDE_BY_2     ("FALSE"),
+    .CLKIN_PERIOD          (13.000),
+    .CLKOUT_PHASE_SHIFT    ("NONE"),
+    .CLK_FEEDBACK          ("1X"),
+    .DESKEW_ADJUST         ("SYSTEM_SYNCHRONOUS"),
+    .PHASE_SHIFT           (0),
+    .STARTUP_WAIT          ("FALSE"))
+  dcm_sp_inst
+    // Input clock
+   (.CLKIN                 (clkpllin),
+    .CLKFB                 (clkfbout),
+    // Output clocks
+    .CLK0                  (clk0),
+    .CLK90                 (),
+    .CLK180                (),
+    .CLK270                (),
+    .CLK2X                 (),
+    .CLK2X180              (),
+    .CLKFX                 (clkfx),
+    .CLKFX180              (clkfx180),
+    .CLKDV                 (clkdv),
+    // Ports for dynamic phase shift
+    .PSCLK                 (1'b0),
+    .PSEN                  (1'b0),
+    .PSINCDEC              (1'b0),
+    .PSDONE                (),
+    // Other control and status signals
+    .LOCKED                (lockedx5),
+    .STATUS                (),
+    .RST                   (pll_rst),
+    .DSSEN                 (1'b0));
+
+// feedback buf
+BUFG clkf_buf(.O (clkfbout), .I (clk0));
+
+// output bufs
 BUFG clkout1_buf (.O(clk_hdmi), .I(clkfx));
 BUFG clkout2_buf (.O(clk_hdmi_n), .I(clkfx180));
 BUFG clkout3_buf (.O(clk_pix), .I(clk0));

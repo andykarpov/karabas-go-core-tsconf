@@ -35,6 +35,7 @@ wire clk_hdmi, clk_hdmi_n;
 wire p_clk_int, p_clk_div2;
 wire [7:0] hdmi_freq;
 wire lockedx5;
+wire pll_reset;
 hdmi_pll hdmi_pll (
 	.clk(clk),
 	.clk_ref(clk_ref),
@@ -46,7 +47,8 @@ hdmi_pll hdmi_pll (
 	.clk_pix(p_clk_int),
 	.clk_pix2(p_clk_div2),
 	.freq(hdmi_freq),
-	.locked(lockedx5)
+	.locked(lockedx5),
+	.o_reset(pll_reset)
 );
 assign freq = hdmi_freq;
 
@@ -59,7 +61,7 @@ wire host_vga_hs, host_vga_vs, host_vga_blank;
 wire [26:0] ft_data, vga_data;
 
 rgb_fifo rgb_fifo_ft(
-	.rst(reset || ~lockedx5),
+	.rst(pll_reset),
 	.wr_clk(~clk),
 	.din({ft_de, ft_hs, ft_vs, ft_rgb[23:0]}),
 	.wr_en(lockedx5),
@@ -71,7 +73,7 @@ rgb_fifo rgb_fifo_ft(
 );
 
 rgb_fifo rgb_fifo_vga(
-	.rst(reset || ~lockedx5),
+	.rst(pll_reset),
 	.wr_clk(clk),
 	.din({vga_de, vga_hs, vga_vs, vga_rgb[23:0]}),
 	.wr_en(lockedx5),
@@ -85,7 +87,7 @@ rgb_fifo rgb_fifo_vga(
 wire [15:0] audio_out_l, audio_out_r;
 
 audio_fifo audio_fifo_l(
-	.rst(reset || ~lockedx5),
+	.rst(pll_reset),
 	.wr_clk(clk),
 	.din(audio_l[15:0]),
 	.wr_en(lockedx5),
@@ -97,7 +99,7 @@ audio_fifo audio_fifo_l(
 );
 
 audio_fifo audio_fifo_r(
-	.rst(reset || ~lockedx5),
+	.rst(pll_reset),
 	.wr_clk(clk),
 	.din(audio_r[15:0]),
 	.wr_en(lockedx5),
@@ -121,7 +123,7 @@ wire [9:0] tmds_red, tmds_green, tmds_blue;
 
 hdmi hdmi(
 	.I_CLK_PIXEL(p_clk_int),
-	.I_RESET(reset || ~lockedx5),
+	.I_RESET(pll_reset),
 	.I_FREQ(hdmi_freq),
 	.I_R(host_vga_r),
 	.I_G(host_vga_g),
