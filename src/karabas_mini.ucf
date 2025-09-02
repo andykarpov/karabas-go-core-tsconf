@@ -1,9 +1,8 @@
 # Karabas-Mini rev.C pinout
-# Warning! It was changed since revB (HDMI diff-pairs fix)
 
 # Clocks
-NET "CLK_50MHZ"        LOC="T8" | IOSTANDARD = LVTTL;
-#NET "CLK_50MHZ"        LOC="E7" | IOSTANDARD = LVCMOS33;
+NET "CLK_50MHZ"        LOC="T8" | IOSTANDARD = LVTTL | TNM_NET = "CLK_50MHZ";
+TIMESPEC "TS_CLK_50MHZ" = PERIOD "CLK_50MHZ" 20.000 ns HIGH 50% INPUT_JITTER 200.0ps;
 
 VCCAUX = 3.3;
 
@@ -142,7 +141,6 @@ NET "FT_SPI_MISO"       LOC="E12"   | IOSTANDARD = LVCMOS33;
 NET "FT_SPI_MOSI"       LOC="B15"   | IOSTANDARD = LVCMOS33;
 NET "FT_INT_N"       LOC="D12"   | IOSTANDARD = LVCMOS33;
 NET "FT_CLK"       LOC="A3"   | IOSTANDARD = LVCMOS33;
-#NET "FT_CLK"       LOC="E7"   | IOSTANDARD = LVCMOS33;
 NET "FT_AUDIO"       LOC="D11"   | IOSTANDARD = LVCMOS33;
 NET "FT_DE"       LOC="E8"   | IOSTANDARD = LVCMOS33;
 NET "FT_RESET"       LOC="C15"   | IOSTANDARD = LVCMOS33;
@@ -189,7 +187,7 @@ NET "MCU_IO<0>"     LOC="G6"   | IOSTANDARD = LVCMOS33;
 NET "MCU_IO<1>"     LOC="F6"   | IOSTANDARD = LVCMOS33;
 NET "MCU_IO<2>"     LOC="F7"   | IOSTANDARD = LVCMOS33; # SD2
 NET "MCU_IO<3>"     LOC="D6"   | IOSTANDARD = LVCMOS33; # FT
-#NET "MCU_IO<4>"     LOC="E7"   | IOSTANDARD = LVCMOS33;
+#NET "MCU_IO<4>"     LOC="E7"   | IOSTANDARD = LVCMOS33; # relocated to FT_CLK_OUT!
 
 # TMDS
 NET "TMDS_P<0>"       LOC="C13"   | IOSTANDARD = TMDS_33; # HDMI_D0P
@@ -247,8 +245,6 @@ TIMESPEC "TS_CLK_MCU" = PERIOD "clk_mcu" 30 MHz;
 
 NET "hdmi_top/clk_hdmi" TNM_NET = "CLK_HDMI";
 NET "hdmi_top/clk_hdmi_n" TNM_NET = "CLK_HDMI_n";
-#TIMESPEC "TS_CLK_HDMI" = PERIOD "CLK_HDMI" TS_CLK_BUS*5;
-#TIMESPEC "TS_CLK_HDMI_n" = PERIOD "CLK_HDMI_n" TS_CLK_BUS*5; # PHASE + 1 ns;
 
 NET "hdmi_top/hdmi_pll/freq_counter_inst/o_freq*" TIG; // ignore detected freq
 NET "tsconf/video_top/video_ports/vconf*" TIG; // ignore vdac2_sel
