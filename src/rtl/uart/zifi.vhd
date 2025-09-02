@@ -180,57 +180,73 @@ begin
 -- zifi
 
 ZIFI_FIFO_IN: entity work.fifo
+generic map(
+	ADDR_WIDTH => 8, -- 256 bytes
+	DATA_WIDTH => 8
+)
 port map(
     clk => CLK,
-    din  => zifi_fifo_tx_di,
-    rd_en => zifi_fifo_tx_rd_req,
-    wr_en => zifi_fifo_tx_wr_req,
-    srst  => zifi_fifo_tx_clr_req,
-    dout     => zifi_fifo_tx_do,
-    data_count => zifi_fifo_tx_used,
+	 reset => zifi_fifo_tx_clr_req,
+	 rd => zifi_fifo_tx_rd_req,
+	 wr => zifi_fifo_tx_wr_req,
+	 din => zifi_fifo_tx_di,
+	 dout => zifi_fifo_tx_do,
 	 full => zifi_fifo_tx_full,
-	 empty => zifi_fifo_tx_empty
+	 empty => zifi_fifo_tx_empty,
+	 data_count => zifi_fifo_tx_used
 );
 
-ZIFI_FIFO_OUT: entity work.fifo2
+ZIFI_FIFO_OUT: entity work.fifo
+generic map(
+	ADDR_WIDTH => 11, -- 2 kbytes
+	DATA_WIDTH => 8
+)
 port map(
     clk => CLK,
+    reset  => zifi_fifo_rx_clr_req,
+    rd => zifi_fifo_rx_rd_req,
+    wr => zifi_fifo_rx_wr_req,
     din  => zifi_fifo_rx_di,
-    rd_en => zifi_fifo_rx_rd_req,
-    wr_en => zifi_fifo_rx_wr_req,
-    srst  => zifi_fifo_rx_clr_req,
     dout     => zifi_fifo_rx_do,
-    data_count => zifi_fifo_rx_used,
 	 full => zifi_fifo_rx_full,
-	 empty => zifi_fifo_rx_empty
+	 empty => zifi_fifo_rx_empty,
+    data_count => zifi_fifo_rx_used	 
 );
 
 -- rs232
 
 RS232_FIFO_IN: entity work.fifo
+generic map(
+	ADDR_WIDTH => 8, -- 256 bytes
+	DATA_WIDTH => 8
+)
 port map(
     clk => CLK,
+    reset  => rs232_fifo_tx_clr_req,
+    rd => rs232_fifo_tx_rd_req,
+    wr => rs232_fifo_tx_wr_req,
     din  => rs232_fifo_tx_di,
-    rd_en => rs232_fifo_tx_rd_req,
-    wr_en => rs232_fifo_tx_wr_req,
-    srst  => rs232_fifo_tx_clr_req,
     dout     => rs232_fifo_tx_do,
-    data_count => rs232_fifo_tx_used,
 	 full => rs232_fifo_tx_full,
-	 empty => rs232_fifo_tx_empty
+	 empty => rs232_fifo_tx_empty,
+    data_count => rs232_fifo_tx_used	 
 );
 
-RS232_FIFO_OUT: entity work.fifo2
+RS232_FIFO_OUT: entity work.fifo
+generic map(
+	ADDR_WIDTH => 11, -- 2 kbytes
+	DATA_WIDTH => 8
+)
 port map(
     clk => CLK,
+    reset  => rs232_fifo_rx_clr_req,
+    rd => rs232_fifo_rx_rd_req,
+    wr => rs232_fifo_rx_wr_req,
     din  => rs232_fifo_rx_di,
-    rd_en => rs232_fifo_rx_rd_req,
-    wr_en => rs232_fifo_rx_wr_req,
-    srst  => rs232_fifo_rx_clr_req,
     dout     => rs232_fifo_rx_do,
-    data_count => rs232_fifo_rx_used,
 	 full => rs232_fifo_rx_full,
-	 empty => rs232_fifo_rx_empty
+	 empty => rs232_fifo_rx_empty,
+    data_count => rs232_fifo_rx_used	 
 );
 
 -- esp8266 uart

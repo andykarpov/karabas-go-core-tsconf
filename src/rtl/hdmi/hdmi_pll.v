@@ -129,37 +129,6 @@ assign o_reset = pll_rst;
 // pll to produce x5 clock
 wire clk0, clkfx, clkfx180, clkdv, clkfbout, lockedx5;
 
-/*PLL_BASE #(
-  .BANDWIDTH("LOW"),
-  .COMPENSATION("INTERNAL"),
-  .REF_JITTER(0.1),
-  .RESET_ON_LOSS_OF_LOCK("FALSE"),
-  .CLKIN_PERIOD(12.5),
-  .CLKFBOUT_MULT(10),
-  .CLKFBOUT_PHASE(0.0),
-  .CLK_FEEDBACK("CLKFBOUT"),
-  .CLKOUT0_DIVIDE(2),
-  .CLKOUT0_DUTY_CYCLE(0.5),
-  .CLKOUT1_DIVIDE(2),
-  .CLKOUT1_PHASE(180.0),
-  .CLKOUT1_DUTY_CYCLE(0.5),
-  .CLKOUT2_DIVIDE(10),
-  .CLKOUT2_DUTY_CYCLE(0.5),
-  .CLKOUT3_DIVIDE(20),
-  .CLKOUT3_DUTY_CYCLE(0.5)  
-) pllx5 
-(
-  .CLKIN(clkpllin),
-  .CLKFBIN(clkfbout),
-  .CLKFBOUT(clkfbout),
-  .RST(pll_rst),
-  .LOCKED(lockedx5),
-  .CLKOUT0(clkfx), // 5x
-  .CLKOUT1(clkfx180), // 5x 180deg
-  .CLKOUT2(clk0), // 1x
-  .CLKOUT3(clkdv) // div2
-);*/
-
 DCM_SP
   #(.CLKDV_DIVIDE          (2.000),
     .CLKFX_DIVIDE          (1),

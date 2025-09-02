@@ -139,7 +139,7 @@ architecture rtl of mcu is
 	 -- rtc 2-port ram signals
 	 signal rtcw_di 			: std_logic_vector(7 downto 0);
 	 signal rtcw_a 			: std_logic_vector(7 downto 0);
-	 signal rtcw_wr 			: std_logic_vector(0 downto 0) := "0";
+	 signal rtcw_wr 			: std_logic := '0';
 	 signal rtcr_do 			: std_logic_vector(7 downto 0);
 
 	-- rtc data from mcu
@@ -162,8 +162,6 @@ architecture rtl of mcu is
 	signal queue_rd_req		: std_logic := '0';
 	signal queue_do			: std_logic_vector(23 downto 0);
 	signal queue_rd_empty   : std_logic;
-	
-	signal queue_data_count : std_logic_vector(8 downto 0) := (others => '0');
 	
 	--state machine for queue writes
 	type qmachine IS(idle, rtc_wr_req, rtc_wr_ack);
@@ -407,33 +405,43 @@ begin
 	-- 011111 = 3F = Register 3F
 	
 	-- memory for rtc registers
-	URTC: entity work.rtc 
+	URTC: entity work.dpram 
+	generic map(
+		DATAWIDTH => 8,
+		ADDRWIDTH => 8
+	)
 	port map (
-		clka	 => CLK,
-		dina		 => rtcw_di,
-		addra => rtcw_a,
-		wea 		 => rtcw_wr,
+		clock	 => CLK,
+		data_a	 => rtcw_di,
+		address_a => rtcw_a,
+		wren_a 	 => rtcw_wr,
+		q_a => open,
 		
-		clkb 	 => CLK,
-		addrb => RTC_A,
-		doutb			 => rtcr_do
+		address_b => RTC_A,
+		data_b => "00000000",
+		wren_b => '0',
+		q_b	 => rtcr_do
 	);
 	RTC_DO <= rtcr_do;
 	
 	-- fifo for write commands to send them on mcu side 
-	UFIFO: entity work.queue 
+	UFIFO: entity work.fifo
+	generic map (
+		ADDR_WIDTH => 9,
+		DATA_WIDTH => 24
+	)
 	port map (
 		clk 	=> CLK,
+		reset  => not N_RESET,
 
-		din 		=> queue_di,
-		wr_en 	=> queue_wr_req,
-		full 		=> queue_wr_full,
+		empty  => queue_rd_empty,
+		full   => queue_wr_full,
 		
-		rd_en 	=> queue_rd_req,
-		dout 		=> queue_do,
-		empty 	=> queue_rd_empty,
+		rd     => queue_rd_req,
+		dout  => queue_do,
 		
-		data_count => queue_data_count
+		wr     => queue_wr_req,
+		din 		=> queue_di
 	);
 	
 	-- fifo handling / queue commands to mcu side
@@ -465,7 +473,7 @@ begin
 				queue_wr_req <= '1';
 				queue_di <= CMD_DEBUG_DATA & DEBUG_DATA;
 				prev_debug_data <= DEBUG_DATA;
-			elsif queue_rd_empty = '1' or queue_data_count < 5 then -- anti-empty queue
+			elsif queue_rd_empty = '1' then -- anti-empty queue
 				queue_wr_req <= '1';
 				queue_di <= CMD_NOPE & x"0000";
 			end if;
@@ -477,15 +485,15 @@ begin
 	process (CLK) 
 	begin 
 		if rising_edge(CLK) then
-			rtcw_wr <= "0";
+			rtcw_wr <= '0';
 			if RTC_WR_N = '0' AND RTC_CS = '1' and BUSY = '0' then
 				-- rtc mem write by host
-				rtcw_wr <= "1";
+				rtcw_wr <= '1';
 				rtcw_a <= RTC_A;
 				rtcw_di <= RTC_DI;
 			elsif last_rtcr_command /= rtcr_command then
 				-- rtc mem write by mcu
-				rtcw_wr <= "1";
+				rtcw_wr <= '1';
 				rtcw_a <= rtcr_a;
 				rtcw_di <= rtcr_d;
 				last_rtcr_command <= rtcr_command;
