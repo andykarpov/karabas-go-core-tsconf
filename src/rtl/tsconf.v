@@ -46,6 +46,12 @@ module tsconf
 	output wire [15:0] audio_out_r,
 	output wire beep,
 
+	// adc in
+`ifdef HW_ID2	
+	input wire [15:0] adc_in_l,
+	input wire [15:0] adc_in_r,
+`endif
+
 	// joystick
 	input wire [7:0] joy_data,
 	
@@ -1308,6 +1314,11 @@ audio_mixer audio_mixer
 	.fm_r(ts_ssg1_fm),
 	
 	.fm_ena(ts_fm_ena),
+
+`ifdef HW_ID2
+	.adc_l(adc_in_l),
+	.adc_r(adc_in_r),
+`endif
 	
 	.audio_l(audio_out_l),
 	.audio_r(audio_out_r)
@@ -1364,12 +1375,13 @@ zifi zifi(
 );
 
 // fdc
+wire [1:0] vg_a;
+wire vg_cs_n;
+
 `ifndef HW_ID2
 
 wire fdc_oe;
 wire [7:0] fdc_do_bus;
-wire [1:0] vg_a;
-wire vg_cs_n;
 //assign fdc_ds = vg_a;
 
 always @(vg_a)
