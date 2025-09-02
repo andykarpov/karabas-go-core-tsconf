@@ -81,7 +81,6 @@ module karabas_mini_top (
 	input wire FT_DE,
 	input wire FT_DISP,
 	output wire FT_RESET,
-	output wire FT_8MHZ,
 
 	//---------------------------
 	output wire [2:0] WA,
@@ -108,7 +107,7 @@ module karabas_mini_top (
 	input wire MCU_SCK,
 	input wire MCU_MOSI,
 	output wire MCU_MISO,
-	input wire [3:0] MCU_IO,
+	input wire [4:0] MCU_IO,
 	
 	//---------------------------
 	output wire MIDI_TX,
@@ -157,25 +156,24 @@ module karabas_mini_top (
 	);
 	
 	wire clk0, clkfx, clkfx180, clkdv;
-	reg [3:0] pll_rst_cnt = 4'd0;
+	reg [7:0] pll_rst_cnt = 8'd0;
 	wire pll_rst;
-	/*
-	wire clkfbout, clkfbin;
+	reg prev_vdac2_sel;
+
+	wire clkfbout;
 	PLL_BASE #(
 		 .CLKIN_PERIOD(13.0),
-		 .CLKFBOUT_MULT(20),
-		 .CLKOUT0_DIVIDE(4),
-		 .CLKOUT1_DIVIDE(4),
+		 .CLKFBOUT_MULT(10),
+		 .CLKOUT0_DIVIDE(2),
+		 .CLKOUT1_DIVIDE(2),
 		 .CLKOUT1_PHASE(180.0),
-		 .CLKOUT2_DIVIDE(20),
-		 .CLKOUT3_DIVIDE(40),
-		 .COMPENSATION("INTERNAL"), // default: SYSTEM_SYNCHRONOUS. try: INTERNAL, SOURCE_SYNCHRONOUS
-		 .BANDWIDTH("LOW"),
-		 .REF_JITTER(0.200)
+		 .CLKOUT2_DIVIDE(10),
+		 .CLKOUT3_DIVIDE(20),
+		 .COMPENSATION("INTERNAL")
 	  ) pllx5 
 	  (
 		.CLKIN(v_clk_int),
-		.CLKFBIN(clkfbin),
+		.CLKFBIN(clkfbout),
 		.CLKFBOUT(clkfbout),
 		.RST(pll_rst),
 		.LOCKED(lockedx5),
@@ -184,63 +182,27 @@ module karabas_mini_top (
 		.CLKOUT2(clk0), // 1x
 		.CLKOUT3(clkdv) // div2
 	  );
-	  
-  // this buf is needed in order to deskew between PLL clkin and clkout
-  // so 2x and 10x clock will have the same phase as input clock
-  //BUFG clkfb_buf (.I(clkfbout), .O(clkfbin));	
-  assign clkfbin = clkfbout; // internal compensation should be directly connected
 	 
   BUFG clkout1_buf (.O(clk_hdmi), .I(clkfx));
   BUFG clkout2_buf (.O(clk_hdmi_n), .I(clkfx180));
   BUFG clkout3_buf (.O(p_clk_int), .I(clk0));
   BUFG clkout4_buf (.O(p_clk_div2), .I(clkdv));
-  */
-  
-  wire clk_hdmi_valid;
-  
-  hdmi_pll hdmi_pll(
-	.RST(1'b0),
-	.SSTEP(pll_rst),
-	.CLKDRP(clk_bus),
-	.FREQ(hdmi_freq),
-	.CLKIN(v_clk_int),
-	.CLKIN_RDY_N(locked),
-	.CLK0OUT(clk_hdmi),
-	.CLK1OUT(clk_hdmi_n),
-	.CLK2OUT(p_clk_int),
-	.VALID(clk_hdmi_valid)
-  );
-  
-  assign lockedx5 = ~clk_hdmi_valid;
-	
+
   always @(posedge clk_bus)
   begin
-	if (kb_reset || areset || hdmi_reset) begin
-		pll_rst_cnt <= 4'b1000;
+	if ((prev_vdac2_sel != vdac2_sel) || kb_reset || areset || hdmi_reset) begin
+		pll_rst_cnt <= 8'b10000000;
 	end
+	prev_vdac2_sel <= vdac2_sel;
 	if (pll_rst_cnt > 0) pll_rst_cnt <= pll_rst_cnt+1;
   end
-  assign pll_rst = pll_rst_cnt[3];
-  
-  // TODO: DCM_CLKGEN with 8mhz input and ft_clk_int output
+  assign pll_rst = pll_rst_cnt[7];
 
 	// midi clk
 	ODDR2 u_midi_clk (
 		.Q(MIDI_CLK),
 		.C0(clk_12mhz),
 		.C1(~clk_12mhz),
-		.CE(1'b1),
-		.D0(1'b1),
-		.D1(1'b0),
-		.R(1'b0),
-		.S(1'b0)
-	);
-	
-	// ft 8mhz
-	ODDR2 u_ft_8mhz (
-		.Q(FT_8MHZ),
-		.C0(clk_8mhz),
-		.C1(~clk_8mhz),
 		.CE(1'b1),
 		.D0(1'b1),
 		.D1(1'b0),
@@ -442,9 +404,13 @@ wire mcu_ft_spi_on, mcu_ft_vga_on, mcu_ft_sck, mcu_ft_mosi, mcu_ft_cs_n, mcu_ft_
 wire [7:0] host_vga_r, host_vga_g, host_vga_b;
 wire host_vga_hs, host_vga_vs, host_vga_blank;
 
-// grab FT rgb and sync into p_clk_int registers on negedge
 reg ft_vga_hs_r, ft_vga_vs_r, ft_vga_blank_r, ft_vga_hs_r2, ft_vga_vs_r2, ft_vga_blank_r2;
 reg [7:0] ft_vga_r_r, ft_vga_g_r, ft_vga_b_r, ft_vga_r_r2, ft_vga_g_r2, ft_vga_b_r2;
+
+reg ts_vga_hs_r, ts_vga_vs_r, ts_vga_blank_r, ts_vga_hs_r2, ts_vga_vs_r2, ts_vga_blank_r2;
+reg [7:0] ts_vga_r_r, ts_vga_g_r, ts_vga_b_r, ts_vga_r_r2, ts_vga_g_r2, ts_vga_b_r2;
+
+// grab FT rgb and sync into p_clk_int registers on negedge
 always @(negedge p_clk_int)
 begin
 	ft_vga_hs_r <= VGA_HS; 				ft_vga_hs_r2 <= ft_vga_hs_r;
@@ -455,78 +421,7 @@ begin
 	ft_vga_b_r <= VGA_B;    			ft_vga_b_r2 <= ft_vga_b_r;
 end
 
-// 2-port ram for 2-lines of rgb + hs + vs + de
-/*wire ft_vga_hs_r2, ft_vga_vs_r2, ft_vga_blank_r2;
-wire [7:0] ft_vga_r_r2, ft_vga_g_r2, ft_vga_b_r2;
-reg [11:0] ft_rd_addr, ft_wr_addr;
-reg ft_wr_line, ft_rd_line;
-reg [11:0] line_width, line_width_cnt;
-reg prev_ft_de;
-reg prev_ft_wr_line;
-
-ft_ram ft_ram(
-  .clka(FT_CLK),
-  .wea({1'b1}),
-  .addra({ft_wr_line, ft_wr_addr[10:0]}),
-  .dina({VGA_R, VGA_G, VGA_B, VGA_HS, VGA_VS, ~FT_DE}),
-  .clkb(p_clk_int),
-  .addrb({ft_rd_line, ft_rd_addr[10:0]}),
-  .doutb({ft_vga_r_r2, ft_vga_g_r2, ft_vga_b_r2, ft_vga_hs_r2, ft_vga_vs_r2, ft_vga_blank_r2})
-);
-
-// detect line_width 
-// start of line / rd / wr address
-always @(FT_CLK)
-begin
-	if (~prev_ft_de && FT_DE)
-	begin
-		ft_wr_line <= ~ft_wr_line;
-		ft_wr_addr <= 12'b0;
-		line_width_cnt <= 12'b0;
-	end
-	else if (prev_ft_de && ~FT_DE)
-	begin
-		line_width <= line_width_cnt;
-	end
-	else
-	begin
-		if (FT_DE) line_width_cnt <= line_width_cnt + 1;
-		ft_wr_addr <= ft_wr_addr + 1;
-	end
-	prev_ft_de <= FT_DE;
-end
-
-always @(p_clk_int)
-begin
-	if (prev_ft_wr_line != ft_wr_line) 
-	begin
-		ft_rd_line <= ~ft_wr_line;
-		ft_rd_addr <= 11'b0;
-	end
-	else
-		ft_rd_addr <= ft_rd_addr + 1;
-	prev_ft_wr_line <= ft_wr_line;	
-end*/
-
-// fifo between ft_clk and p_clk signals
-/*wire ft_vga_hs_r2, ft_vga_vs_r2, ft_vga_blank_r2;
-wire [7:0] ft_vga_r_r2, ft_vga_g_r2, ft_vga_b_r2;
-
-ft_fifo ft_fifo(
-  .rst(areset || pll_rst),
-  .wr_clk(FT_CLK),
-  .rd_clk(p_clk_int),
-  .din({VGA_R, VGA_G, VGA_B, VGA_HS, VGA_VS, ~FT_DE}),
-  .wr_en(1'b1),
-  .rd_en(1'b1),
-  .dout({ft_vga_r_r2, ft_vga_g_r2, ft_vga_b_r2, ft_vga_hs_r2, ft_vga_vs_r2, ft_vga_blank_r2}),
-  .full(),
-  .empty()
-);*/
-
 // grab TS rgb and sync into p_clk_int registers on posedge
-reg ts_vga_hs_r, ts_vga_vs_r, ts_vga_blank_r, ts_vga_hs_r2, ts_vga_vs_r2, ts_vga_blank_r2;
-reg [7:0] ts_vga_r_r, ts_vga_g_r, ts_vga_b_r, ts_vga_r_r2, ts_vga_g_r2, ts_vga_b_r2;
 always @(posedge p_clk_int)
 begin
 	ts_vga_hs_r <= video_hsync; 		ts_vga_hs_r2 <= ts_vga_hs_r;
@@ -540,8 +435,8 @@ end
 assign host_vga_r = (vdac2_sel ? (ft_vga_blank_r2 ? 8'b0 : ft_vga_r_r2) : (ts_vga_blank_r2 ? 8'b0 : ts_vga_r_r2));
 assign host_vga_g = (vdac2_sel ? (ft_vga_blank_r2 ? 8'b0 : ft_vga_g_r2) : (ts_vga_blank_r2 ? 8'b0 : ts_vga_g_r2));
 assign host_vga_b = (vdac2_sel ? (ft_vga_blank_r2 ? 8'b0 : ft_vga_b_r2) : (ts_vga_blank_r2 ? 8'b0 : ts_vga_b_r2));
-assign host_vga_hs = (vdac2_sel ? (ft_vga_blank_r2 ? 1'b1 :ft_vga_hs_r2) : ts_vga_hs_r2);
-assign host_vga_vs = (vdac2_sel ? (ft_vga_blank_r2 ? 1'b1 :ft_vga_vs_r2) : ts_vga_vs_r2);
+assign host_vga_hs = (vdac2_sel ? ft_vga_hs_r2 : ts_vga_hs_r2);
+assign host_vga_vs = (vdac2_sel ? ft_vga_vs_r2 : ts_vga_vs_r2);
 assign host_vga_blank = (vdac2_sel ? ft_vga_blank_r2 : ts_vga_blank_r2);
 
 assign FT_SPI_CS_N = mcu_ft_spi_on ? mcu_ft_cs_n : ftcs_n;
@@ -551,15 +446,15 @@ assign FT_SPI_MOSI = mcu_ft_spi_on ? mcu_ft_mosi : ftdo;
 assign ftint = FT_INT_N;
 assign FT_RESET = ~mcu_ft_reset; // 1'b1
 
-// pixelclock mux
 BUFGMUX v_clk_mux(
  .I0(ce_28m),
- .I1(clk_8mhz),
+ .I1(FT_CLK),
  .O(v_clk_int),
  .S(vdac2_sel)
 );
 
-// hdmi reset pulse when freq changes
+wire [9:0] tmds_red, tmds_green, tmds_blue;
+
 always @(posedge clk_bus)
 begin
 	hdmi_reset <= 1'b0;
@@ -567,92 +462,73 @@ begin
 	prev_hdmi_freq <= hdmi_freq;
 end
 
-// freq counter (in Mhz)
 freq_counter freq_counter_inst(
 	.i_clk_ref(clk_bus),
-	.i_clk_test(FT_CLK),
+	.i_clk_test(v_clk_int),
 	.i_reset(areset),
 	.o_freq(hdmi_freq)
 );
 
-// 32kHz audio samplerate
-// prescaler = (clock_speed/desired_clock_speed)/2
-reg clk_audio;
-wire [9:0] prescaler = ((hdmi_freq * 1000000) / 32000) / 2;
-reg [9:0] cnt_audio;
-always @(posedge p_clk_int)
-begin
-		if (pll_rst || ~lockedx5) 
-		begin
-			cnt_audio <= 0;
-			clk_audio <= 0;
-		end
-		else 
-		begin
-			if (cnt_audio > prescaler) 
-			begin
-				cnt_audio <= 0;
-				clk_audio <= ~clk_audio;
-			end
-			else
-				cnt_audio <= cnt_audio + 1;
-		end
-end
+hdmi hdmi(
+	.I_CLK_PIXEL(p_clk_int),
+	.I_RESET(pll_rst || ~lockedx5),
+	.I_FREQ(hdmi_freq),
+	.I_R(host_vga_r),
+	.I_G(host_vga_g),
+	.I_B(host_vga_b),
+	.I_BLANK(host_vga_blank),
+	.I_HSYNC(host_vga_hs),
+	.I_VSYNC(host_vga_vs),
+	.I_AUDIO_ENABLE(1'b1),
+	.I_AUDIO_PCM_L(audio_mix_l[15:0]),
+	.I_AUDIO_PCM_R(audio_mix_r[15:0]),
+	.O_RED(tmds_red),
+	.O_GREEN(tmds_green),
+	.O_BLUE(tmds_blue)
+);
 
-// hdmi audio (downsample with 32000 samplerate)
-reg [23:0] hdmi_audio_l, hdmi_audio_r;
-always @(posedge p_clk_int)
-begin
-	if (!clk_audio) 
-	begin
-		hdmi_audio_l <= {audio_mix_l[15:0], 8'b0};
-		hdmi_audio_r <= {audio_mix_r[15:0], 8'b0};
-	end
-end
-
-// hdmi tx
-hdmi_tx hdmi_tx(
-	.clk(p_clk_int),
-	.sclk(clk_hdmi),
-	.sclk_n(clk_hdmi_n),
-	.reset(~lockedx5),
-	.rgb({host_vga_r, host_vga_g, host_vga_b}),
-	.vsync(host_vga_vs),
-	.hsync(host_vga_hs),
-	.de(~host_vga_blank),
-	
-	.audio_en(1'b1),
-	.audio_l(hdmi_audio_l),
-	.audio_r(hdmi_audio_r),
-	.audio_clk(clk_audio),
-	
-	.tx_clk_n(TMDS_N[3]),
-	.tx_clk_p(TMDS_P[3]),
-	.tx_d_n(TMDS_N[2:0]),
-	.tx_d_p(TMDS_P[2:0]) // 0:blue, 1:green, 2:red
+hdmi_out_xilinx hdmiio(
+	.clock_pixel_i(p_clk_int),
+	.clock_tdms_i(clk_hdmi),
+	.clock_tdms_n_i(clk_hdmi_n),
+	.red_i(tmds_red),
+	.green_i(tmds_green),
+	.blue_i(tmds_blue),
+	.tmds_out_p(TMDS_P),
+	.tmds_out_n(TMDS_N)
 );
 
 //------- Sigma-Delta DAC ---------
 dac dac_l(
-	.I_CLK(clk_bus),
+	.I_CLK(p_clk_int),
 	.I_RESET(areset),
 	.I_DATA({2'b00, !audio_mix_l[15], audio_mix_l[14:4], 2'b00}),
 	.O_DAC(AUDIO_L)
 );
 
 dac dac_r(
-	.I_CLK(clk_bus),
+	.I_CLK(p_clk_int),
 	.I_RESET(areset),
 	.I_DATA({2'b00, !audio_mix_r[15], audio_mix_r[14:4], 2'b00}),
 	.O_DAC(AUDIO_R)
 );
+
+wire adc_clk_int;
+BUFGMUX ADC_CLK_MUX(
+ .I0(p_clk_int),
+ .I1(p_clk_div2),
+ .O(adc_clk_int),
+ .S(adc_div2)
+);
+
+wire adc_div2 = (hdmi_freq > 32) ? 1'b1 : 1'b0;
 
 // ------- PCM1808 ADC ---------
 wire signed [23:0] adc_l, adc_r;
 
 i2s_transceiver adc(
 	.reset_n(~areset),
-	.mclk(clk_bus),
+	.mclk(adc_clk_int),
 	.sclk(ADC_BCK),
 	.ws(ADC_LRCK),
 	.sd_tx(),
@@ -666,8 +542,8 @@ i2s_transceiver adc(
 // ------- ADC_CLK output buf
 ODDR2 oddr_adc2(
 	.Q(ADC_CLK),
-	.C0(clk_bus),
-	.C1(~clk_bus),
+	.C0(adc_clk_int),
+	.C1(~adc_clk_int),
 	.CE(1'b1),
 	.D0(1'b1),
 	.D1(1'b0),

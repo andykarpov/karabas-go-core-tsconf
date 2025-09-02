@@ -1,5 +1,5 @@
 `include "tune.v"
-`default_nettype none
+
 
 module tsconf
 (

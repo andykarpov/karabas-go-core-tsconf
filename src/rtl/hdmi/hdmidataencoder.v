@@ -172,23 +172,23 @@ begin
       _timer <= _timer - CTS + 1;
    end else begin
       if (!oddLine) begin
-         packetHeader<=24'h0D0282;  // infoframe AVI packet v2
+         packetHeader<=24'h0D0282;  // infoframe AVI packet 
          // Byte0: Checksum (256-(S%256))%256
-         // Byte1: 12 = 0(Y1:Y0<=0 RGB)(A0=1 active format valid)(B1:B0=00 No bar info)(S1:S0=10 Underscan)
+         // Byte1: 10 = 0(Y1:Y0<=0 RGB)(A0=1 active format valid)(B1:B0=00 No bar info)(S1:S0=00 No scan info)
          // Byte2: 19 = (C1:C0=0 No colorimetry)(M1:M0=1 4:3)(R3:R0=9 4:3 center)
-         // Byte3: 80 = 0(SC1:SC0=0 No scaling)
+         // Byte3: 00 = 0(SC1:SC0=0 No scaling)
          // Byte4: 00 = 0(VIC6:VIC0=0 custom resolution)
-         // Byte5: 30 = 0(PR5:PR0=0 No repeation)
-         subpacket[0]<=56'h00300080191294;
+         // Byte5: 00 = 0(PR5:PR0=0 No repeation)
+         subpacket[0]<=56'h00000000191046;
          subpacket[1]<=56'h00000000000000;
       end else begin
          packetHeader<=24'h0A0184;  // infoframe audio packet
          // Byte0: Checksum (256-(S%256))%256
-         // Byte1: 01 = (CT3:0=1 PCM)0(CC2:0=1 2ch)
+         // Byte1: 11 = (CT3:0=1 PCM)0(CC2:0=1 2ch)
          // Byte2: 00 = 000(SF2:0=0 As stream)(SS1:0=0 As stream)
          // Byte3: 00 = LPCM doesn't use this
          // Byte4-5: 00 Multichannel only (>2ch)
-         subpacket[0]<=56'h00000000000170;
+         subpacket[0]<=56'h00000000001160;
          subpacket[1]<=56'h00000000000000;
       end
       subpacket[2]<=56'h00000000000000;

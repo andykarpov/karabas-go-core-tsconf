@@ -25,7 +25,6 @@ constant time_div : integer := 16; -- measure test clock div factor
 signal test : std_logic_vector(3 downto 0) := "0000"; -- test signal rising counter
 signal test_r : std_logic_vector(1 downto 0); -- register to transfer test(3) to ref clock domain
 signal prev_test_r : std_logic;
-signal prev_freq : std_logic_vector(15 downto 0);
 
 begin
 
@@ -75,34 +74,31 @@ begin
 end process;
 
 -- align measured freq to known frequencies
-process (i_clk_ref)
+process (i_clk_test)
 begin
-	if rising_edge(i_clk_ref) then
-		
-		if (prev_freq /= freq) then
-			if (freq > 75000/time_div) then
-				o_freq <= x"50"; -- 80 MHz
-			elsif (freq > 70000/time_div) then 
-				o_freq <= x"48"; -- 72 MHz
-			elsif (freq > 60000/time_div) then
-				o_freq <= x"40"; -- 64 MHz
-			elsif (freq > 53000/time_div) then 
-				o_freq <= x"38"; -- 56 MHz
-			elsif (freq >= 43000/time_div) then 
-				o_freq <= x"30"; -- 48 MHz
-			elsif (freq >= 35000/time_div) then 
-				o_freq <= x"28"; -- 40 MHz
-			elsif (freq >= 30000/time_div) then 
-				o_freq <= x"20"; -- 32 MHz
-			elsif (freq >= 26000/time_div) then
-				o_freq <= x"1C"; -- 28 MHz
-			elsif (freq >= 22000/time_div) then
-				o_freq <= x"18"; -- 24 MHz
-			else 
-				o_freq <= x"1C"; -- 28 MHz (default fallback)
-			end if;
+	if rising_edge(i_clk_test) then
+
+		if (freq > 75000/time_div) then
+			o_freq <= x"50"; -- 80 MHz
+		elsif (freq > 70000/time_div) then 
+			o_freq <= x"48"; -- 72 MHz
+		elsif (freq > 60000/time_div) then
+			o_freq <= x"40"; -- 64 MHz
+		elsif (freq > 53000/time_div) then 
+			o_freq <= x"38"; -- 56 MHz
+		elsif (freq >= 43000/time_div) then 
+			o_freq <= x"30"; -- 48 MHz
+		elsif (freq >= 35000/time_div) then 
+			o_freq <= x"28"; -- 40 MHz
+		elsif (freq >= 30000/time_div) then 
+			o_freq <= x"20"; -- 32 MHz
+		elsif (freq >= 26000/time_div) then
+			o_freq <= x"1C"; -- 28 MHz
+		elsif (freq >= 22000/time_div) then
+			o_freq <= x"18"; -- 24 MHz
+		else 
+			o_freq <= x"00"; -- 0 MHz (default fallback)
 		end if;
-		prev_freq <= freq;
 	end if;
 end process;
 

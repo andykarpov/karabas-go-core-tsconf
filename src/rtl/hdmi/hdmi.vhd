@@ -180,7 +180,7 @@ begin
 		
    elsif(rising_edge(I_CLK_PIXEL)) then
       if(prevBlank = '0' and i_BLANK = '1') then
-         state <= videoData;
+         state <= controlData;
          clockCounter <= 0;
       else
          case state is
