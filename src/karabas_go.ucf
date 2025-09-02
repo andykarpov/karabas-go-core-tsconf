@@ -225,7 +225,6 @@ NET "clk_bus" TNM_NET = "clk_bus";
 NET "tsconf/ce_14m" TNM_NET = "ce_14m";
 NET "clk_16mhz" TNM_NET = "clk_16mhz";
 NET "clk_8mhz" TNM_NET = "clk_8mhz";
-#NET "tsconf/ce_14m" KEEP | S | PERIOD = 71 ns;
 
 TIMESPEC "TS_CLK_SYS" = PERIOD "clk_sys" 84000 kHz;
 TIMESPEC "TS_CLK_BUS" = PERIOD "clk_bus" 28000 kHz;
@@ -234,5 +233,8 @@ TIMESPEC "TS_CLK_16" = PERIOD "clk_16mhz" 16000 kHz;
 TIMESPEC "TS_CLK_8" = PERIOD "clk_8mhz" 8000 kHz;
 
 PIN "tsconf/U_BUFG.O" CLOCK_DEDICATED_ROUTE = FALSE;
+
+NET "MCU_SCK" TNM_NET = "clk_mcu";
+TIMESPEC "TS_CLK_MCU" = PERIOD "clk_mcu" 30 MHz;
 
 

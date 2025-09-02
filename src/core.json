@@ -1,7 +1,7 @@
 {
     "id": "tsconf",
     "name": "TS-Conf +",
-    "build": "24092215",
+    "build": "25090218",
     "bitstream": "karabas_go_top.bin",
     "visible": true,
     "type": "osd",

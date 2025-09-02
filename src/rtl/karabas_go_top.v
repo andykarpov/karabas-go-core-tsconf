@@ -534,15 +534,15 @@ cursor cursor(
 	
 	.OUT_X(cursor_x),
 	.OUT_Y(cursor_y),
-	.OUT_Z(),
+	.OUT_Z(cursor_z),
 	.OUT_B(cursor_b)
 );
 
 always @* begin
 	case (mouse_addr)
-		3'b010: mouse_data <= {5'b11111, ~cursor_b[2:0]};
+		3'b010: mouse_data <= {cursor_z[3:0], 1'b1, ~cursor_b[2:0]};
 		3'b011: mouse_data <= cursor_x;
-		3'b110: mouse_data <= {5'b11111, ~cursor_b[2:0]};
+		3'b110: mouse_data <= {cursor_z[3:0], 1'b1, ~cursor_b[2:0]};
 		3'b111: mouse_data <= cursor_y;
 		default: mouse_data <= 8'hFF;
 	endcase
