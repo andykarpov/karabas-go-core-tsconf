@@ -267,7 +267,7 @@ begin
 		channelStatusIdx<=0;
 		audioTimer<=0;
 		samplesHead<=0;
-		//ctsTimer = 0;
+		ctsTimer <= 0;
 		dataChannel0<=0;
 		dataChannel1<=0;
 		dataChannel2<=0;
@@ -285,12 +285,12 @@ begin
 		tercData<=0;
 		oddLine<=0;
 		counterX<=0;
-		//prevHSync = 0;
-		//prevBlank = 0;
-		//firstHSyncChange = 0;
-		//allowGeneration = 0;
-		//audioRAvg = 0;
-		//audioLAvg = 0;	
+		prevHSync <= 0;
+		prevBlank <= 0;
+		firstHSyncChange <= 0;
+		allowGeneration <= 0;
+		audioRAvg <= 0;
+		audioLAvg <= 0;	
 	end
 	else
 	begin

@@ -49,7 +49,7 @@ begin
 				if (ms_flag /= MS_UPD) then 
 					deltaX(7 downto 0) <= signed(MS_X(7 downto 0));
 					deltaY(7 downto 0) <= -signed(MS_Y(7 downto 0));
-					deltaZ(3 downto 0) <= signed(MS_Z(3 downto 0));					
+					deltaZ(3 downto 0) <= -signed(MS_Z(3 downto 0));					
 					ms_flag <= MS_UPD;
 					trigger <= '1';
 				end if;
