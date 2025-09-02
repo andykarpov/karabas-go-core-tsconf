@@ -1,7 +1,5 @@
 `timescale 1ns / 1ps
 `default_nettype none
-`define HW_ID2
-
 /*-------------------------------------------------------------------------------------------------------------------
 -- 
 -- 
@@ -26,9 +24,11 @@
 -- EU, 2024-2025
 ------------------------------------------------------------------------------------------------------------------*/
 
+// Warning! HW_ID2 macros defined in the Synthedize - XST process properties!
+
 module karabas_mini_top (
 	//---------------------------
-	input wire CLK_50MHZ,
+	input wire 				CLK_50MHZ,
 
 	//---------------------------
 	inout wire 				UART_RX,
@@ -54,74 +54,74 @@ module karabas_mini_top (
 	inout wire [15:0] 	SDR_DQ,
 
 	//---------------------------
-	output wire 		SD_CS_N,
-	output wire 		SD_CLK,
-	inout wire 			SD_DI,
-	inout wire 			SD_DO,
-	input wire 			SD_DET_N,
+	output wire 			SD_CS_N,
+	output wire 			SD_CLK,
+	inout wire 				SD_DI,
+	inout wire 				SD_DO,
+	input wire 				SD_DET_N,
 
 	//---------------------------
-	input wire [7:0] 	VGA_R,
-	input wire [7:0] 	VGA_G,
-	input wire [7:0] 	VGA_B,
-	input wire 			VGA_HS,
-	input wire 			VGA_VS,
+	input wire [7:0] 		VGA_R,
+	input wire [7:0] 		VGA_G,
+	input wire [7:0] 		VGA_B,
+	input wire 				VGA_HS,
+	input wire 				VGA_VS,
 
-	output wire [3:0] TMDS_P,
-	output wire [3:0] TMDS_N,
-
-	//---------------------------
-	output wire 		FT_SPI_CS_N,
-	output wire 		FT_SPI_SCK,
-	input wire 			FT_SPI_MISO,
-	output wire 		FT_SPI_MOSI,
-	input wire 			FT_INT_N,
-	input wire 			FT_CLK,
-	input wire 			FT_AUDIO,
-	input wire 			FT_DE,
-	input wire 			FT_DISP,
-	output wire 		FT_RESET,
-	output wire 		FT_CLK_OUT,
+	output wire [3:0] 	TMDS_P,
+	output wire [3:0] 	TMDS_N,
 
 	//---------------------------
-	output wire [2:0] WA,
-	output wire [1:0] WCS_N,
-	output wire 		WRD_N,
-	output wire 		WWR_N,
-	output wire 		WRESET_N,
-	inout wire [15:0] WD,
+	output wire 			FT_SPI_CS_N,
+	output wire 			FT_SPI_SCK,
+	input wire 				FT_SPI_MISO,
+	output wire 			FT_SPI_MOSI,
+	input wire 				FT_INT_N,
+	input wire 				FT_CLK,
+	input wire 				FT_AUDIO,
+	input wire 				FT_DE,
+	input wire 				FT_DISP,
+	output wire 			FT_RESET,
+	output wire 			FT_CLK_OUT,
+
+	//---------------------------
+	output wire [2:0] 	WA,
+	output wire [1:0] 	WCS_N,
+	output wire 			WRD_N,
+	output wire 			WWR_N,
+	output wire 			WRESET_N,
+	inout wire [15:0] 	WD,
 
 	//---------------------------	
-	output wire 		TAPE_OUT,
-	input wire 			TAPE_IN,
-	output wire 		AUDIO_L,
-	output wire 		AUDIO_R,
+	output wire 			TAPE_OUT,
+	input wire 				TAPE_IN,
+	output wire 			AUDIO_L,
+	output wire 			AUDIO_R,
 
 	//---------------------------
-	output wire 		ADC_CLK,
-	inout wire 			ADC_BCK,
-	inout wire 			ADC_LRCK,
-	input wire 			ADC_DOUT,
+	output wire 			ADC_CLK,
+	inout wire 				ADC_BCK,
+	inout wire 				ADC_LRCK,
+	input wire 				ADC_DOUT,
 
 	//---------------------------
-	input wire 			MCU_CS_N,
-	input wire 			MCU_SCK,
-	input wire 			MCU_MOSI,
-	output wire 		MCU_MISO,
-	input wire [3:0] 	MCU_IO,
+	input wire 				MCU_CS_N,
+	input wire 				MCU_SCK,
+	input wire 				MCU_MOSI,
+	output wire 			MCU_MISO,
+	input wire [3:0] 		MCU_IO,
 
 	//---------------------------
-	output wire 		MIDI_TX,
-	output wire 		MIDI_CLK,
-	output wire 		MIDI_RESET_N,
+	output wire 			MIDI_TX,
+	output wire 			MIDI_CLK,
+	output wire 			MIDI_RESET_N,
 
 	//---------------------------
-	output wire 		FLASH_CS_N,
-	input wire  		FLASH_DO,
-	output wire 		FLASH_DI,
-	output wire 		FLASH_SCK,
-	output wire 		FLASH_WP_N,
-	output wire 		FLASH_HOLD_N
+	output wire 			FLASH_CS_N,
+	input wire  			FLASH_DO,
+	output wire 			FLASH_DI,
+	output wire 			FLASH_SCK,
+	output wire 			FLASH_WP_N,
+	output wire 			FLASH_HOLD_N
 );
 
 // unused signals yet
@@ -238,6 +238,11 @@ tsconf tsconf (
 	.beep					(audio_beeper),
 	.audio_out_l		(audio_out_l),
 	.audio_out_r		(audio_out_r),
+
+`ifdef HW_ID2
+	.adc_in_l			(adc_l[23:8]),
+	.adc_in_r			(adc_r[23:8]),
+`endif
 
 	.sdcs_n				(SD_CS_N),
 	.sdclk				(SD_CLK),
@@ -400,9 +405,9 @@ i2s_transceiver adc(
 // ------- ADC_CLK output buf
 ODDR2 oddr_adc2(.Q(ADC_CLK), .C0(adc_clk_int), .C1(~adc_clk_int), .CE(1'b1), .D0(1'b1), .D1(1'b0), .R(1'b0), .S(1'b0));
 
-// ------- audio mix host + adc
-assign audio_mix_l = audio_out_l[15:0] + adc_l[23:8];
-assign audio_mix_r = audio_out_r[15:0] + adc_r[23:8];
+// ------- audio mix
+assign audio_mix_l = audio_out_l[15:0];
+assign audio_mix_r = audio_out_r[15:0];
 
 //---------- MCU ------------
 mcu mcu(

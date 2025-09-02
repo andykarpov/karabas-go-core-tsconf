@@ -627,7 +627,7 @@ module saa1099_output_mixer (
 
     reg [7:0] compressor_table[0:255];
     initial begin
-        $readmemh ("compressor_lut.hex", compressor_table);
+        $readmemh ("saa1099_compressor_lut.hex", compressor_table);
     end
     
     reg [7:0] mix;
