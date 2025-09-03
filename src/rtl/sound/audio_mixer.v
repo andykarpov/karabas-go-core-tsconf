@@ -37,8 +37,8 @@ module audio_mixer (
 	
 	input wire fm_ena,
 	
-	output wire [15:0] audio_l,
-	output wire [15:0] audio_r
+	output wire signed [15:0] audio_l,
+	output wire signed [15:0] audio_r
 );
 
 reg  [8:0] sum_ch_a,sum_ch_b,sum_ch_c;
@@ -49,33 +49,52 @@ reg [11:0] covox_l, covox_r;
 
 always @(posedge clk) begin
 
+	// unsigned sum
 	sum_ch_a <= { 1'b0, ssg1_a } + { 1'b0, ssg0_a };
 	sum_ch_b <= { 1'b0, ssg1_b } + { 1'b0, ssg0_b };
 	sum_ch_c <= { 1'b0, ssg1_c } + { 1'b0, ssg0_c };
 
+	// check overflow, convert 8:0 to 7:0
 	psg_a <= sum_ch_a[8] ? 8'hFF : sum_ch_a[7:0];
 	psg_b <= sum_ch_b[8] ? 8'hFF : sum_ch_b[7:0];
 	psg_c <= sum_ch_c[8] ? 8'hFF : sum_ch_c[7:0];
 
+	// final mix (unsigned)
 	psg_l <= (mode == 2'b00 || mode== 2'b10) ? {3'b000, psg_a, 1'd0} + {4'b0000, psg_b} : {3'b000, psg_a, 1'd0} + {4'b0000, psg_c};
 	psg_r <= (mode == 2'b00 || mode== 2'b10) ? {3'b000, psg_c, 1'd0} + {4'b0000, psg_b} : {3'b000, psg_b, 1'd0} + {4'b0000, psg_c};
+	// sum l+r fm channels (unsigned, but with the signed data inside the fm_l, fm_r)!!!
 	opn_s <= {{2{fm_l[15]}}, fm_l[15:6]} + {{2{fm_r[15]}}, fm_r[15:6]};
 
+	// make a signed sum of tsfm channels
 	tsfm_l <= fm_ena ? $signed(opn_s) + $signed(psg_l) : $signed(psg_l);
 	tsfm_r <= fm_ena ? $signed(opn_s) + $signed(psg_r) : $signed(psg_r);
-	
+
+	// make a sum of covox channels
 	covox_l <= $signed({3'b000, covox_a, 1'b0} + {3'b000, covox_b, 1'b0} + {4'b0000, covox_fb});
 	covox_r <= $signed({3'b000, covox_c, 1'b0} + {3'b000, covox_d, 1'b0} + {4'b0000, covox_fb});
 end
 
+wire signed [15:0] mix_l = 	$signed({tsfm_l[11:0], 4'b0000}) + 
+										$signed({gs_l[14],gs_l[14:0]}) + 
 `ifdef HW_ID2
-wire [11:0] mix_l = tsfm_l + $signed({1'b0, gs_l[14:4]}) + {adc_l[15], adc_l[15:5]} + covox_l + $signed({2'b00, saa_l, 2'b000}) + $signed({4'b0000, speaker, 7'b0000000});
-wire [11:0] mix_r = tsfm_r + $signed({1'b0, gs_r[14:4]}) + {adc_r[15], adc_r[15:5]} + covox_r + $signed({2'b00, saa_r, 2'b000}) + $signed({4'b0000, speaker, 7'b0000000});
-`else
-wire [11:0] mix_l = tsfm_l + $signed({1'b0, gs_l[14:4]}) + covox_l + $signed({2'b00, saa_l, 2'b000}) + $signed({4'b0000, speaker, 7'b0000000});
-wire [11:0] mix_r = tsfm_r + $signed({1'b0, gs_r[14:4]}) + covox_r + $signed({2'b00, saa_r, 2'b000}) + $signed({4'b0000, speaker, 7'b0000000});
+										$signed(adc_l[15:0]);// + 
 `endif
+										//$signed({4'b0000, covox_l[11:0]}) + 
+										//$signed({4'b0000, saa_l, 4'b0000}) + 
+										//$signed({8'b00000000, speaker, 7'b0000000});
 
-compressor compressor (.clk(clk), .in1(mix_l), .in2(mix_r), .out1(audio_l), .out2(audio_r));
+wire signed [15:0] mix_r = 	$signed({tsfm_r[11:0], 4'b0000}) + 
+										$signed({gs_r[14], gs_r[14:0]}) + 
+`ifdef HW_ID2
+										$signed(adc_r[15:0]);// + 
+`endif							
+										//$signed({4'b0000, covox_r[11:0]}) + 
+										//$signed({4'b0000, saa_r, 4'b0000}) + 
+										//$signed({8'b00000000, speaker, 7'b0000000});
+
+assign audio_l = mix_l;
+assign audio_r = mix_r;
+
+//compressor compressor (.clk(clk), .in1(mix_l), .in2(mix_r), .out1(audio_l), .out2(audio_r));
 
 endmodule
