@@ -42,8 +42,8 @@ module gs_top (
 	input wire            loader_wr,
 
     // sound output
-	output wire [14:0] out_l,
-	output wire [14:0] out_r
+	output wire signed [14:0] out_l,
+	output wire signed [14:0] out_r
 
 );
 
@@ -54,9 +54,6 @@ wire  [7:0] gs_mem_dout;
 wire  [7:0] gs_mem_din;
 wire        gs_mem_rd_n;
 wire        gs_mem_wr_n;
-
-wire [14:0] gs_l, gs_r;
-wire [13:0] out_a, out_b, out_c, out_d;
 
 gs gs 
 (
@@ -73,10 +70,8 @@ gs gs
     .IORQ_n(iorq_n),
     .M1_n(m1_n),
 
-    .OUTA(out_a),
-    .OUTB(out_b),
-    .OUTC(out_c),
-    .OUTD(out_d),
+    .OUT_L(out_l),
+    .OUT_R(out_r),
 
     .MA(gs_mem_addr),
     .MDI(gs_mem_din),
@@ -124,11 +119,5 @@ sdram sdram
     .DQ(sdram_dq)
     
 );
-
-assign gs_l = out_a + out_b;
-assign gs_r = out_c + out_d;
-
-assign out_l = gs_l;
-assign out_r = gs_r;
 
 endmodule
