@@ -214,10 +214,6 @@
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="168"/>
       <association xil_pn:name="Implementation" xil_pn:seqID="41"/>
     </file>
-    <file xil_pn:name="rtl/sound/attenuator.v" xil_pn:type="FILE_VERILOG">
-      <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="174"/>
-      <association xil_pn:name="Implementation" xil_pn:seqID="0"/>
-    </file>
     <file xil_pn:name="rtl/osd/pix_dobler.vhd" xil_pn:type="FILE_VHDL">
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="176"/>
       <association xil_pn:name="Implementation" xil_pn:seqID="88"/>
@@ -369,10 +365,6 @@
     <file xil_pn:name="rtl/sound/jt12/jt12_rst.v" xil_pn:type="FILE_VERILOG">
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="211"/>
       <association xil_pn:name="Implementation" xil_pn:seqID="31"/>
-    </file>
-    <file xil_pn:name="rtl/sound/compressor.v" xil_pn:type="FILE_VERILOG">
-      <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="207"/>
-      <association xil_pn:name="Implementation" xil_pn:seqID="0"/>
     </file>
     <file xil_pn:name="rtl/mcu/usb_ps2_keybuf.v" xil_pn:type="FILE_VERILOG">
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="215"/>

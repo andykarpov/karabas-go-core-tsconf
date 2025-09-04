@@ -77,24 +77,22 @@ end
 wire signed [15:0] mix_l = 	$signed({tsfm_l[11:0], 4'b0000}) + 
 										$signed({gs_l[14],gs_l[14:0]}) + 
 `ifdef HW_ID2
-										$signed(adc_l[15:0]);// + 
+										$signed(adc_l[15:0]) +
 `endif
-										//$signed({4'b0000, covox_l[11:0]}) + 
-										//$signed({4'b0000, saa_l, 4'b0000}) + 
-										//$signed({8'b00000000, speaker, 7'b0000000});
+										$signed({1'b0, saa_l, 7'b00000}) +
+										$signed({covox_l[11:0], 4'b0000}) + 
+										$signed({2'b00, speaker, 7'b0000000, 6'b0000});
 
 wire signed [15:0] mix_r = 	$signed({tsfm_r[11:0], 4'b0000}) + 
 										$signed({gs_r[14], gs_r[14:0]}) + 
 `ifdef HW_ID2
-										$signed(adc_r[15:0]);// + 
+										$signed(adc_r[15:0]) +
 `endif							
-										//$signed({4'b0000, covox_r[11:0]}) + 
-										//$signed({4'b0000, saa_r, 4'b0000}) + 
-										//$signed({8'b00000000, speaker, 7'b0000000});
+										$signed({1'b0, saa_r, 7'b00000}) +										
+										$signed({covox_r[11:0], 4'b0000}) + 
+										$signed({2'b00, speaker, 7'b0000000, 6'b000000});
 
 assign audio_l = mix_l;
 assign audio_r = mix_r;
-
-//compressor compressor (.clk(clk), .in1(mix_l), .in2(mix_r), .out1(audio_l), .out2(audio_r));
 
 endmodule
