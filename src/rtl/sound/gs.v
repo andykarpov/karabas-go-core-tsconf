@@ -174,14 +174,14 @@ reg signed [14:0] out_a, out_b, out_c, out_d;
 reg signed [14:0] mix_l, mix_r;
 always @(posedge CLK)
 begin 
-	if (CE) begin
+	//if (CE) begin
 		out_a <= ch_a_reg * port_xx06_reg;
 		out_b <= ch_b_reg * port_xx07_reg;
 		out_c <= ch_c_reg * port_xx08_reg;
 		out_d <= ch_d_reg * port_xx09_reg;		
 		mix_l <= out_a + out_b;
 		mix_r <= out_c + out_d;
-	end
+	//end
 end
 
 assign OUT_L = mix_l;
