@@ -85,12 +85,21 @@ architecture rtl of packet_gen is
 		x"00",			-- no downmix inhibition, no attenuation
 		others => x"00" );
 	-- Source Product Description InfoFrame
-	constant spd_infoframe : data_packet_t := (
-		x"83", x"01", x"19",	-- Source Product Description InfoFrame header
-		x"fc",			-- checksum
-		x"73", x"65", x"63", x"74", x"6f", x"72", x"20", x"31",	-- "sector 1"
-		x"7a", x"65", x"53", x"54",			-- "zeST"
-		others => x"00" );
+	--constant spd_infoframe : data_packet_t := (
+	--	x"83", x"01", x"19",	-- Source Product Description InfoFrame header (packet type, version, length)
+	--	x"fc",			-- checksum
+	--	x"73", x"65", x"63", x"74", x"6f", x"72", x"20", x"31",	-- "sector 1" (vendor name, 8 bytes)
+	--	x"7a", x"65", x"53", x"54",			-- "zeST" (product spec, 16 bytes)
+	--	others => x"00" );
+		
+	constant spd_infoframe: data_packet_t := (
+		x"83", x"01", x"19", -- Source Product Description InfoFrame header (packet type, version, length)
+		x"77", -- checksum
+		x"4b", x"41", x"52", x"41", x"42", x"41", x"53", x"00", -- "KARABAS"
+		x"4b", x"61", x"72", x"61", x"62", x"61", x"73", x"20", x"48", x"44", x"4d", x"49", -- "Karabas HDMI"
+		others => x"00"
+	);	
+		
 	type if_array_t is array (0 to 2) of data_packet_t;
 	constant if_array : if_array_t := ( audio_infoframe, avi_infoframe, spd_infoframe );
 
