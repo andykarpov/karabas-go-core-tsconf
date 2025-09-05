@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 `default_nettype none
 
-module hdmi_top(
+module zhdmi_top(
 
 	input wire clk,
 	input wire clk_ref,
@@ -59,7 +59,7 @@ wire host_vga_hs, host_vga_vs, host_vga_blank;
 // async fifo between v_clk_int and p_clk_int
 
 wire [26:0] ft_data, vga_data;
-
+assign vga_data = {vga_de, vga_hs, vga_vs, vga_rgb[23:0]};
 rgb_fifo rgb_fifo_ft(
 	.rst(pll_reset),
 	.wr_clk(~clk),
@@ -72,7 +72,7 @@ rgb_fifo rgb_fifo_ft(
 	.full()
 );
 
-rgb_fifo rgb_fifo_vga(
+/*rgb_fifo rgb_fifo_vga(
 	.rst(pll_reset),
 	.wr_clk(clk),
 	.din({vga_de, vga_hs, vga_vs, vga_rgb[23:0]}),
@@ -82,11 +82,13 @@ rgb_fifo rgb_fifo_vga(
 	.rd_en(lockedx5),
 	.empty(),
 	.full()
-);
+);*/
 
 wire [15:0] audio_out_l, audio_out_r;
+assign audio_out_l = audio_l;
+assign audio_out_r = audio_r;
 
-audio_fifo audio_fifo_l(
+/*audio_fifo audio_fifo_l(
 	.rst(pll_reset),
 	.wr_clk(clk),
 	.din(audio_l[15:0]),
@@ -108,7 +110,7 @@ audio_fifo audio_fifo_r(
 	.rd_en(lockedx5),
 	.empty(),
 	.full()
-);
+);*/
 
 assign host_vga_r = (ft_sel ? (~ft_data[26] ? 8'b0 : ft_data[23:16]) : (~vga_data[26] ? 8'b0 : vga_data[23:16]));
 assign host_vga_g = (ft_sel ? (~ft_data[26] ? 8'b0 : ft_data[16:8]) : (~vga_data[26] ? 8'b0 : vga_data[15:8]));
@@ -117,37 +119,60 @@ assign host_vga_hs = (ft_sel ? ft_data[25] : vga_data[25]);
 assign host_vga_vs = (ft_sel ? ft_data[24] : vga_data[24]);
 assign host_vga_blank = (ft_sel ? ~ft_data[26] : ~vga_data[26]);
 
-// hdmi
+// audio samplerate
+// prescaler = (clock_speed/desired_clock_speed)/2
+localparam SAMPLERATE = 192000;
+reg clk_audio;
+wire [9:0] prescaler = ((hdmi_freq * 1000000) / SAMPLERATE) / 2;
+reg [9:0] cnt_audio;
+always @(posedge p_clk_int)
+begin
+		if (~lockedx5) 
+		begin
+			cnt_audio <= 0;
+			clk_audio <= 0;
+		end
+		else 
+		begin
+			if (cnt_audio > prescaler) 
+			begin
+				cnt_audio <= 0;
+				clk_audio <= ~clk_audio;
+			end
+			else
+				cnt_audio <= cnt_audio + 1;
+		end
+end
 
-wire [9:0] tmds_red, tmds_green, tmds_blue;
+reg signed [23:0] hdmi_audio_l, hdmi_audio_r;
+always @(posedge p_clk_int) begin
+	if (!clk_audio) begin
+		hdmi_audio_l <= $signed(audio_l) * 256;
+		hdmi_audio_r <= $signed(audio_r) * 256;
+	end
+end
 
-hdmi #(.FS(32000), .N(6144)) hdmi(
-	.I_CLK_PIXEL(p_clk_int),
-	.I_RESET(pll_reset),
-	.I_FREQ(hdmi_freq),
-	.I_R(host_vga_r),
-	.I_G(host_vga_g),
-	.I_B(host_vga_b),
-	.I_BLANK(host_vga_blank),
-	.I_HSYNC(host_vga_hs),
-	.I_VSYNC(host_vga_vs),
-	.I_AUDIO_ENABLE(1'b1),
-	.I_AUDIO_PCM_L(audio_out_l),
-	.I_AUDIO_PCM_R(audio_out_r),
-	.O_RED(tmds_red),
-	.O_GREEN(tmds_green),
-	.O_BLUE(tmds_blue)
+// hdmi tx
+hdmi_tx #(.SAMPLE_FREQ(SAMPLERATE)) hdmi_tx(
+	.clk(p_clk_int),
+	.sclk(clk_hdmi),
+	.sclk_n(clk_hdmi_n),
+	.reset(reset),
+	.rgb({host_vga_r, host_vga_g, host_vga_b}),
+	.vsync(host_vga_vs),
+	.hsync(host_vga_hs),
+	.de(~host_vga_blank),
+	
+	.audio_en(1'b1),
+	.audio_l(hdmi_audio_l),
+	.audio_r(hdmi_audio_r),
+	.audio_clk(clk_audio),
+	
+	.tx_clk_n(tmds_n[3]),
+	.tx_clk_p(tmds_p[3]),
+	.tx_d_n(tmds_n[2:0]),
+	.tx_d_p(tmds_p[2:0]) // 0:blue, 1:green, 2:red
 );
 
-hdmi_out_xilinx hdmiio(
-	.clock_pixel_i(p_clk_int),
-	.clock_tdms_i(clk_hdmi),
-	.clock_tdms_n_i(clk_hdmi_n),
-	.red_i(tmds_red),
-	.green_i(tmds_green),
-	.blue_i(tmds_blue),
-	.tmds_out_p(tmds_p),
-	.tmds_out_n(tmds_n)
-);
 
 endmodule
