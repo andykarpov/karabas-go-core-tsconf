@@ -88,7 +88,6 @@ audio_restrober #(.SAMPLERATE(SAMPLERATE), .CLKRATE(CLKRATE)) audio_restrober(
 	.clk(p_clk_int),
 	.clk_ref(clk_ref),
 	.reset(reset || ~lockedx5),
-	.freq(hdmi_freq),
 	.audio_l(audio_l),
 	.audio_r(audio_r),
 	.out_l(audio_out_l),
