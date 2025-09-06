@@ -87,7 +87,7 @@ reg signed [7:0] ch_a_reg, ch_b_reg, ch_c_reg, ch_d_reg;
 reg [6:0] mem;
 
 always @(posedge CLK) begin
-	if (~cpu_iorq_n & cpu_m1_n) begin
+	if (~cpu_iorq_n & cpu_m1_n & CE) begin
 		case(cpu_a_bus[3:0])
 			'h2: bit7_flag <= 0;
 			'h3: bit7_flag <= 1;
@@ -125,7 +125,7 @@ begin
 		port_xx00_reg <= 0;
       port_xx03_reg <= 0;
 	end
-	else begin
+	else if (CE) begin
 	
 		if (~cpu_iorq_n && ~cpu_wr_n) begin 
 			case(cpu_a_bus[3:0])
@@ -174,14 +174,14 @@ reg signed [14:0] out_a, out_b, out_c, out_d;
 reg signed [14:0] mix_l, mix_r;
 always @(posedge CLK)
 begin 
-	//if (CE) begin
+	if (CE) begin
 		out_a <= ch_a_reg * port_xx06_reg;
 		out_b <= ch_b_reg * port_xx07_reg;
 		out_c <= ch_c_reg * port_xx08_reg;
 		out_d <= ch_d_reg * port_xx09_reg;		
 		mix_l <= out_a + out_b;
 		mix_r <= out_c + out_d;
-	//end
+	end
 end
 
 assign OUT_L = mix_l;

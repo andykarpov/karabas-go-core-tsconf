@@ -5,33 +5,33 @@
 -- (c) 2025
 ---------------------------------------------------------------------------------------------------------------------*/
 module audio_restrober(
-	input wire clk, // input hdmi pixelclock (mux from FT 24...80 MHz or 28 MHz system clock)
-	input wire clk_ref, // 28 MHz reference clock
-	input wire reset, 
-	input wire [7:0] freq, // hdmi freq (unused yet)
-	input wire [15:0] audio_l, // input audio from 28 MHz clock domain
-	input wire [15:0] audio_r,
-	output wire [15:0] out_l, // output audio for hdmi clock domain
-	output wire [15:0] out_r,
-	output wire out_clk // output audio strobe at desired samplerate (in hdmi clock domain)
+	input wire 				clk, 		// input hdmi pixelclock (mux from FT 24...80 MHz or 28 MHz system clock)
+	input wire 				clk_ref, // 28 MHz reference clock
+	input wire 				reset, 
+	input wire [15:0] 	audio_l, // input audio from 28 MHz clock domain
+	input wire [15:0] 	audio_r,
+	output wire [15:0] 	out_l, 	// output audio for hdmi clock domain
+	output wire [15:0] 	out_r,
+	output wire 			out_clk 	// output audio strobe at desired samplerate (in hdmi clock domain)
 );
 
 // audio samplerate
 parameter SAMPLERATE = 192000;
-parameter CLKRATE = 28000000;
+parameter CLKRATE 	= 28000000;
 
 // audio strobe generator
-wire audio_clk, audio_stb;
+wire audio_stb;
 audio_samplerate #(.SAMPLERATE(SAMPLERATE), .CLKRATE(CLKRATE)) audio_samplerate(
 	.clk				(clk_ref),
 	.reset			(reset),
-	.audio_clk		(audio_clk),
 	.audio_stb		(audio_stb)
 );
 
 /*
-clk_ref:    ___|‾‾‾|___|‾‾‾|___|‾‾‾|___|‾‾‾|___|‾‾‾|___
-stb_reg:     ___‾‾‾_____________________________________
+clk_ref:    ___|‾‾‾|___|‾‾‾|___|‾‾‾|___|‾‾‾|___|‾‾‾|___|‾‾‾|___|‾‾‾|___|‾‾‾|___|‾‾‾|___
+audio_stb:  ___|‾‾‾‾‾‾‾‾|____________________________________________________________ (1x clock cycle)
+stb_reg:    ___|‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾|_____________________________________________________ (2x clock cycles)
+
 audio_l,r:    ===A0===A1===A2============================   (sample changes)
 audio_in_reg:     A0    A1    A2                            (latched)
 

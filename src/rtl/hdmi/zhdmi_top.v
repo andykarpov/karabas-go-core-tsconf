@@ -87,7 +87,7 @@ wire audio_clk;
 audio_restrober #(.SAMPLERATE(SAMPLERATE), .CLKRATE(CLKRATE)) audio_restrober(
 	.clk(p_clk_int),
 	.clk_ref(clk_ref),
-	.reset(~lockedx5),
+	.reset(reset || ~lockedx5),
 	.freq(hdmi_freq),
 	.audio_l(audio_l),
 	.audio_r(audio_r),
@@ -110,7 +110,7 @@ hdmi_tx #(.SAMPLE_FREQ(SAMPLERATE)) hdmi_tx(
 	.clk(p_clk_int),
 	.sclk(clk_hdmi),
 	.sclk_n(clk_hdmi_n),
-	.reset(reset),
+	.reset(reset || ~lockedx5),
 	.rgb({host_vga_r, host_vga_g, host_vga_b}),
 	.vsync(host_vga_vs),
 	.hsync(host_vga_hs),
