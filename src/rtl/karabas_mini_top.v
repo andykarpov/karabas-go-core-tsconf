@@ -24,7 +24,7 @@
 -- EU, 2024-2025
 ------------------------------------------------------------------------------------------------------------------*/
 
-// Warning! HW_ID2 macros defined in the Synthedize - XST process properties!
+// Warning! HW_ID2 macros defined in the Synthesize - XST process properties!
 
 module karabas_mini_top (
 	//---------------------------
@@ -184,7 +184,7 @@ wire video_hsync, video_vsync, video_blank;
 wire btn_reset_n, btn_reset_gs_n;
 wire audio_beeper;
 wire [15:0] audio_out_l, audio_out_r;
-wire [31:0] audio_mix_l, audio_mix_r;
+wire [15:0] audio_mix_l, audio_mix_r;
 wire [12:0] joy_l, joy_r;
 wire [2:0] mouse_addr;
 reg [7:0] mouse_data;
@@ -343,7 +343,8 @@ BUFGMUX v_clk_mux(.I0(ce_28m), .I1(ft_clk_int), .O(v_clk_int), .S(vdac2_sel));
 
 // hdmi
 wire [7:0] hdmi_freq;
-hdmi_top hdmi_top(
+wire samplerate_stb;
+zhdmi_top zhdmi_top(
 	.clk				(v_clk_int),
 	.clk_ref			(clk_bus),
 	.clk_8			(clk_8mhz),
@@ -361,13 +362,14 @@ hdmi_top hdmi_top(
 
 	.ft_sel			(vdac2_sel),
 
-	.audio_l			(audio_mix_l[15:0]),
-	.audio_r			(audio_mix_r[15:0]),
+	.audio_l			(audio_mix_l),
+	.audio_r			(audio_mix_r),
 
 	.tmds_p			(TMDS_P),
 	.tmds_n			(TMDS_N),
 
-	.freq				(hdmi_freq)
+	.freq				(hdmi_freq),
+	.samplerate_stb(samplerate_stb)
 );
 
 //------- Sigma-Delta DAC ---------
@@ -406,8 +408,8 @@ i2s_transceiver adc(
 ODDR2 oddr_adc2(.Q(ADC_CLK), .C0(adc_clk_int), .C1(~adc_clk_int), .CE(1'b1), .D0(1'b1), .D1(1'b0), .R(1'b0), .S(1'b0));
 
 // ------- audio mix
-assign audio_mix_l = audio_out_l[15:0];
-assign audio_mix_r = audio_out_r[15:0];
+assign audio_mix_l = audio_out_l;
+assign audio_mix_r = audio_out_r;
 
 //---------- MCU ------------
 mcu mcu(
@@ -567,12 +569,11 @@ cursor cursor(
 );
 
 always @* begin
-	case (mouse_addr)
-		3'b010: mouse_data <= {cursor_z[3:0], 1'b1, ~cursor_b[2:0]};
-		3'b011: mouse_data <= cursor_x;
-		3'b110: mouse_data <= {cursor_z[3:0], 1'b1, ~cursor_b[2:0]};
-		3'b111: mouse_data <= cursor_y;
-		default: mouse_data <= 8'hFF;
+	casex (mouse_addr)
+		3'bX10:	mouse_data	<= {cursor_z[3:0], 1'b1, ~cursor_b[2:0]};
+		3'b011:	mouse_data	<= cursor_x;
+		3'b111:	mouse_data	<= cursor_y;
+		default:	mouse_data	<= 8'hFF;
 	endcase
 end
 

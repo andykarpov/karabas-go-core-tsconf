@@ -121,7 +121,7 @@ assign host_vga_blank = (ft_sel ? ~ft_data[26] : ~vga_data[26]);
 
 wire [9:0] tmds_red, tmds_green, tmds_blue;
 
-hdmi #(.FS(48000), .N(6144)) hdmi(
+hdmi #(.FS(32000), .N(6144)) hdmi(
 	.I_CLK_PIXEL(p_clk_int),
 	.I_RESET(pll_reset),
 	.I_FREQ(hdmi_freq),

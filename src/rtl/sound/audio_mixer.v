@@ -70,8 +70,8 @@ always @(posedge clk) begin
 	tsfm_r <= fm_ena ? $signed(opn_s) + $signed(psg_r) : $signed(psg_r);
 
 	// make a sum of covox channels
-	covox_l <= $signed({3'b000, covox_a, 1'b0} + {3'b000, covox_b, 1'b0} + {4'b0000, covox_fb});
-	covox_r <= $signed({3'b000, covox_c, 1'b0} + {3'b000, covox_d, 1'b0} + {4'b0000, covox_fb});
+	covox_l <= $signed({2'b00, covox_a, 2'b00} + {2'b00, covox_b, 2'b00} + {3'b000, covox_fb, 1'b0});
+	covox_r <= $signed({2'b00, covox_c, 2'b00} + {2'b00, covox_d, 2'b00} + {3'b000, covox_fb, 1'b0});
 end
 
 wire signed [15:0] mix_l = 	$signed({tsfm_l[11:0], 4'b0000}) + 
@@ -79,7 +79,7 @@ wire signed [15:0] mix_l = 	$signed({tsfm_l[11:0], 4'b0000}) +
 `ifdef HW_ID2
 										$signed(adc_l[15:0]) +
 `endif
-										$signed({1'b0, saa_l, 7'b00000}) +
+										$signed({2'b00, saa_l, 6'b000000}) +
 										$signed({covox_l[11:0], 4'b0000}) + 
 										$signed({2'b00, speaker, 7'b0000000, 6'b0000});
 
@@ -88,7 +88,7 @@ wire signed [15:0] mix_r = 	$signed({tsfm_r[11:0], 4'b0000}) +
 `ifdef HW_ID2
 										$signed(adc_r[15:0]) +
 `endif							
-										$signed({1'b0, saa_r, 7'b00000}) +										
+										$signed({2'b00, saa_r, 6'b000000}) +										
 										$signed({covox_r[11:0], 4'b0000}) + 
 										$signed({2'b00, speaker, 7'b0000000, 6'b000000});
 
