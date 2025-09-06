@@ -24,7 +24,7 @@
 -- EU, 2024-2025
 ------------------------------------------------------------------------------------------------------------------*/
 
-// Warning! HW_ID2 macros defined in the Synthedize - XST process properties!
+// Warning! HW_ID2 macros defined in the Synthesize - XST process properties!
 
 module karabas_mini_top (
 	//---------------------------
@@ -343,6 +343,7 @@ BUFGMUX v_clk_mux(.I0(ce_28m), .I1(ft_clk_int), .O(v_clk_int), .S(vdac2_sel));
 
 // hdmi
 wire [7:0] hdmi_freq;
+wire samplerate_stb;
 zhdmi_top zhdmi_top(
 	.clk				(v_clk_int),
 	.clk_ref			(clk_bus),
@@ -367,7 +368,8 @@ zhdmi_top zhdmi_top(
 	.tmds_p			(TMDS_P),
 	.tmds_n			(TMDS_N),
 
-	.freq				(hdmi_freq)
+	.freq				(hdmi_freq),
+	.samplerate_stb(samplerate_stb)
 );
 
 //------- Sigma-Delta DAC ---------
@@ -567,12 +569,11 @@ cursor cursor(
 );
 
 always @* begin
-	case (mouse_addr)
-		3'b010: mouse_data <= {cursor_z[3:0], 1'b1, ~cursor_b[2:0]};
-		3'b011: mouse_data <= cursor_x;
-		3'b110: mouse_data <= {cursor_z[3:0], 1'b1, ~cursor_b[2:0]};
-		3'b111: mouse_data <= cursor_y;
-		default: mouse_data <= 8'hFF;
+	casex (mouse_addr)
+		3'bX10:	mouse_data	<= {cursor_z[3:0], 1'b1, ~cursor_b[2:0]};
+		3'b011:	mouse_data	<= cursor_x;
+		3'b111:	mouse_data	<= cursor_y;
+		default:	mouse_data	<= 8'hFF;
 	endcase
 end
 

@@ -27,8 +27,12 @@ module zhdmi_top(
 	output wire [3:0] tmds_p,
 	output wire [3:0] tmds_n,
 	
-	output wire [7:0] freq
+	output wire [7:0] freq,
+	output wire samplerate_stb
 );
+
+parameter SAMPLERATE = 192000;
+parameter CLKRATE = 28000000;
 
 // clocks
 wire clk_hdmi, clk_hdmi_n;
@@ -57,7 +61,6 @@ wire [7:0] host_vga_r, host_vga_g, host_vga_b;
 wire host_vga_hs, host_vga_vs, host_vga_blank;
 
 // async fifo between v_clk_int and p_clk_int
-
 wire [26:0] ft_data, vga_data;
 assign vga_data = {vga_de, vga_hs, vga_vs, vga_rgb[23:0]};
 rgb_fifo rgb_fifo_ft(
@@ -72,46 +75,6 @@ rgb_fifo rgb_fifo_ft(
 	.full()
 );
 
-/*rgb_fifo rgb_fifo_vga(
-	.rst(pll_reset),
-	.wr_clk(clk),
-	.din({vga_de, vga_hs, vga_vs, vga_rgb[23:0]}),
-	.wr_en(lockedx5),
-	.rd_clk(p_clk_int),
-	.dout(vga_data[26:0]),
-	.rd_en(lockedx5),
-	.empty(),
-	.full()
-);*/
-
-wire [15:0] audio_out_l, audio_out_r;
-assign audio_out_l = audio_l;
-assign audio_out_r = audio_r;
-
-/*audio_fifo audio_fifo_l(
-	.rst(pll_reset),
-	.wr_clk(clk),
-	.din(audio_l[15:0]),
-	.wr_en(lockedx5),
-	.rd_clk(p_clk_int),
-	.dout(audio_out_l[15:0]),
-	.rd_en(lockedx5),
-	.empty(),
-	.full()
-);
-
-audio_fifo audio_fifo_r(
-	.rst(pll_reset),
-	.wr_clk(clk),
-	.din(audio_r[15:0]),
-	.wr_en(lockedx5),
-	.rd_clk(p_clk_int),
-	.dout(audio_out_r[15:0]),
-	.rd_en(lockedx5),
-	.empty(),
-	.full()
-);*/
-
 assign host_vga_r = (ft_sel ? (~ft_data[26] ? 8'b0 : ft_data[23:16]) : (~vga_data[26] ? 8'b0 : vga_data[23:16]));
 assign host_vga_g = (ft_sel ? (~ft_data[26] ? 8'b0 : ft_data[16:8]) : (~vga_data[26] ? 8'b0 : vga_data[15:8]));
 assign host_vga_b = (ft_sel ? (~ft_data[26] ? 8'b0 : ft_data[7:0]) : (~vga_data[26] ? 8'b0 : vga_data[7:0]));
@@ -119,36 +82,26 @@ assign host_vga_hs = (ft_sel ? ft_data[25] : vga_data[25]);
 assign host_vga_vs = (ft_sel ? ft_data[24] : vga_data[24]);
 assign host_vga_blank = (ft_sel ? ~ft_data[26] : ~vga_data[26]);
 
-// audio samplerate
-// prescaler = (clock_speed/desired_clock_speed)/2
-localparam SAMPLERATE = 192000;
-reg clk_audio;
-wire [9:0] prescaler = ((hdmi_freq * 1000000) / SAMPLERATE) / 2;
-reg [9:0] cnt_audio;
-always @(posedge p_clk_int)
-begin
-		if (~lockedx5) 
-		begin
-			cnt_audio <= 0;
-			clk_audio <= 0;
-		end
-		else 
-		begin
-			if (cnt_audio > prescaler) 
-			begin
-				cnt_audio <= 0;
-				clk_audio <= ~clk_audio;
-			end
-			else
-				cnt_audio <= cnt_audio + 1;
-		end
-end
+wire [15:0] audio_out_l, audio_out_r;
+wire audio_clk;
+audio_restrober #(.SAMPLERATE(SAMPLERATE), .CLKRATE(CLKRATE)) audio_restrober(
+	.clk(p_clk_int),
+	.clk_ref(clk_ref),
+	.reset(~lockedx5),
+	.freq(hdmi_freq),
+	.audio_l(audio_l),
+	.audio_r(audio_r),
+	.out_l(audio_out_l),
+	.out_r(audio_out_r),
+	.out_clk(audio_clk)
+);
+assign samplerate_stb = audio_clk;
 
 reg signed [23:0] hdmi_audio_l, hdmi_audio_r;
 always @(posedge p_clk_int) begin
-	if (!clk_audio) begin
-		hdmi_audio_l <= $signed(audio_l) * 256;
-		hdmi_audio_r <= $signed(audio_r) * 256;
+	if (audio_clk) begin
+		hdmi_audio_l <= $signed(audio_out_l) * 256;
+		hdmi_audio_r <= $signed(audio_out_r) * 256;
 	end
 end
 
@@ -166,7 +119,7 @@ hdmi_tx #(.SAMPLE_FREQ(SAMPLERATE)) hdmi_tx(
 	.audio_en(1'b1),
 	.audio_l(hdmi_audio_l),
 	.audio_r(hdmi_audio_r),
-	.audio_clk(clk_audio),
+	.audio_clk(audio_clk),
 	
 	.tx_clk_n(tmds_n[3]),
 	.tx_clk_p(tmds_p[3]),

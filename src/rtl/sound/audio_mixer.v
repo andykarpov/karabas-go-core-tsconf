@@ -70,7 +70,6 @@ always @(posedge clk) begin
 	tsfm_r <= fm_ena ? $signed(opn_s) + $signed(psg_r) : $signed(psg_r);
 
 	// make a sum of covox channels
-	// todo: сделать в 2 раза громче
 	covox_l <= $signed({2'b00, covox_a, 2'b00} + {2'b00, covox_b, 2'b00} + {3'b000, covox_fb, 1'b0});
 	covox_r <= $signed({2'b00, covox_c, 2'b00} + {2'b00, covox_d, 2'b00} + {3'b000, covox_fb, 1'b0});
 end
