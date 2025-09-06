@@ -1,14 +1,19 @@
+/*-------------------------------------------------------------------------------------------------------------------
+-- Audio samplerate generator and restrober between 28MHz clock domain and HDMI clock domain (24...80MHz)
+-- 
+-- @author TSLabs
+-- (c) 2025
+---------------------------------------------------------------------------------------------------------------------*/
 module audio_restrober(
-	input wire clk, // input clock 
-	input wire clk_ref, // 28 mhz 
+	input wire clk, // input hdmi pixelclock (mux from FT 24...80 MHz or 28 MHz system clock)
+	input wire clk_ref, // 28 MHz reference clock
 	input wire reset, 
-	input wire [7:0] freq, // hdmi freq
-	input wire [15:0] audio_l, // input audio from 28 domain
+	input wire [7:0] freq, // hdmi freq (unused yet)
+	input wire [15:0] audio_l, // input audio from 28 MHz clock domain
 	input wire [15:0] audio_r,
-
-	output wire [15:0] out_l, // output audio for hdmi domain
+	output wire [15:0] out_l, // output audio for hdmi clock domain
 	output wire [15:0] out_r,
-	output wire out_clk
+	output wire out_clk // output audio strobe at desired samplerate (in hdmi clock domain)
 );
 
 // audio samplerate

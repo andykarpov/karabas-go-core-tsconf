@@ -60,20 +60,20 @@ assign freq = hdmi_freq;
 wire [7:0] host_vga_r, host_vga_g, host_vga_b;
 wire host_vga_hs, host_vga_vs, host_vga_blank;
 
-// async fifo between v_clk_int and p_clk_int
+// metastabilize video data
 wire [26:0] ft_data, vga_data;
+reg [53:0] ft_data_r;
+always @(negedge clk) begin
+	ft_data_r[26:0] <= {ft_de, ft_hs, ft_vs, ft_rgb[23:0]};
+	ft_data_r[53:27] <= ft_data_r[26:0];
+end
+reg [53:0] ft_data_r2;
+always @(posedge p_clk_int) begin
+	ft_data_r2[26:0] <= ft_data_r[53:27];
+	ft_data_r2[53:27] <= ft_data_r2[26:0];
+end
+assign ft_data = ft_data_r2[53:27];
 assign vga_data = {vga_de, vga_hs, vga_vs, vga_rgb[23:0]};
-rgb_fifo rgb_fifo_ft(
-	.rst(pll_reset),
-	.wr_clk(~clk),
-	.din({ft_de, ft_hs, ft_vs, ft_rgb[23:0]}),
-	.wr_en(lockedx5),
-	.rd_clk(p_clk_int),
-	.dout(ft_data[26:0]),
-	.rd_en(lockedx5),
-	.empty(),
-	.full()
-);
 
 assign host_vga_r = (ft_sel ? (~ft_data[26] ? 8'b0 : ft_data[23:16]) : (~vga_data[26] ? 8'b0 : vga_data[23:16]));
 assign host_vga_g = (ft_sel ? (~ft_data[26] ? 8'b0 : ft_data[16:8]) : (~vga_data[26] ? 8'b0 : vga_data[15:8]));

@@ -20,11 +20,11 @@
     </file>
     <file xil_pn:name="rtl/tsconf.v" xil_pn:type="FILE_VERILOG">
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="84"/>
-      <association xil_pn:name="Implementation" xil_pn:seqID="98"/>
+      <association xil_pn:name="Implementation" xil_pn:seqID="97"/>
     </file>
     <file xil_pn:name="rtl/karabas_mini_top.v" xil_pn:type="FILE_VERILOG">
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="86"/>
-      <association xil_pn:name="Implementation" xil_pn:seqID="108"/>
+      <association xil_pn:name="Implementation" xil_pn:seqID="107"/>
     </file>
     <file xil_pn:name="rtl/rom.v" xil_pn:type="FILE_VERILOG">
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="88"/>
@@ -120,15 +120,15 @@
     </file>
     <file xil_pn:name="rtl/mcu/hid_parser.vhd" xil_pn:type="FILE_VHDL">
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="123"/>
-      <association xil_pn:name="Implementation" xil_pn:seqID="103"/>
+      <association xil_pn:name="Implementation" xil_pn:seqID="102"/>
     </file>
     <file xil_pn:name="rtl/mcu/mcu.vhd" xil_pn:type="FILE_VHDL">
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="124"/>
-      <association xil_pn:name="Implementation" xil_pn:seqID="102"/>
+      <association xil_pn:name="Implementation" xil_pn:seqID="101"/>
     </file>
     <file xil_pn:name="rtl/mcu/soft_switches.vhd" xil_pn:type="FILE_VHDL">
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="125"/>
-      <association xil_pn:name="Implementation" xil_pn:seqID="101"/>
+      <association xil_pn:name="Implementation" xil_pn:seqID="100"/>
     </file>
     <file xil_pn:name="rtl/ram/dpram.v" xil_pn:type="FILE_VERILOG">
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="128"/>
@@ -176,7 +176,7 @@
     </file>
     <file xil_pn:name="rtl/mcu/cursor.vhd" xil_pn:type="FILE_VHDL">
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="299"/>
-      <association xil_pn:name="Implementation" xil_pn:seqID="104"/>
+      <association xil_pn:name="Implementation" xil_pn:seqID="103"/>
     </file>
     <file xil_pn:name="rtl/uart/uart_rx.vhd" xil_pn:type="FILE_VHDL">
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="191"/>
@@ -192,7 +192,7 @@
     </file>
     <file xil_pn:name="rtl/osd/overlay.vhd" xil_pn:type="FILE_VHDL">
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="196"/>
-      <association xil_pn:name="Implementation" xil_pn:seqID="100"/>
+      <association xil_pn:name="Implementation" xil_pn:seqID="99"/>
     </file>
     <file xil_pn:name="rtl/sound/covox.vhd" xil_pn:type="FILE_VHDL">
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="217"/>
@@ -372,11 +372,11 @@
     </file>
     <file xil_pn:name="rtl/dac/dac.vhd" xil_pn:type="FILE_VHDL">
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="223"/>
-      <association xil_pn:name="Implementation" xil_pn:seqID="106"/>
+      <association xil_pn:name="Implementation" xil_pn:seqID="105"/>
     </file>
     <file xil_pn:name="rtl/adc/i2s_transceiver.vhd" xil_pn:type="FILE_VHDL">
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="226"/>
-      <association xil_pn:name="Implementation" xil_pn:seqID="107"/>
+      <association xil_pn:name="Implementation" xil_pn:seqID="106"/>
     </file>
     <file xil_pn:name="rtl/hdmi/freq_counter.vhd" xil_pn:type="FILE_VHDL">
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="219"/>
@@ -396,11 +396,7 @@
     </file>
     <file xil_pn:name="rtl/pll/pll.v" xil_pn:type="FILE_VERILOG">
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="220"/>
-      <association xil_pn:name="Implementation" xil_pn:seqID="99"/>
-    </file>
-    <file xil_pn:name="ipcore_dir/rgb_fifo.xco" xil_pn:type="FILE_COREGEN">
-      <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="226"/>
-      <association xil_pn:name="Implementation" xil_pn:seqID="97"/>
+      <association xil_pn:name="Implementation" xil_pn:seqID="98"/>
     </file>
     <file xil_pn:name="rtl/sound/audio_mixer.v" xil_pn:type="FILE_VERILOG">
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="179"/>
@@ -412,7 +408,7 @@
     </file>
     <file xil_pn:name="rtl/hdmi/zhdmi_top.v" xil_pn:type="FILE_VERILOG">
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="170"/>
-      <association xil_pn:name="Implementation" xil_pn:seqID="105"/>
+      <association xil_pn:name="Implementation" xil_pn:seqID="104"/>
     </file>
     <file xil_pn:name="rtl/zhdmi/zhdmi_audio_packetizer.vhd" xil_pn:type="FILE_VHDL">
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="171"/>
@@ -449,9 +445,6 @@
     <file xil_pn:name="rtl/hdmi/audio_samplerate.v" xil_pn:type="FILE_VERILOG">
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="173"/>
       <association xil_pn:name="Implementation" xil_pn:seqID="65"/>
-    </file>
-    <file xil_pn:name="ipcore_dir/rgb_fifo.xise" xil_pn:type="FILE_COREGENISE">
-      <association xil_pn:name="Implementation" xil_pn:seqID="0"/>
     </file>
   </files>
 
