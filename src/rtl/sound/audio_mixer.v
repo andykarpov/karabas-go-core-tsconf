@@ -41,37 +41,25 @@ module audio_mixer (
 	output wire signed [15:0] audio_r
 );
 
-reg  [8:0] sum_ch_a,sum_ch_b,sum_ch_c;
-reg  [7:0] psg_a,psg_b,psg_c;
-reg [11:0] psg_l,psg_r,opn_s;
-reg [11:0] tsfm_l, tsfm_r;
-reg [11:0] covox_l, covox_r;
+reg signed [11:0] psg_l, psg_r, opn_s;
+reg signed [11:0] tsfm_l, tsfm_r;
+reg signed [11:0] covox_l, covox_r;
 
 always @(posedge clk) begin
 
-	// unsigned sum
-	sum_ch_a <= { 1'b0, ssg1_a } + { 1'b0, ssg0_a };
-	sum_ch_b <= { 1'b0, ssg1_b } + { 1'b0, ssg0_b };
-	sum_ch_c <= { 1'b0, ssg1_c } + { 1'b0, ssg0_c };
-
-	// check overflow, convert 8:0 to 7:0
-	psg_a <= sum_ch_a[8] ? 8'hFF : sum_ch_a[7:0];
-	psg_b <= sum_ch_b[8] ? 8'hFF : sum_ch_b[7:0];
-	psg_c <= sum_ch_c[8] ? 8'hFF : sum_ch_c[7:0];
-
-	// final mix (unsigned)
-	psg_l <= (mode == 2'b00 || mode== 2'b10) ? {3'b000, psg_a, 1'd0} + {4'b0000, psg_b} : {3'b000, psg_a, 1'd0} + {4'b0000, psg_c};
-	psg_r <= (mode == 2'b00 || mode== 2'b10) ? {3'b000, psg_c, 1'd0} + {4'b0000, psg_b} : {3'b000, psg_b, 1'd0} + {4'b0000, psg_c};
-	// sum l+r fm channels (unsigned, but with the signed data inside the fm_l, fm_r)!!!
+	psg_l <= (mode == 2'b00 || mode== 2'b10) ? 
+		$signed({3'b000, ssg0_a, 1'd0}) + $signed({3'b000, ssg1_a, 1'd0}) + $signed({4'b0000, ssg0_b}) + $signed({4'b0000, ssg1_b}) : 
+		$signed({3'b000, ssg0_a, 1'd0}) + $signed({3'b000, ssg1_a, 1'd0}) + $signed({4'b0000, ssg0_c}) + $signed({4'b0000, ssg1_c});
+	psg_r <= (mode == 2'b00 || mode== 2'b10) ? 
+		$signed({3'b000, ssg0_c, 1'd0}) + $signed({3'b000, ssg1_c, 1'd0}) + $signed({4'b0000, ssg0_b}) + $signed({4'b0000, ssg1_b}) : 
+		$signed({3'b000, ssg0_b, 1'd0}) + $signed({3'b000, ssg1_b, 1'd0}) + $signed({4'b0000, ssg0_c}) + $signed({4'b0000, ssg1_c});	
 	opn_s <= {{2{fm_l[15]}}, fm_l[15:6]} + {{2{fm_r[15]}}, fm_r[15:6]};
 
-	// make a signed sum of tsfm channels
 	tsfm_l <= fm_ena ? $signed(opn_s) + $signed(psg_l) : $signed(psg_l);
 	tsfm_r <= fm_ena ? $signed(opn_s) + $signed(psg_r) : $signed(psg_r);
 
-	// make a sum of covox channels
-	covox_l <= $signed({2'b00, covox_a, 2'b00} + {2'b00, covox_b, 2'b00} + {3'b000, covox_fb, 1'b0});
-	covox_r <= $signed({2'b00, covox_c, 2'b00} + {2'b00, covox_d, 2'b00} + {3'b000, covox_fb, 1'b0});
+	covox_l <= $signed({2'b00, covox_a, 2'b00}) + $signed({2'b00, covox_b, 2'b00}) + $signed({3'b000, covox_fb, 1'b0});
+	covox_r <= $signed({2'b00, covox_c, 2'b00}) + $signed({2'b00, covox_d, 2'b00}) + $signed({3'b000, covox_fb, 1'b0});
 end
 
 wire signed [15:0] mix_l = 	$signed({tsfm_l[11:0], 4'b0000}) + 
