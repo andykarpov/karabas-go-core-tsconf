@@ -9,7 +9,7 @@
 //-- design of HDMI output for Neo Geo MVS
 
 module hdmidataencoder 
-#(FS=48000, N=6144) 
+#(FS=44100, N=6144) 
 (
    input wire         i_pixclk,
 	input wire [7:0]   i_freq,
@@ -19,11 +19,12 @@ module hdmidataencoder
    input wire         i_blank,
    input wire i_audio_enable,
    input wire [15:0]   i_audioL,
-   input wire [15:0]   i_audioR,   
+   input wire [15:0]   i_audioR,
    output wire [3:0]   o_d0,
    output wire [3:0]   o_d1,
    output wire [3:0]   o_d2,
-   output wire        o_data
+   output wire        o_data,
+	output wire        o_sample
 );
 
 `define AUDIO_TIMER_ADDITION  FS/1000
@@ -64,6 +65,7 @@ reg oddLine;
 reg prevHSync;
 reg prevBlank;
 reg allowGeneration;
+reg sampleLocked;
 
 initial
 begin
@@ -99,6 +101,7 @@ begin
    allowGeneration = 0;
    audioRAvg = 0;
    audioLAvg = 0;
+	sampleLocked = 0;
 end
 
 function [7:0] ECCcode; // Cycles the error code generator
@@ -199,14 +202,8 @@ endtask
 
 task AproximateAudio;
 begin
-   //audioLAvgSum <= audioLAvgSum + i_audioL;
-   //audioRAvgSum <= audioRAvgSum + i_audioR;
-   //audioLAvg <= audioLAvgSum/audioAvgCnt;
-   //audioRAvg <= audioRAvgSum/audioAvgCnt;
-   //audioAvgCnt <= audioAvgCnt + 1;
-   
-   audioLAvg <= i_audioL;
-   audioRAvg <= i_audioR;
+	audioLAvg <= i_audioL;
+	audioRAvg <= i_audioR;
 end
 endtask
 
@@ -214,6 +211,7 @@ task AudioGen;
 begin
    // Buffer up an audio sample
    // Don't add to the audio output if we're currently sending that packet though
+	sampleLocked <= 0;
    if (!( allowGeneration && counterX >= 32 && counterX < 64)) begin
       if (audioTimer>=AUDIO_TIMER_LIMIT) begin
          audioTimer<=audioTimer-AUDIO_TIMER_LIMIT+`AUDIO_TIMER_ADDITION;
@@ -227,6 +225,7 @@ begin
          else
             channelStatusIdx<=0;
          samplesHead<=samplesHead+2'd1;
+			sampleLocked <= 1;
       end else begin
          audioTimer<=audioTimer+`AUDIO_TIMER_ADDITION;
          AproximateAudio();
@@ -290,7 +289,8 @@ begin
 		firstHSyncChange <= 0;
 		allowGeneration <= 0;
 		audioRAvg <= 0;
-		audioLAvg <= 0;	
+		audioLAvg <= 0;
+		sampleLocked <= 0;
 	end
 	else
 	begin
@@ -334,5 +334,6 @@ assign o_d0 = dataChannel0;
 assign o_d1 = dataChannel1;
 assign o_d2 = dataChannel2;
 assign o_data = tercData;
+assign o_sample = sampleLocked;
 
 endmodule

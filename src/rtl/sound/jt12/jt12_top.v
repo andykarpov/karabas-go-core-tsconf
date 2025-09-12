@@ -486,7 +486,7 @@ generate
         ym2149 u_psg
         (
            .CLK(clk),
-           .CE(cen/*clk_en_ssg*/),
+           .CE(cen),
            .RESET(rst),
 
            .BDIR(write),
@@ -504,6 +504,26 @@ generate
            .CHANNEL_B(psg_B),
            .CHANNEL_C(psg_C)	
 			);
+			
+			/*ay_3_8912 u_psg
+        (
+           .clk(clk),
+           .clken(clk_en), // cen - too high, clk_en_ssg - too low
+           .rst_n(~rst),
+			  .a8(1'b1),
+			  .bdir(write),
+			  .bc1(~addr[0] | ~write),
+			  .bc2(1'b1),
+			  .din(din),
+			  .dout(psg_dout),
+			  .oe_n(),
+			  .channel_a(psg_A),
+			  .channel_b(psg_B),
+			  .channel_c(psg_C),
+			  .port_a_din(IOA_in),
+			  .port_a_dout(IOA_out),
+			  .port_a_oe_n()
+			);*/
 		  
         assign snd_left  = fm_snd_left  + { 1'b0, psg_snd[9:0],5'd0};
         assign snd_right = fm_snd_right + { 1'b0, psg_snd[9:0],5'd0};

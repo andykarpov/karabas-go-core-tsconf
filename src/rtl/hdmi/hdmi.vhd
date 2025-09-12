@@ -19,7 +19,7 @@ use IEEE.STD_LOGIC_UNSIGNED.ALL;
 entity hdmi is
    generic (
 --      FREQ: integer := 25000000;              -- pixel clock frequency
-      FS: integer := 32000;                   -- audio sample rate - should be 32000, 44100 or 48000
+      FS: integer := 44100;                   -- audio sample rate - should be 32000, 44100 or 48000
 --      CTS: integer := 25000;                  -- CTS = Freq(pixclk) * N / (128 * Fs)
       N: integer := 6144                      -- N = 128 * Fs /1000,  128 * Fs /1500 <= N <= 128 * Fs /300
                           -- Check HDMI spec 7.2 for details
@@ -40,6 +40,7 @@ entity hdmi is
       I_AUDIO_ENABLE  : in std_logic;
       I_AUDIO_PCM_L  : in std_logic_vector(15 downto 0);
       I_AUDIO_PCM_R  : in std_logic_vector(15 downto 0);
+		O_SAMPLE : out std_logic;
       -- TMDS parallel pixel synchronous outputs (serialize LSB first)
       O_RED       : out std_logic_vector(9 downto 0); -- Red
       O_GREEN        : out std_logic_vector(9 downto 0); -- Green
@@ -71,7 +72,8 @@ port (
    o_d0     : out std_logic_vector(3 downto 0);
    o_d1     : out std_logic_vector(3 downto 0);
    o_d2     : out std_logic_vector(3 downto 0);
-   o_data   : out std_logic
+   o_data   : out std_logic;
+	o_sample : out std_logic
 );
 end component;
 
@@ -320,7 +322,8 @@ port map(
    o_d0        => dataPacket0,
    o_d1        => dataPacket1,
    o_d2        => dataPacket2,
-   o_data      => data
+   o_data      => data,
+	o_sample    => O_SAMPLE
 );
 
 

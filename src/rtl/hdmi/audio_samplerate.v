@@ -4,7 +4,7 @@ module audio_samplerate(
 	output wire audio_stb
 );
 
-parameter SAMPLERATE = 192000;
+parameter SAMPLERATE = 44100;
 parameter CLKRATE = 28000000;
 localparam prescaler = (CLKRATE / SAMPLERATE);
 

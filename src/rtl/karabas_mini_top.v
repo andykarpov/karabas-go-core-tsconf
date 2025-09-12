@@ -343,8 +343,7 @@ BUFGMUX v_clk_mux(.I0(ce_28m), .I1(ft_clk_int), .O(v_clk_int), .S(vdac2_sel));
 
 // hdmi
 wire [7:0] hdmi_freq;
-wire samplerate_stb;
-zhdmi_top zhdmi_top(
+hdmi_top #(.SAMPLERATE(44100)) hdmi_top(
 	.clk				(v_clk_int),
 	.clk_ref			(clk_bus),
 	.clk_8			(clk_8mhz),
@@ -368,8 +367,7 @@ zhdmi_top zhdmi_top(
 	.tmds_p			(TMDS_P),
 	.tmds_n			(TMDS_N),
 
-	.freq				(hdmi_freq),
-	.samplerate_stb(samplerate_stb)
+	.freq				(hdmi_freq)
 );
 
 //------- Sigma-Delta DAC ---------

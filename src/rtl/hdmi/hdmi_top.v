@@ -21,6 +21,7 @@ module hdmi_top(
 	
 	input wire ft_sel,
 	
+	input wire audio_en,
 	input wire [15:0] audio_l,
 	input wire [15:0] audio_r,
 	
@@ -29,6 +30,8 @@ module hdmi_top(
 	
 	output wire [7:0] freq
 );
+
+parameter SAMPLERATE = 44100;
 
 // clocks
 wire clk_hdmi, clk_hdmi_n;
@@ -56,59 +59,20 @@ assign freq = hdmi_freq;
 wire [7:0] host_vga_r, host_vga_g, host_vga_b;
 wire host_vga_hs, host_vga_vs, host_vga_blank;
 
-// async fifo between v_clk_int and p_clk_int
-
+// metastabilize video data
 wire [26:0] ft_data, vga_data;
-
-rgb_fifo rgb_fifo_ft(
-	.rst(pll_reset),
-	.wr_clk(~clk),
-	.din({ft_de, ft_hs, ft_vs, ft_rgb[23:0]}),
-	.wr_en(lockedx5),
-	.rd_clk(p_clk_int),
-	.dout(ft_data[26:0]),
-	.rd_en(lockedx5),
-	.empty(),
-	.full()
-);
-
-rgb_fifo rgb_fifo_vga(
-	.rst(pll_reset),
-	.wr_clk(clk),
-	.din({vga_de, vga_hs, vga_vs, vga_rgb[23:0]}),
-	.wr_en(lockedx5),
-	.rd_clk(p_clk_int),
-	.dout(vga_data[26:0]),
-	.rd_en(lockedx5),
-	.empty(),
-	.full()
-);
-
-wire [15:0] audio_out_l, audio_out_r;
-
-audio_fifo audio_fifo_l(
-	.rst(pll_reset),
-	.wr_clk(clk),
-	.din(audio_l[15:0]),
-	.wr_en(lockedx5),
-	.rd_clk(p_clk_int),
-	.dout(audio_out_l[15:0]),
-	.rd_en(lockedx5),
-	.empty(),
-	.full()
-);
-
-audio_fifo audio_fifo_r(
-	.rst(pll_reset),
-	.wr_clk(clk),
-	.din(audio_r[15:0]),
-	.wr_en(lockedx5),
-	.rd_clk(p_clk_int),
-	.dout(audio_out_r[15:0]),
-	.rd_en(lockedx5),
-	.empty(),
-	.full()
-);
+reg [53:0] ft_data_r;
+always @(negedge clk) begin
+	ft_data_r[26:0] <= {ft_de, ft_hs, ft_vs, ft_rgb[23:0]};
+	ft_data_r[53:27] <= ft_data_r[26:0];
+end
+reg [53:0] ft_data_r2;
+always @(posedge p_clk_int) begin
+	ft_data_r2[26:0] <= ft_data_r[53:27];
+	ft_data_r2[53:27] <= ft_data_r2[26:0];
+end
+assign ft_data = ft_data_r2[53:27];
+assign vga_data = {vga_de, vga_hs, vga_vs, vga_rgb[23:0]};
 
 assign host_vga_r = (ft_sel ? (~ft_data[26] ? 8'b0 : ft_data[23:16]) : (~vga_data[26] ? 8'b0 : vga_data[23:16]));
 assign host_vga_g = (ft_sel ? (~ft_data[26] ? 8'b0 : ft_data[16:8]) : (~vga_data[26] ? 8'b0 : vga_data[15:8]));
@@ -117,11 +81,25 @@ assign host_vga_hs = (ft_sel ? ft_data[25] : vga_data[25]);
 assign host_vga_vs = (ft_sel ? ft_data[24] : vga_data[24]);
 assign host_vga_blank = (ft_sel ? ~ft_data[26] : ~vga_data[26]);
 
+// metastabilize audio data
+wire [15:0] audio_out_l, audio_out_r;
+audio_restrober audio_restrober(
+	.clk(p_clk_int),
+	.clk_ref(clk_ref),
+	.reset(reset || ~lockedx5),
+	.audio_sample(audio_sample),
+	.audio_l(audio_l),
+	.audio_r(audio_r),
+	.out_l(audio_out_l),
+	.out_r(audio_out_r)
+);
+
 // hdmi
 
 wire [9:0] tmds_red, tmds_green, tmds_blue;
+wire audio_sample; // audio sample locked strobe by hdmi module
 
-hdmi #(.FS(32000), .N(6144)) hdmi(
+hdmi #(.FS(SAMPLERATE), .N(6144)) hdmi(
 	.I_CLK_PIXEL(p_clk_int),
 	.I_RESET(pll_reset),
 	.I_FREQ(hdmi_freq),
@@ -134,6 +112,7 @@ hdmi #(.FS(32000), .N(6144)) hdmi(
 	.I_AUDIO_ENABLE(1'b1),
 	.I_AUDIO_PCM_L(audio_out_l),
 	.I_AUDIO_PCM_R(audio_out_r),
+	.O_SAMPLE(audio_sample),
 	.O_RED(tmds_red),
 	.O_GREEN(tmds_green),
 	.O_BLUE(tmds_blue)

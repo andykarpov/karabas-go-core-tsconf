@@ -31,7 +31,7 @@ module zhdmi_top(
 	output wire samplerate_stb
 );
 
-parameter SAMPLERATE = 192000;
+parameter SAMPLERATE = 32000;
 parameter CLKRATE = 28000000;
 
 // clocks
