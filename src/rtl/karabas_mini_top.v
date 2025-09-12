@@ -127,11 +127,11 @@ module karabas_mini_top (
 // unused signals yet
 assign ESP_RESET_N 	= 1'bZ;
 assign ESP_BOOT_N 	= 1'bZ;
-assign FLASH_CS_N 	= 1'b1;
+//assign FLASH_CS_N 	= 1'b1;
 assign FLASH_DI 		= 1'b1;
 assign FLASH_SCK 		= 1'b0;
-assign FLASH_WP_N 	= 1'b1;
-assign FLASH_HOLD_N 	= 1'b1;
+//assign FLASH_WP_N 	= 1'b1;
+//assign FLASH_HOLD_N 	= 1'b1;
 
 // system clocks
 wire clk_sys, clk_8mhz, clk_bus, clk_16mhz, clk_12mhz, v_clk_int;
@@ -343,7 +343,7 @@ BUFGMUX v_clk_mux(.I0(ce_28m), .I1(ft_clk_int), .O(v_clk_int), .S(vdac2_sel));
 
 // hdmi
 wire [7:0] hdmi_freq;
-hdmi_top #(.SAMPLERATE(44100)) hdmi_top(
+hdmi_top #(.SAMPLERATE(48000)) hdmi_top(
 	.clk				(v_clk_int),
 	.clk_ref			(clk_bus),
 	.clk_8			(clk_8mhz),
@@ -383,6 +383,17 @@ dac dac_r(
 	.I_RESET			(areset),
 	.I_DATA			({2'b00, !audio_mix_r[15], audio_mix_r[14:4], 2'b00}),
 	.O_DAC			(AUDIO_R)
+);
+
+//---------- Optional I2S DAC on FLASH pins ------------
+PCM5102 PCM5102(
+	.clk				(clk_bus),
+	.reset			(areset),
+	.left				(audio_mix_l),
+	.right			(audio_mix_r),
+	.din				(FLASH_HOLD_N), // P12 = flash pin 7
+	.bck				(FLASH_WP_N),   // N12 = flash pin 3
+	.lrck				(FLASH_CS_N)    // T3  = flash pin 1
 );
 
 // ------- PCM1808 ADC ---------

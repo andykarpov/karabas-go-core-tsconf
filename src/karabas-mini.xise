@@ -24,7 +24,7 @@
     </file>
     <file xil_pn:name="rtl/karabas_mini_top.v" xil_pn:type="FILE_VERILOG">
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="86"/>
-      <association xil_pn:name="Implementation" xil_pn:seqID="104"/>
+      <association xil_pn:name="Implementation" xil_pn:seqID="105"/>
     </file>
     <file xil_pn:name="rtl/rom.v" xil_pn:type="FILE_VERILOG">
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="88"/>
@@ -372,11 +372,11 @@
     </file>
     <file xil_pn:name="rtl/dac/dac.vhd" xil_pn:type="FILE_VHDL">
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="223"/>
-      <association xil_pn:name="Implementation" xil_pn:seqID="102"/>
+      <association xil_pn:name="Implementation" xil_pn:seqID="103"/>
     </file>
     <file xil_pn:name="rtl/adc/i2s_transceiver.vhd" xil_pn:type="FILE_VHDL">
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="226"/>
-      <association xil_pn:name="Implementation" xil_pn:seqID="103"/>
+      <association xil_pn:name="Implementation" xil_pn:seqID="104"/>
     </file>
     <file xil_pn:name="rtl/hdmi/freq_counter.vhd" xil_pn:type="FILE_VHDL">
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="219"/>
@@ -433,6 +433,10 @@
     <file xil_pn:name="rtl/hdmi/audio_restrober.v" xil_pn:type="FILE_VERILOG">
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="159"/>
       <association xil_pn:name="Implementation" xil_pn:seqID="93"/>
+    </file>
+    <file xil_pn:name="rtl/dac/pcm5102.v" xil_pn:type="FILE_VERILOG">
+      <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="158"/>
+      <association xil_pn:name="Implementation" xil_pn:seqID="102"/>
     </file>
   </files>
 
