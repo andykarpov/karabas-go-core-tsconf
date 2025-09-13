@@ -27,23 +27,23 @@
 // Warning! HW_ID2 macros defined in the Synthesize - XST process properties!
 
 module karabas_mini_top (
-	//---------------------------
+	//------------------ global clock --------
 	input wire 				CLK_50MHZ,
 
-	//---------------------------
+	//------------------ esp8266 uart --------
 	inout wire 				UART_RX,
 	inout wire 				UART_TX,
 	inout wire 				UART_CTS,
 	inout wire 				ESP_RESET_N,
 	inout wire 				ESP_BOOT_N,
 
-	//---------------------------
+	//------------------ sram ----------------
 	output wire [20:0] 	MA,
 	inout wire [15:0] 	MD,
 	output wire [1:0] 	MWR_N,
 	output wire [1:0] 	MRD_N,
 
-	//---------------------------
+	//------------------ sdram ---------------
 	output wire [1:0] 	SDR_BA,
 	output wire [12:0] 	SDR_A,
 	output wire 			SDR_CLK,
@@ -53,24 +53,25 @@ module karabas_mini_top (
 	output wire 			SDR_RAS_N,
 	inout wire [15:0] 	SDR_DQ,
 
-	//---------------------------
+	//------------------ sd2 -----------------
 	output wire 			SD_CS_N,
 	output wire 			SD_CLK,
 	inout wire 				SD_DI,
 	inout wire 				SD_DO,
 	input wire 				SD_DET_N,
 
-	//---------------------------
+	//------------------ ft812 rgb + sync ----
 	input wire [7:0] 		VGA_R,
 	input wire [7:0] 		VGA_G,
 	input wire [7:0] 		VGA_B,
 	input wire 				VGA_HS,
 	input wire 				VGA_VS,
 
+	//------------------ dvi / hdmi ----------
 	output wire [3:0] 	TMDS_P,
 	output wire [3:0] 	TMDS_N,
 
-	//---------------------------
+	//------------------ ft812 spi and ctl ---
 	output wire 			FT_SPI_CS_N,
 	output wire 			FT_SPI_SCK,
 	input wire 				FT_SPI_MISO,
@@ -83,7 +84,7 @@ module karabas_mini_top (
 	output wire 			FT_RESET,
 	output wire 			FT_CLK_OUT,
 
-	//---------------------------
+	//------------------ cf card -------------
 	output wire [2:0] 	WA,
 	output wire [1:0] 	WCS_N,
 	output wire 			WRD_N,
@@ -91,31 +92,31 @@ module karabas_mini_top (
 	output wire 			WRESET_N,
 	inout wire [15:0] 	WD,
 
-	//---------------------------	
+	//------------------ analog in/out -------	
 	output wire 			TAPE_OUT,
 	input wire 				TAPE_IN,
 	output wire 			AUDIO_L,
 	output wire 			AUDIO_R,
 
-	//---------------------------
+	//------------------ adc -----------------
 	output wire 			ADC_CLK,
 	inout wire 				ADC_BCK,
 	inout wire 				ADC_LRCK,
 	input wire 				ADC_DOUT,
 
-	//---------------------------
+	//------------------ mcu spi -------------
 	input wire 				MCU_CS_N,
 	input wire 				MCU_SCK,
 	input wire 				MCU_MOSI,
 	output wire 			MCU_MISO,
 	input wire [3:0] 		MCU_IO,
 
-	//---------------------------
+	//------------------ midi ----------------
 	output wire 			MIDI_TX,
 	output wire 			MIDI_CLK,
 	output wire 			MIDI_RESET_N,
 
-	//---------------------------
+	//------------------ optional flash ------
 	output wire 			FLASH_CS_N,
 	input wire  			FLASH_DO,
 	output wire 			FLASH_DI,
@@ -343,7 +344,7 @@ BUFGMUX v_clk_mux(.I0(ce_28m), .I1(ft_clk_int), .O(v_clk_int), .S(vdac2_sel));
 
 // hdmi
 wire [7:0] hdmi_freq;
-hdmi_top #(.SAMPLERATE(48000)) hdmi_top(
+hdmi_top #(.SAMPLERATE(44100)) hdmi_top(
 	.clk				(v_clk_int),
 	.clk_ref			(clk_bus),
 	.clk_8			(clk_8mhz),

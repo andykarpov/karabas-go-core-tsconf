@@ -39,6 +39,7 @@ wire p_clk_int, p_clk_div2;
 wire [7:0] hdmi_freq;
 wire lockedx5;
 wire pll_reset;
+
 hdmi_pll hdmi_pll (
 	.clk(clk),
 	.clk_ref(clk_ref),
@@ -81,13 +82,14 @@ assign host_vga_hs = (ft_sel ? ft_data[25] : vga_data[25]);
 assign host_vga_vs = (ft_sel ? ft_data[24] : vga_data[24]);
 assign host_vga_blank = (ft_sel ? ~ft_data[26] : ~vga_data[26]);
 
-// metastabilize audio data
+// metastabilize audio data for FT
 wire [15:0] audio_out_l, audio_out_r;
 audio_restrober audio_restrober(
 	.clk(p_clk_int),
 	.clk_ref(clk_ref),
 	.reset(reset || ~lockedx5),
 	.audio_sample(audio_sample),
+	.enable(ft_sel),
 	.audio_l(audio_l),
 	.audio_r(audio_r),
 	.out_l(audio_out_l),

@@ -171,7 +171,8 @@ BUFG clkf_buf(.O (clkfbout), .I (clk0));
 // output bufs
 BUFG clkout1_buf (.O(clk_hdmi), .I(clkfx));
 BUFG clkout2_buf (.O(clk_hdmi_n), .I(clkfx180));
-BUFG clkout3_buf (.O(clk_pix), .I(clk0));
+BUFGMUX clkout3_mux(.I0(clk_ref), .I1(clk0), .O(clk_pix), .S(vdac2_sel)); // 28 - direct, FT - from pll
+//BUFG clkout3_buf (.O(clk_pix), .I(clk0));
 BUFG clkout4_buf (.O(clk_pix2), .I(clkdv));
 assign locked = lockedx5;
 
