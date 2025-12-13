@@ -24,7 +24,7 @@
 -- EU, 2024-2025
 ------------------------------------------------------------------------------------------------------------------*/
 
-// Warning! HW_ID3 macros defined in the Synthesize - XST process properties!
+// Warning! HW_ID2 and HW_ID3 macroses are defined in the Synthesize - XST process properties!
 
 module karabas_minig_top (
 	//------------------ global clock --------
@@ -133,7 +133,6 @@ assign FLASH_DI 		= 1'b1;
 assign FLASH_SCK 		= 1'b0;
 assign FLASH_WP_N 	= 1'b1;
 assign FLASH_HOLD_N 	= 1'b1;
-//assign ESP32_SPI_CS_N = 1'b1; // todo: implement from tsconf upstream
 
 // system clocks
 wire clk_sys, clk_8mhz, clk_bus, clk_16mhz, clk_12mhz, v_clk_int;
@@ -241,6 +240,11 @@ tsconf tsconf (
 `ifdef HW_ID2
 	.adc_in_l			(adc_l[23:8]),
 	.adc_in_r			(adc_r[23:8]),
+`endif
+
+`ifdef HW_ID3
+	.esp_in_l         (esp_l[15:0]),
+	.esp_in_r         (esp_r[15:0]),
 `endif
 
 	.sdcs_n				(SD_CS_N),
@@ -396,6 +400,18 @@ i2s_transceiver adc(
 	.r_data_tx		(24'b0),
 	.l_data_rx		(adc_l),
 	.r_data_rx		(adc_r)
+);
+
+// ------- ESP i2s receiver ----
+wire signed [15:0] esp_l, esp_r;
+i2s_receiver i2s_receiver(
+   .reset         (areset),
+	.clk           (clk_bus),
+	.bck           (ESP32_PCM_BCK),
+	.lrck          (ESP32_PCM_RLCK),
+	.data          (ESP32_PCM_DAT),
+	.left          (esp_l),
+	.right         (esp_r)
 );
 
 // ------- ADC_CLK output buf

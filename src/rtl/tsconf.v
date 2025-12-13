@@ -53,6 +53,11 @@ module tsconf
 	input wire [15:0] adc_in_r,
 `endif
 
+`ifdef HW_ID3
+    input wire [15:0] esp_in_l,
+	 input wire [15:0] esp_in_r,
+`endif
+
 	// joystick
 	input wire [7:0] joy_data,
 	
@@ -1320,6 +1325,11 @@ audio_mixer audio_mixer
 `ifdef HW_ID2
 	.adc_l(adc_in_l),
 	.adc_r(adc_in_r),
+`endif
+	
+`ifdef HW_ID3
+	.esp_l(esp_in_l),
+	.esp_r(esp_in_r),
 `endif
 	
 	.audio_l(audio_out_l),
