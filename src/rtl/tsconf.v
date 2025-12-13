@@ -35,6 +35,7 @@ module tsconf
 	
 	// SPI FT812
 	output wire ftcs_n,
+	output wire espcs_n,
 	output wire ftclk,
 	output wire ftdo,
 	input wire ftdi,
@@ -853,6 +854,7 @@ assign clk_bus = clk_28mhz;
 `endif
 //`ifdef IDE_VDAC2
     .ftcs_n(ftcs_n),
+	 .espcs_n(espcs_n),
 //`endif
 //`ifdef IDE_HDD
     .ide_in(ide_d),
@@ -1077,7 +1079,7 @@ assign clk_bus = clk_28mhz;
     .sck(sdclk),
     .sdo(sddo),
 //`ifdef IDE_VDAC2
-    .sdi(!ftcs_n ? ftdi : sddi),
+    .sdi((!ftcs_n || !espcs_n) ? ftdi : sddi),
 //`else
 //    .sdi(sddi),
 //`endif
