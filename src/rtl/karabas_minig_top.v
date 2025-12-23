@@ -375,7 +375,7 @@ hdmi_top #(.SAMPLERATE(44100)) hdmi_top(
 );
 
 // ------- i2s DAC --------------
-PCM5102 PCM5102(
+PCM5102 #(.DAC_CLK_DIV_BITS(2)) PCM5102(
 	.clk				(clk_bus),
 	.reset			(areset),
 	.left				(audio_mix_l),
