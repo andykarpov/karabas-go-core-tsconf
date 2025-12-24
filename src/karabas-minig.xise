@@ -434,7 +434,7 @@
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="158"/>
       <association xil_pn:name="Implementation" xil_pn:seqID="102"/>
     </file>
-    <file xil_pn:name="rtl/adc/i2s_receiver.v" xil_pn:type="FILE_VERILOG">
+    <file xil_pn:name="rtl/adc/i2s_rx.v" xil_pn:type="FILE_VERILOG">
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="159"/>
       <association xil_pn:name="Implementation" xil_pn:seqID="104"/>
     </file>

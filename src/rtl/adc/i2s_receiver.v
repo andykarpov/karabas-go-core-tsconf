@@ -44,17 +44,17 @@ always @(posedge clk) begin
 end
 
 // bit receiver
-reg [15:0] receiver;
+reg [16:0] receiver;
 reg [3:0] recv_count;
 always @(posedge clk) begin
     if (reset) begin
-	     receiver <= 16'b0;
+	     receiver <= 17'b0;
 		  recv_count <= 15;
 	 end 
 	 else if (sck_re) begin
 	     if (wsp_e) begin 
-		      receiver[15] <= data;
-				receiver[14:0] <= 15'b0;
+		      receiver[16] <= data;
+				receiver[15:0] <= 15'b0;
 				recv_count <= 15;
 		  end 
 		  else begin
@@ -75,9 +75,9 @@ always @(posedge clk) begin
 	 else begin
 	     if (sck_fe && wsp) begin
 		      if (~lrck)
-				    recv_r <= receiver[15:0];
+				    recv_r <= receiver[16:1];
 				else
-				    recv_l <= receiver[15:0];
+				    recv_l <= receiver[16:1];
 		  end
 	 end
 end

@@ -1,13 +1,16 @@
-module audio_restrober(
+module audio_restrober #(
+	parameter 				AUDIO_DW = 16
+)
+(
 	input wire 				clk, 		// input hdmi pixelclock (mux from FT 24...80 MHz or 28 MHz system clock)
 	input wire 				clk_ref, // 28 MHz reference clock
 	input wire 				reset, 
 	input wire           enable,
 	input wire           audio_sample, // sampled by hdmi module (clk domain)
-	input wire [15:0] 	audio_l, // input audio from 28 MHz clock domain
-	input wire [15:0] 	audio_r,
-	output wire [15:0] 	out_l, 	// output audio for hdmi clock domain
-	output wire [15:0] 	out_r
+	input wire [AUDIO_DW-1:0] 	audio_l, // input audio from 28 MHz clock domain
+	input wire [AUDIO_DW-1:0] 	audio_r,
+	output wire [AUDIO_DW-1:0] 	out_l, 	// output audio for hdmi clock domain
+	output wire [AUDIO_DW-1:0] 	out_r
 );
 
 // extended strobe 2 clock cycles width
@@ -23,7 +26,7 @@ end
 
 // tranfer strobe from clk to clk_ref domain, acquire audio in data reg
 reg [2:0] stb_in_reg;
-reg [31:0] audio_in_reg;
+reg [AUDIO_DW*2-1:0] audio_in_reg;
 always @(posedge clk_ref) begin
   stb_in_reg <= {stb_in_reg[1:0], stb_reg[1]};   // re-strobe
   if (stb_in_reg[2:1] == 2'b10) // falling edge
@@ -31,7 +34,7 @@ always @(posedge clk_ref) begin
 end
 
 // transfer audio in reg into audio out reg
-reg [31:0] audio_out_reg;
+reg [AUDIO_DW*2-1:0] audio_out_reg;
 always @(posedge clk) begin
 	if (audio_sample)
 		audio_out_reg <= audio_in_reg;

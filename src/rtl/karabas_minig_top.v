@@ -404,14 +404,14 @@ i2s_transceiver adc(
 
 // ------- ESP i2s receiver ----
 wire signed [15:0] esp_l, esp_r;
-i2s_receiver i2s_receiver(
-   .reset         (areset),
-	.clk           (clk_bus),
-	.bck           (ESP32_PCM_BCK),
-	.lrck          (ESP32_PCM_RLCK),
-	.data          (ESP32_PCM_DAT),
-	.left          (esp_l),
-	.right         (esp_r)
+i2s_rx i2s_rx(
+	.clk				(clk_bus),
+	.sclk				(ESP32_PCM_BCK),
+	.rst				(areset),
+	.lrclk			(ESP32_PCM_RLCK),
+	.sdata			(ESP32_PCM_DAT),
+	.left_chan		(esp_l),
+	.right_chan		(esp_r)
 );
 
 // ------- ADC_CLK output buf
