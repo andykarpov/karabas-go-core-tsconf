@@ -347,7 +347,7 @@ BUFGMUX v_clk_mux(.I0(ce_28m), .I1(ft_clk_int), .O(v_clk_int), .S(vdac2_sel));
 
 // hdmi
 wire [7:0] hdmi_freq;
-hdmi_top #(.SAMPLERATE(44100)) hdmi_top(
+hdmi_top #(.SAMPLERATE(48000)) hdmi_top(
 	.clk				(v_clk_int),
 	.clk_ref			(clk_bus),
 	.clk_8			(clk_8mhz),

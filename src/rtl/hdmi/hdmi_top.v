@@ -68,12 +68,15 @@ always @(negedge clk) begin
 	ft_data_r[53:27] <= ft_data_r[26:0];
 end
 reg [53:0] ft_data_r2;
+reg [53:0] vga_data_r2;
 always @(posedge p_clk_int) begin
 	ft_data_r2[26:0] <= ft_data_r[53:27];
 	ft_data_r2[53:27] <= ft_data_r2[26:0];
+	vga_data_r2[26:0] <= {vga_de, vga_hs, vga_vs, vga_rgb[23:0]};
+	vga_data_r2[53:27] <= vga_data_r2[26:0];
 end
 assign ft_data = ft_data_r2[53:27];
-assign vga_data = {vga_de, vga_hs, vga_vs, vga_rgb[23:0]};
+assign vga_data = vga_data_r2[53:27];
 
 assign host_vga_r = (ft_sel ? (~ft_data[26] ? 8'b0 : ft_data[23:16]) : (~vga_data[26] ? 8'b0 : vga_data[23:16]));
 assign host_vga_g = (ft_sel ? (~ft_data[26] ? 8'b0 : ft_data[16:8]) : (~vga_data[26] ? 8'b0 : vga_data[15:8]));
@@ -89,7 +92,7 @@ audio_restrober audio_restrober(
 	.clk_ref(clk_ref),
 	.reset(reset || ~lockedx5),
 	.audio_sample(audio_sample),
-	.enable(ft_sel),
+	.enable(1'b1),
 	.audio_l(audio_l),
 	.audio_r(audio_r),
 	.out_l(audio_out_l),
