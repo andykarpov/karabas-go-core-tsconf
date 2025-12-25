@@ -24,9 +24,9 @@
 -- EU, 2024-2025
 ------------------------------------------------------------------------------------------------------------------*/
 
-// Warning! HW_ID2 macros defined in the Synthesize - XST process properties!
+// Warning! HW_ID2 and HW_ID3 macroses are defined in the Synthesize - XST process properties!
 
-module karabas_mini_top (
+module karabas_minig_top (
 	//------------------ global clock --------
 	input wire 				CLK_50MHZ,
 
@@ -34,8 +34,6 @@ module karabas_mini_top (
 	inout wire 				UART_RX,
 	inout wire 				UART_TX,
 	inout wire 				UART_CTS,
-	inout wire 				ESP_RESET_N,
-	inout wire 				ESP_BOOT_N,
 
 	//------------------ sram ----------------
 	output wire [20:0] 	MA,
@@ -78,10 +76,7 @@ module karabas_mini_top (
 	output wire 			FT_SPI_MOSI,
 	input wire 				FT_INT_N,
 	input wire 				FT_CLK,
-	input wire 				FT_AUDIO,
 	input wire 				FT_DE,
-	input wire 				FT_DISP,
-	output wire 			FT_RESET,
 	output wire 			FT_CLK_OUT,
 
 	//------------------ cf card -------------
@@ -95,26 +90,33 @@ module karabas_mini_top (
 	//------------------ analog in/out -------	
 	output wire 			TAPE_OUT,
 	input wire 				TAPE_IN,
-	output wire 			AUDIO_L,
-	output wire 			AUDIO_R,
+
+   //------------------ i2s dac -------------
+	output wire          DAC_BCK,
+	output wire          DAC_WS,
+	output wire          DAC_DAT,
 
 	//------------------ adc -----------------
 	output wire 			ADC_CLK,
 	inout wire 				ADC_BCK,
 	inout wire 				ADC_LRCK,
 	input wire 				ADC_DOUT,
+	
+	//------------------ esp32 i2s and cs ----
+	output wire          ESP32_SPI_CS_N,
+	input wire           ESP32_PCM_BCK,
+	input wire           ESP32_PCM_RLCK,
+	input wire           ESP32_PCM_DAT,	
 
 	//------------------ mcu spi -------------
 	input wire 				MCU_CS_N,
 	input wire 				MCU_SCK,
 	input wire 				MCU_MOSI,
 	output wire 			MCU_MISO,
-	input wire [3:0] 		MCU_IO,
+	input wire [5:0] 		MCU_IO,
 
 	//------------------ midi ----------------
 	output wire 			MIDI_TX,
-	output wire 			MIDI_CLK,
-	output wire 			MIDI_RESET_N,
 
 	//------------------ optional flash ------
 	output wire 			FLASH_CS_N,
@@ -126,13 +128,11 @@ module karabas_mini_top (
 );
 
 // unused signals yet
-assign ESP_RESET_N 	= 1'bZ;
-assign ESP_BOOT_N 	= 1'bZ;
-//assign FLASH_CS_N 	= 1'b1;
+assign FLASH_CS_N 	= 1'b1;
 assign FLASH_DI 		= 1'b1;
 assign FLASH_SCK 		= 1'b0;
-//assign FLASH_WP_N 	= 1'b1;
-//assign FLASH_HOLD_N 	= 1'b1;
+assign FLASH_WP_N 	= 1'b1;
+assign FLASH_HOLD_N 	= 1'b1;
 
 // system clocks
 wire clk_sys, clk_8mhz, clk_bus, clk_16mhz, clk_12mhz, v_clk_int;
@@ -146,9 +146,6 @@ pll pll (
 	.CLK_OUT4			(clk_12mhz),
 	.LOCKED				(locked)
 );
-
-// midi clk 12mhz out
-ODDR2 u_midi_clk (.Q(MIDI_CLK), .C0(clk_12mhz), .C1(~clk_12mhz), .CE(1'b1), .D0(1'b1), .D1(1'b0), .R(1'b0), .S(1'b0));
 
 // ft clk 8mhz out
 ODDR2 u_ft_clk (.Q(FT_CLK_OUT), .C0(clk_8mhz), .C1(~clk_8mhz), .CE(1'b1), .D0(1'b1), .D1(1'b0), .R(1'b0), .S(1'b0));
@@ -245,12 +242,18 @@ tsconf tsconf (
 	.adc_in_r			(adc_r[23:8]),
 `endif
 
+`ifdef HW_ID3
+	.esp_in_l         (esp_l[15:0]),
+	.esp_in_r         (esp_r[15:0]),
+`endif
+
 	.sdcs_n				(SD_CS_N),
 	.sdclk				(SD_CLK),
 	.sddo					(SD_DI),
 	.sddi					(SD_DO),
 
 	.ftcs_n				(ftcs_n),
+	.espcs_n          (espcs_n),
 	.ftclk				(ftclk),
 	.ftdo					(ftdo),
 	.ftdi					(ftdi),
@@ -318,22 +321,22 @@ tsconf tsconf (
 	.sdram_ras_n		(SDR_RAS_N),
 	.sdram_dq			(SDR_DQ),
 
-	.midi_reset_n		(MIDI_RESET_N),
+	.midi_reset_n		(),
 	.midi_tx				(MIDI_TX)
  );
 
 wire [7:0] rtc_do_mapped;
 
 // ft control signals, mux between tsconf / mcu access
-wire ftcs_n, ftclk, ftdo, ftdi, ftint, vdac2_sel;
+wire ftcs_n, espcs_n, ftclk, ftdo, ftdi, ftint, vdac2_sel;
 wire mcu_ft_spi_on, mcu_ft_vga_on, mcu_ft_sck, mcu_ft_mosi, mcu_ft_cs_n, mcu_ft_reset;
 
 assign FT_SPI_CS_N = mcu_ft_spi_on ? mcu_ft_cs_n : ftcs_n;
+assign ESP32_SPI_CS_N = espcs_n;
 assign FT_SPI_SCK = mcu_ft_spi_on ? mcu_ft_sck : ftclk;
 assign ftdi = FT_SPI_MISO;
 assign FT_SPI_MOSI = mcu_ft_spi_on ? mcu_ft_mosi : ftdo;
 assign ftint = FT_INT_N;
-assign FT_RESET = ~mcu_ft_reset; // 1'b1
 
 // ft clk input buf
 wire ft_clk_int;
@@ -371,30 +374,15 @@ hdmi_top #(.SAMPLERATE(44100)) hdmi_top(
 	.freq				(hdmi_freq)
 );
 
-//------- Sigma-Delta DAC ---------
-dac dac_l(
-	.I_CLK			(clk_bus),
-	.I_RESET			(areset),
-	.I_DATA			({2'b00, !audio_mix_l[15], audio_mix_l[14:4], 2'b00}),
-	.O_DAC			(AUDIO_L)
-);
-
-dac dac_r(
-	.I_CLK			(clk_bus),
-	.I_RESET			(areset),
-	.I_DATA			({2'b00, !audio_mix_r[15], audio_mix_r[14:4], 2'b00}),
-	.O_DAC			(AUDIO_R)
-);
-
-//---------- Optional I2S DAC on FLASH pins ------------
-PCM5102 PCM5102(
+// ------- i2s DAC --------------
+PCM5102 #(.DAC_CLK_DIV_BITS(2)) PCM5102(
 	.clk				(clk_bus),
 	.reset			(areset),
 	.left				(audio_mix_l),
 	.right			(audio_mix_r),
-	.din				(FLASH_HOLD_N), // P12 = flash pin 7
-	.bck				(FLASH_WP_N),   // N12 = flash pin 3
-	.lrck				(FLASH_CS_N)    // T3  = flash pin 1
+	.din				(DAC_DAT),
+	.bck				(DAC_BCK),
+	.lrck				(DAC_WS)
 );
 
 // ------- PCM1808 ADC ---------
@@ -412,6 +400,18 @@ i2s_transceiver adc(
 	.r_data_tx		(24'b0),
 	.l_data_rx		(adc_l),
 	.r_data_rx		(adc_r)
+);
+
+// ------- ESP i2s receiver ----
+wire signed [15:0] esp_l, esp_r;
+i2s_rx i2s_rx(
+	.clk				(clk_bus),
+	.sclk				(ESP32_PCM_BCK),
+	.rst				(areset),
+	.lrclk			(ESP32_PCM_RLCK),
+	.sdata			(ESP32_PCM_DAT),
+	.left_chan		(esp_l),
+	.right_chan		(esp_r)
 );
 
 // ------- ADC_CLK output buf

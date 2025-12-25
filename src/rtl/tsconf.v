@@ -35,6 +35,7 @@ module tsconf
 	
 	// SPI FT812
 	output wire ftcs_n,
+	output wire espcs_n,
 	output wire ftclk,
 	output wire ftdo,
 	input wire ftdi,
@@ -50,6 +51,11 @@ module tsconf
 `ifdef HW_ID2	
 	input wire [15:0] adc_in_l,
 	input wire [15:0] adc_in_r,
+`endif
+
+`ifdef HW_ID3
+    input wire [15:0] esp_in_l,
+	 input wire [15:0] esp_in_r,
 `endif
 
 	// joystick
@@ -853,6 +859,7 @@ assign clk_bus = clk_28mhz;
 `endif
 //`ifdef IDE_VDAC2
     .ftcs_n(ftcs_n),
+	 .espcs_n(espcs_n),
 //`endif
 //`ifdef IDE_HDD
     .ide_in(ide_d),
@@ -1077,7 +1084,7 @@ assign clk_bus = clk_28mhz;
     .sck(sdclk),
     .sdo(sddo),
 //`ifdef IDE_VDAC2
-    .sdi(!ftcs_n ? ftdi : sddi),
+    .sdi((!ftcs_n || !espcs_n) ? ftdi : sddi),
 //`else
 //    .sdi(sddi),
 //`endif
@@ -1318,6 +1325,11 @@ audio_mixer audio_mixer
 `ifdef HW_ID2
 	.adc_l(adc_in_l),
 	.adc_r(adc_in_r),
+`endif
+	
+`ifdef HW_ID3
+	.esp_l(esp_in_l),
+	.esp_r(esp_in_r),
 `endif
 	
 	.audio_l(audio_out_l),
