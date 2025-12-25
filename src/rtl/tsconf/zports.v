@@ -111,6 +111,7 @@ module zports
 
   input  wire [ 4:0] keys_in, // keys (port FE)
   input  wire [ 7:0] mus_in,  // mouse (xxDF)
+
   input  wire [ 7:0] kj_in,
 
   input  wire        vg_intrq,
@@ -126,11 +127,11 @@ module zports
   output wire        ftcs_n,
   output wire        espcs_n,
 //`endif
+  output reg         spi_mode,
   output wire        sd_start,
   output wire [ 7:0] sd_datain,
   input  wire [ 7:0] sd_dataout,
 
-  input wire [7:0] clocktm,
   // WAIT-ports related
   output reg  [ 7:0] wait_addr,
   output wire        wait_start_gluclock, // begin wait from some ports
@@ -249,7 +250,7 @@ module zports
   localparam SDCFG  = 8'h77;
   localparam SDDAT  = 8'h57;
 
-  //localparam COMPORT = 8'hEF;     // F8EF..FFEF - rs232 ports
+  localparam COMPORT = 8'hEF;     // F8EF..FFEF - rs232 ports
 
   reg [3:0] spi_cs_n;
   reg pwr_up_reg;
@@ -311,12 +312,12 @@ module zports
   end*/
   
   always @(posedge clk) begin
-	iowr_reg <= iowr;
-	port_wr <= (!iowr_reg && iowr);
+       iowr_reg <= iowr;
+       port_wr <= (!iowr_reg && iowr);
 
-	iord_reg <= iord;
-	port_rd <= (!iord_reg && iord);
-end
+       iord_reg <= iord;
+       port_rd <= (!iord_reg && iord);
+  end
 
   // reading ports
   always @*
@@ -344,8 +345,6 @@ end
         RAMPAGE + 8'd2, RAMPAGE + 8'd3:
           dout = rampage[hoa[1:0]];
 
-        8'hFF:
-          dout = clocktm;		  
 `ifdef FDR
           FRCNT0:
             dout = fdr_cnt[7:0];
@@ -366,8 +365,8 @@ end
       dout = {vg_intrq, vg_drq, 6'b111111};
 
     KJOY:
-      //dout = {3'b000, kj_in};
       dout = kj_in;
+
     KMOUSE:
       dout = mus_in;
 
@@ -466,7 +465,7 @@ end
   always @(posedge clk) if (opfetch)
     m1_lock128 <= !(din[7] ^ din[6]);
 
-  always @(posedge clk)
+  always @(posedge clk or posedge rst)
     if (rst)
     begin
       fmaddr[4] <= 1'b0;
@@ -485,47 +484,48 @@ end
       fdr_en <= 1'b0;
 `endif
     end
-
-    else if (p7ffd_wr)
+    else  // if (rst)
     begin
-        memconf[0] <= din[4];
-        rampage[3] <= {2'b0, lock128_3 ? {din[5], din[7:6]} : ({1'b0, lock128 ? 2'b0 : din[7:6]}), din[2:0]};
-    end
-
-    else
-    if (portxt_wr)
-    begin
-      if (hoa[7:2] == RAMPAGE[7:2])
-        rampage[hoa[1:0]] <= din;
-
-      if (hoa == FMADDR)
-        fmaddr <= din[4:0];
-
-      if (hoa == SYSCONF)
+      if (p7ffd_wr)
       begin
-        sysconf <= din;
-          cacheconf <= {4{din[2]}};
+          memconf[0] <= din[4];
+          rampage[3] <= {2'b0, lock128_3 ? {din[5], din[7:6]} : ({1'b0, lock128 ? 2'b0 : din[7:6]}), din[2:0]};
       end
-
-      if (hoa == DMAWPD)
-        dmawpdev <= din[1:0];
-
-      if (hoa == CACHECONF)
-        cacheconf <= din[3:0];
-
-      if (hoa == MEMCONF)
-        memconf <= din;
-
-      if (hoa == FDDVIRT)
-        fddvirt <= din;
-
+      
+      else if (portxt_wr)
+      begin
+        if (hoa[7:2] == RAMPAGE[7:2])
+          rampage[hoa[1:0]] <= din;
+      
+        if (hoa == FMADDR)
+          fmaddr <= din[4:0];
+      
+        if (hoa == SYSCONF)
+        begin
+          sysconf <= din;
+            cacheconf <= {4{din[2]}};
+        end
+      
+        if (hoa == DMAWPD)
+          dmawpdev <= din[1:0];
+      
+        if (hoa == CACHECONF)
+          cacheconf <= din[3:0];
+      
+        if (hoa == MEMCONF)
+          memconf <= din;
+      
+        if (hoa == FDDVIRT)
+          fddvirt <= din;
+      
 `ifdef FDR
-      if (hoa == FRCTRL)
-        fdr_en <= din[0];
+        if (hoa == FRCTRL)
+          fdr_en <= din[0];
 `endif
-
-      if (hoa == INTMASK)
-        intmask <= din;
+      
+        if (hoa == INTMASK)
+          intmask <= din;
+      end
     end
 
   // 7FFD port
@@ -533,7 +533,7 @@ end
 
   assign p7ffd_wr = !a[15] && (loa==PORTFD) && iowr_s && !lock48;
 
-  always @(posedge clk)
+  always @(posedge clk or posedge rst)
     if (rst)
       lock48 <= 1'b0;
     else if (p7ffd_wr && !lock128_3)
@@ -575,11 +575,17 @@ end
   assign sddat_rd = (loa==SDDAT) && iord_s;
 
   // SDCFG write - sdcs_n control
-  always @(posedge clk)
+  always @(posedge clk or posedge rst)
     if (rst)
+    begin
       spi_cs_n <= 4'b1111;
+      spi_mode <= 1'b0;
+    end
     else if (sdcfg_wr)
+    begin
       spi_cs_n <= {~din[4:2], din[1]};
+      // spi_mode <= din[7];
+    end
 
   // start signal for SPI module with resyncing to fclk
   assign sd_start = sddat_wr || sddat_rd;
@@ -593,7 +599,7 @@ end
 
   // EFF7 port
   reg [7:0] peff7;
-  always @(posedge clk)
+  always @(posedge clk  or posedge rst)
     if (rst)
       peff7 <= 8'h00;
     else if (!a[12] && portf7_wr && !dos)   // #EEF7 in dos is not accessible
@@ -633,21 +639,20 @@ end
 
 // write to wait registers
 always @(posedge clk) begin
-	// gluclocks
-	if (gluclock_on && portf7_wr) begin
-		if (!a[14]) wait_write <= din; // $BFF7 - data reg
-		if (!a[13]) wait_addr <= din; // $DFF7 - addr reg
-	end
+       // gluclocks
+       if (gluclock_on && portf7_wr) begin
+               if (!a[14]) wait_write <= din; // $BFF7 - data reg
+               if (!a[13]) wait_addr <= din; // $DFF7 - addr reg
+       end
 
-	// com ports
-	if (comport_wr) wait_write <= din; // $xxEF
-	if (comport_wr || comport_rd) wait_addr <= a[15:8];
-	
-	if ((loa==PORTXT) && (hoa == DMAWPA)) wait_addr <= din;
+       // com ports
+       if (comport_wr) wait_write <= din; // $xxEF
+       if (comport_wr || comport_rd) wait_addr <= a[15:8];
+       
+       if ((loa==PORTXT) && (hoa == DMAWPA)) wait_addr <= din;
 end
 
   // wait from wait registers
-  // ACHTUNG!!!! here portxx_wr are ON Z80 CLOCK! logic must change when moving to clk strobes
   assign wait_start_gluclock = (gluclock_on && !a[14] && (portf7_rd || portf7_wr)); // $BFF7 - gluclock r/w
   assign wait_start_comport = (comport_rd || comport_wr);
 

@@ -170,6 +170,8 @@ module tsconf
   
   wire rst_n, rst_gs_n; 
   wire genrst;
+  
+  wire spi_mode;
 
   wire [1:0] ay_mod;
   wire dos;
@@ -857,6 +859,7 @@ assign clk_bus = clk_28mhz;
 `ifdef SD_CARD2
     .sd2cs_n(sd2cs_n),
 `endif
+    .spi_mode(spi_mode),
 //`ifdef IDE_VDAC2
     .ftcs_n(ftcs_n),
 	 .espcs_n(espcs_n),
@@ -931,7 +934,7 @@ assign clk_bus = clk_28mhz;
     .wait_read(mc146818a_do_bus),
     .wait_write(wait_write),
     .porthit(porthit),
-	 .clocktm(clocktm),
+//	 .clocktm(clocktm),
     .external_port(external_port)
   );
 
@@ -1088,6 +1091,7 @@ assign clk_bus = clk_28mhz;
 //`else
 //    .sdi(sddi),
 //`endif
+    .mode(spi_mode),
     .dma_req(dma_spi_req),
     .dma_din(dma_spi_din),
     .cpu_req(cpu_spi_req),
