@@ -7,7 +7,7 @@ A famous ZX-Evolution TS-Conf core ported to the Karabas Go hardware.
 - Real floppy support (based on Firefly FDC hdl sources)
 - Real CF card support (Nemo IDE)
 - VDAC2 (FT812)
-- VDAC3 (FT812 + ESP32-S3 on Mini rev.G)
+- VDAC32 (FT812 + ESP32-S3 on Mini rev.G)
 - RGB 8-8-8
 - USB Keyboard (with zx-evo ps/2 keybuffer emulation) 
 - USB mouse
@@ -15,6 +15,7 @@ A famous ZX-Evolution TS-Conf core ported to the Karabas Go hardware.
 - Turbosound + FM
 - General Sound (2 MB)
 - SAA
+- MIDI (Dream SAM2695)
 - Soundrive (4x covox)
 - ZiFi (ESP8266)
 - RS232 over USB (ZXEvo + ZiFi standards supported)
