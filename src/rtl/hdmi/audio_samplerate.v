@@ -1,16 +1,19 @@
 module audio_samplerate(
 	input wire clk,
 	input wire reset,
+	input wire [7:0] freq,
 	output wire audio_stb
 );
 
 parameter SAMPLERATE = 44100;
-parameter CLKRATE = 28000000;
-localparam prescaler = (CLKRATE / SAMPLERATE);
+
+reg [10:0] prescaler;
+always @(posedge clk)
+	prescaler <= (freq * 1000000) / SAMPLERATE;
 
 // audio samplerate
 reg clk_audio;
-reg [9:0] cnt_audio;
+reg [10:0] cnt_audio;
 always @(posedge clk, posedge reset)
 begin
 		if (reset) 
@@ -35,9 +38,8 @@ reg prev_clk_audio;
 always @(posedge clk)
 begin
 	stb <= 0;
-	if (~prev_clk_audio && clk_audio) begin
-		stb <= 1;
-	end
+	if (~prev_clk_audio && clk_audio) 
+		stb <= 1'b1;
 	prev_clk_audio <= clk_audio;
 end
 

@@ -13,7 +13,7 @@ module audio_restrober #(
 	output wire [AUDIO_DW-1:0] 	out_r
 );
 
-// extended strobe 2 clock cycles width
+// extended strobe 2 clk clock cycles width
 reg [1:0] stb_reg;
 always @(posedge clk) begin
   if (reset)

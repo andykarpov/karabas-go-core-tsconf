@@ -240,8 +240,8 @@ TIMESPEC "TS_CLK_FT" = PERIOD "clk_ft" 72 MHz;
 NET "MCU_SCK" TNM_NET = "clk_mcu";
 TIMESPEC "TS_CLK_MCU" = PERIOD "clk_mcu" 30 MHz;
 
-NET "hdmi_top/clk_hdmi" TNM_NET = "CLK_HDMI";
-NET "hdmi_top/clk_hdmi_n" TNM_NET = "CLK_HDMI_n";
+NET "zhdmi_top/clk_hdmi" TNM_NET = "CLK_HDMI";
+NET "zhdmi_top/clk_hdmi_n" TNM_NET = "CLK_HDMI_n";
 
-NET "hdmi_top/hdmi_pll/freq_counter_inst/o_freq*" TIG; // ignore detected freq
+NET "zhdmi_top/hdmi_pll/freq_counter_inst/o_freq*" TIG; // ignore detected freq
 NET "tsconf/video_top/video_ports/vconf*" TIG; // ignore vdac2_sel

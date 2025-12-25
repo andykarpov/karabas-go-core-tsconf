@@ -27,8 +27,7 @@ module zhdmi_top(
 	output wire [3:0] tmds_p,
 	output wire [3:0] tmds_n,
 	
-	output wire [7:0] freq,
-	output wire samplerate_stb
+	output wire [7:0] freq
 );
 
 parameter SAMPLERATE = 32000;
@@ -40,6 +39,7 @@ wire p_clk_int, p_clk_div2;
 wire [7:0] hdmi_freq;
 wire lockedx5;
 wire pll_reset;
+
 hdmi_pll hdmi_pll (
 	.clk(clk),
 	.clk_ref(clk_ref),
@@ -68,12 +68,15 @@ always @(negedge clk) begin
 	ft_data_r[53:27] <= ft_data_r[26:0];
 end
 reg [53:0] ft_data_r2;
+reg [53:0] vga_data_r2;
 always @(posedge p_clk_int) begin
 	ft_data_r2[26:0] <= ft_data_r[53:27];
 	ft_data_r2[53:27] <= ft_data_r2[26:0];
+	vga_data_r2[26:0] <= {vga_de, vga_hs, vga_vs, vga_rgb[23:0]};
+	vga_data_r2[53:27] <= vga_data_r2[26:0];
 end
 assign ft_data = ft_data_r2[53:27];
-assign vga_data = {vga_de, vga_hs, vga_vs, vga_rgb[23:0]};
+assign vga_data = vga_data_r2[53:27];
 
 assign host_vga_r = (ft_sel ? (~ft_data[26] ? 8'b0 : ft_data[23:16]) : (~vga_data[26] ? 8'b0 : vga_data[23:16]));
 assign host_vga_g = (ft_sel ? (~ft_data[26] ? 8'b0 : ft_data[16:8]) : (~vga_data[26] ? 8'b0 : vga_data[15:8]));
@@ -82,20 +85,30 @@ assign host_vga_hs = (ft_sel ? ft_data[25] : vga_data[25]);
 assign host_vga_vs = (ft_sel ? ft_data[24] : vga_data[24]);
 assign host_vga_blank = (ft_sel ? ~ft_data[26] : ~vga_data[26]);
 
+// generate audio samplerate clock from p_clk_int
+audio_samplerate #(.SAMPLERATE(SAMPLERATE)) audio_samplerate(
+	.clk (p_clk_int),
+	.reset (reset || ~lockedx5),
+	.freq(hdmi_freq),
+	.audio_stb(audio_clk)
+);
+
+// transfer audio between clock domains
 wire [15:0] audio_out_l, audio_out_r;
 wire audio_clk;
-audio_restrober #(.SAMPLERATE(SAMPLERATE), .CLKRATE(CLKRATE)) audio_restrober(
+audio_restrober audio_restrober(
 	.clk(p_clk_int),
 	.clk_ref(clk_ref),
 	.reset(reset || ~lockedx5),
+	.enable(1'b1),
+	.audio_sample(audio_clk),
 	.audio_l(audio_l),
 	.audio_r(audio_r),
 	.out_l(audio_out_l),
-	.out_r(audio_out_r),
-	.out_clk(audio_clk)
+	.out_r(audio_out_r)
 );
-assign samplerate_stb = audio_clk;
 
+// transcode to 24 bit hdmi audio
 reg signed [23:0] hdmi_audio_l, hdmi_audio_r;
 always @(posedge p_clk_int) begin
 	if (audio_clk) begin

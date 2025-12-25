@@ -21,7 +21,6 @@ module hdmi_top(
 	
 	input wire ft_sel,
 	
-	input wire audio_en,
 	input wire [15:0] audio_l,
 	input wire [15:0] audio_r,
 	
