@@ -56,19 +56,30 @@ always @(posedge sclk)
 		left <= {left[AUDIO_DW-2:0], sdata};
 
 reg [AUDIO_DW-1:0] left_chan_r, right_chan_r;
-always @(posedge sclk)
+reg rdy;
+always @(posedge sclk) begin
+	rdy <= 1'b0;
 	if (rst) begin
 		left_chan_r <= 0;
 		right_chan_r <= 0;
 	end else if (lrclk_nedge) begin
+		rdy <= 1'b1;
 		left_chan_r <= left;
 		right_chan_r <= {right[AUDIO_DW-2:0], sdata};
 	end
+end
 
-// transfer audio in reg into audio out reg
+// transfer rdy
+reg [1:0] rdy_r;
+always @(posedge clk)
+	rdy_r <= {rdy_r[0], rdy};
+
+// transfer audio into clk domain
 always @(posedge clk) begin
-	left_chan <= left_chan_r;
-	right_chan <= right_chan_r;
+	if (rdy_r == 2'b10) begin // falling edge
+	    left_chan <= left_chan_r;
+	    right_chan <= right_chan_r;
+	end
 end
 
 
