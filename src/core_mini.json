@@ -1,12 +1,13 @@
 {
     "id": "tsconf",
     "name": "TS-Conf +",
-    "build": "25091318",
+    "build": "26010315",
     "bitstream": "karabas_mini_top.bin",
     "visible": true,
     "type": "osd",
     "order": 3,
     "eeprom_bank": 0,
+    "rtc_type": 2,
     "roms": [
         {"filename": "roms/ts-bios.rom", "address": 0},
         {"filename": "roms/gs105b.rom", "address": 2147483648}
