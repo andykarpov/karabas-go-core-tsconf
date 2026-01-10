@@ -123,13 +123,31 @@ hdmi #(.FS(SAMPLERATE), .N(6144)) hdmi(
 	.O_BLUE(tmds_blue)
 );
 
+// dvi only
+
+wire [9:0] dvi_red, dvi_green, dvi_blue;
+
+dvi dvi(
+	.CLK(p_clk_int),
+	.RESET(pll_reset),
+	.RGB({host_vga_r, host_vga_g, host_vga_b}),
+	.HSYNC(host_vga_hs),
+	.VSYNC(host_vga_vs),
+	.DE(~host_vga_blank),
+	.ENC_RED(dvi_red),
+	.ENC_GREEN(dvi_green),
+	.ENC_BLUE(dvi_blue)
+);
+
+// serializer
+
 hdmi_out_xilinx hdmiio(
 	.clock_pixel_i(p_clk_int),
 	.clock_tdms_i(clk_hdmi),
 	.clock_tdms_n_i(clk_hdmi_n),
-	.red_i(tmds_red),
-	.green_i(tmds_green),
-	.blue_i(tmds_blue),
+	.red_i(audio_en ? tmds_red : dvi_red),
+	.green_i(audio_en ? tmds_green : dvi_green),
+	.blue_i(audio_en ? tmds_blue : dvi_blue),
 	.tmds_out_p(tmds_p),
 	.tmds_out_n(tmds_n)
 );

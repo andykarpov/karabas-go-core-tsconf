@@ -19,6 +19,7 @@ architecture rtl of overlay is
     signal video_on : std_logic;
 
     signal attr, attr2: std_logic_vector(7 downto 0);
+    signal bitmap, bitmap2: std_logic_vector(7 downto 0);
 
     signal char_x: std_logic_vector(2 downto 0);
     signal char_y: std_logic_vector(2 downto 0);
@@ -64,6 +65,8 @@ architecture rtl of overlay is
 	 constant paper_end_v : natural := (paper_chars_v * 8);
 	 
 	 signal load_pixel : std_logic := '0';
+	 signal load_dbl: std_logic; -- load pix doubler shift register
+	 signal shift_dbl: std_logic; -- shift the doubler shift register	 
 	 
 	 signal hcnt, hcnt_i : std_logic_vector(10 downto 0) := (others => '0');
 	 signal vcnt, vcnt_i : std_logic_vector(10 downto 0) := (others => '0');	 
@@ -88,7 +91,7 @@ begin
 	-- hcnt, vcnt, width, height
 	process(CLK)
 	begin
-		if falling_edge(CLK) then
+		if rising_edge(CLK) then
 			
 				prev_hsync <= hsync;				
 				if hsync = hsync_pol and prev_hsync /= hsync then -- new line (start of hsync pulse)
@@ -167,64 +170,76 @@ begin
     video_on <= '1' when (OSD_OVERLAY = '1' or OSD_POPUP = '1') else '0';
 	 
 	 -- mem read character / attribute
-	 process (CLK, vram_do)
+	 -- paper2 -> load
+	 -- paper -> active
+	 process (CLK, osd_popup, paper, paper2, hcnt, vcnt, vram_do)
 	 begin
-		if (rising_edge(CLK)) then 
+--		if (rising_edge(CLK)) then 
 				if (OSD_POPUP = '1') then 
-					case (hcnt(3 downto 0)) is
-						when "1110" =>
-							if (paper2 = '1') then
-									addr_read <= VCNT(8 downto 4) & HCNT(8 downto 4);
-							end if;
-						when "1111" => 
-							attr2 <= vram_do(7 downto 0);
-						when "0000" => 
-							attr <= attr2;
-							when others => null;						
-					end case;
+					if paper2 = '1' then
+						case (hcnt(3 downto 0)) is
+						
+							when "1001" => addr_read <= VCNT(8 downto 4) & HCNT(8 downto 4); -- load char from vram
+							when "1010" => attr2 <= vram_do(7 downto 0); -- save attribute to tmp reg
+												rom_addr <= vram_do(15 downto 8) & VCNT(3 downto 1); -- load bitmap from font ram
+							when "1011" => bitmap2 <= font_word; -- save bitmap to tmp reg
+							when others => null;		
+						end case;
+					end if;
 				else 
-					case (char_x) is
-						when "110" =>
-							if (paper2 = '1') then
-								addr_read <= VCNT(7 downto 3) & HCNT(7 downto 3);
-							end if;
-						when "111" => 
-							attr <= vram_do(7 downto 0);
+					if paper2 = '1' then
+						case (HCNT(2 downto 0)) is -- read every 8 pixels
+							when "100" => addr_read <= VCNT(7 downto 3) & HCNT(7 downto 3); -- ??? hcnt(7:3) ???
+							when "101" => attr2 <= vram_do(7 downto 0);
+											  rom_addr <= vram_do(15 downto 8) & VCNT(2 downto 0);
+							when "110" => bitmap2 <= font_word;
 							when others => null;						
-					end case;
+						end case;
+					end if;
 				end if;
-		end if;
+--		end if;
 	 end process;
 	 
-	 -- pixel load from font
-	 process (CLK)
+	 process (clk) 
+	 begin
+		if rising_edge(clk) then
+			if (OSD_POPUP = '1' and paper2 = '1' and HCNT(3 downto 0) = "1111") or (OSD_POPUP = '0' and paper2 = '1' and HCNT(2 downto 0) = "111") then
+					attr <= attr2; bitmap <= bitmap2; -- move attribute and bitmap
+			end if;
+		end if;
+	 end process;	 
+
+	 -- pix doubler load
+	 process (CLK) 
 	 begin
 		if rising_edge(CLK) then
-			if char_x = "111" then 
-				rom_addr <= vram_do(15 downto 8) & char_y;
+			load_dbl <= '0';
+			shift_dbl <= '0';
+			-- load
+			if ((OSD_POPUP = '0' and HCNT(2 downto 0) = "111" and paper2 = '1') or 
+			    (OSD_POPUP = '1' and HCNT(3 downto 0) = "1111" and paper2 = '1')) 
+				 then 
+				load_dbl <= '1';
+			end if;
+			-- do
+			if ((OSD_POPUP = '0' and HCNT(2 downto 0) /= "111" and paper = '1') or 
+			    (OSD_POPUP = '1' and HCNT(3 downto 0) /= "1111" and paper = '1')) 
+				 then 
+				shift_dbl <= '1';
 			end if;
 		end if;
-	end process;	
+	 end process;
 	
-	process (CLK) 
-	begin
-		if falling_edge(CLK) then
-			load_pixel <= '0';
-			if ((OSD_POPUP = '0' and char_x = "111") or (OSD_POPUP = '1' and hcnt(3 downto 0) = "1111")) and load_pixel = '0' then 
-				load_pixel <= '1';
-			end if;
-		end if;
-	end process;
-	
-	-- pixel doubler
-	U_PIX : entity work.pix_doubler
-	port map(
+	-- pix doubler shifter
+	 U_DBL: entity work.pix_doubler
+	 port map(
 		CLK => CLK,
-		LOAD => load_pixel,
-		D => font_word,
-		QUAD => OSD_POPUP,
+		LOAD => load_dbl,
+		SHIFT => shift_dbl,
+		D => bitmap,
+		QUAD => '1' & OSD_POPUP,
 		DOUT => pixel_reg
-	);
+	 );
 	 
     is_flash <= '1' when attr(3 downto 0) = "0001" else '0';
     selector <= video_on & pixel_reg & flash & is_flash;

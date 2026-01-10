@@ -210,6 +210,8 @@ wire kb_vga_60hz;
 wire [7:0] joy_bus;
 wire kb_pause, kb_reset, kb_reset_gs, kb_nmi, mcu_busy;
 wire f1;
+wire [7:0] hwid;
+wire dvi_only;
 
 tsconf tsconf (
 	.clk					(clk_sys),
@@ -365,6 +367,7 @@ hdmi_top #(.SAMPLERATE(48000)) hdmi_top(
 
 	.ft_sel			(vdac2_sel),
 
+	.audio_en		(~dvi_only),
 	.audio_l			(audio_mix_l),
 	.audio_r			(audio_mix_r),
 
@@ -489,6 +492,9 @@ mcu mcu(
 	.FT_MOSI			(mcu_ft_mosi),
 	.FT_CS_N			(mcu_ft_cs_n),
 	.FT_RESET		(mcu_ft_reset),
+	
+	.HWID				(hwid),
+	.DVI_ONLY		(dvi_only),
 
 	.DEBUG_ADDR		(16'd0),
 	.DEBUG_DATA		(16'd0),
