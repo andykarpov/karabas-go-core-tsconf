@@ -1366,6 +1366,34 @@ covox covox
 	.O_FB(covox_fb)
 );
 
+// opl2
+wire [15:0] opl2_snd;
+wire [7:0] opl2_do_bus;
+wire opl2_port_cs = cpu_a_bus[7:1] == 7'b1100010;
+wire opl2_cs_n = ~(cpu_m1_n & ~cpu_iorq_n & opl2_port_cs);
+wire opl2_cen;
+
+// opl2_cen = 3.579545 MHz, coef = (3.579545 / 28) * 2^24 = 2144837
+reg [23:0] phase_acc;
+always @(posedge clk_28mhz) begin
+    phase_acc <= phase_acc + 24'd2144837;
+end
+assign opl2_cen = (phase_acc < 24'd2144837);
+
+jtopl2 opl2_isnt(
+	.rst(rst),
+	.clk(clk_28mhz),
+	.cen(opl2_cen),
+	.din(cpu_do_bus),
+	.addr(cpu_a_bus[0]),
+	.cs_n(opl2_cs_n),
+	.wr_n(cpu_wr_n),
+	.dout(opl2_do_bus),
+	.irq_n(),
+	.snd(opl2_snd),
+	.sample()
+);
+
 // audio mixer
 
 audio_mixer audio_mixer
@@ -1411,6 +1439,8 @@ audio_mixer audio_mixer
 	.esp_l(esp_in_l),
 	.esp_r(esp_in_r),
 `endif
+
+	.opl2(opl2_snd),
 	
 	.audio_l(audio_out_l),
 	.audio_r(audio_out_r)
@@ -1426,6 +1456,7 @@ assign cpu_di_bus =
 		(ts_enable && ~cpu_rd_n)										?	ts_do					:	// TurboSound
 		(~zifi_oe_n)														?  zifi_do_bus       :  // zifi
       (gs_oe)																?  gs_do_bus 			:  // gs
+		(opl2_port_cs && ~cpu_rd_n)									? opl2_do_bus			:  // opl2
 `ifndef HW_ID2
 		(fdc_oe)																?  fdc_do_bus 			:  // floppy
 `endif
