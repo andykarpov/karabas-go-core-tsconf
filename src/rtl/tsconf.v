@@ -33,9 +33,11 @@ module tsconf
 	output wire sddo,
 	input  wire sddi,
 	
-	// SPI FT812
+	// SPI FT812 / ESP32
 	output wire ftcs_n,
 	output wire espcs_n,
+	input wire espcs_in,
+	output wire esp_ft_spi_dis,
 	output wire ftclk,
 	output wire ftdo,
 	input wire ftdi,
@@ -172,6 +174,9 @@ module tsconf
   wire genrst;
   
   wire spi_mode;
+  wire sdcs_i;
+  
+  assign sdcs_n = sdcs_i;
 
   wire [1:0] ay_mod;
   wire dos;
@@ -207,6 +212,7 @@ module tsconf
   wire set_nmi;
   wire cfg_vga_on;
   wire [7:0] config0;
+  
   assign 
   {
     cfg_tape_sound,   // bit 7
@@ -237,6 +243,9 @@ module tsconf
   wire beeper_wr, covox_wr;
   wire external_port;
   wire ide_stall;
+  
+  wire [8:0] ray_x;
+  wire [8:0] ray_y;
 
   wire rampage_wr;        // ports #10AF-#13AF
   wire [7:0] memconf;
@@ -247,7 +256,8 @@ module tsconf
   wire [1:0] turbo = sysconf[1:0];
   wire [3:0] cacheconf;
   wire [7:0] border;
-  wire int_start_lin;
+  wire line_start_s;
+  wire frame_start_s;
   wire int_start_frm;
   wire int_start_dma;
 
@@ -333,6 +343,13 @@ module tsconf
   wire cram_we;
   wire sfile_we;
   wire regs_we;
+`ifdef COPPER
+  wire clist_we;
+  wire copper_wr;
+  wire copper_int;
+  wire copper_rdy;
+  wire cpu_xt_access;
+`endif
 
   wire rst;
   wire m1;
@@ -351,6 +368,13 @@ module tsconf
   wire iord_s;
   wire iowr_s;
   wire iordwr_s;
+  wire [7:0] xt_wr_addr;
+  wire [7:0] xt_wr_data;
+`ifdef COPPER
+  wire copper_xt_wr;
+  wire [7:0] copper_xt_wr_addr;
+  wire [7:0] copper_xt_wr_data;
+`endif
   wire memrd;
   wire memwr;
   wire memrw;
@@ -395,6 +419,9 @@ module tsconf
   wire [7:0] dma_wraddr;
   wire dma_cram_we;
   wire dma_sfile_we;
+`ifdef COPPER
+  wire dma_clist_we;
+`endif
 
   wire cpu_spi_req;
   wire dma_spi_req;
@@ -655,7 +682,7 @@ assign clk_bus = clk_28mhz;
   (
     .clk(clk_28mhz),
     .res(rst),
-    .f0(f0),
+//    .f0(f0),
     .f1(f1),
     .h1(h1),
     .c0(c0),
@@ -672,6 +699,8 @@ assign clk_bus = clk_28mhz;
     .hsync(hsync),
     .vsync(vsync),
     .csync(/*vcsync*/),
+	 .ray_x(ray_x),
+    .ray_y(ray_y),
 	 .blank(VGA_BLANK),
     .cfg_60hz(vga_60hz),
     .vga_on(1'b1/*1'b1cfg_vga_on*/),
@@ -715,13 +744,39 @@ assign clk_bus = clk_28mhz;
     .tm_req(tm_req),
     .tm_next(tm_next),
     .d(cpu_do_bus),
+	 .xt_wr_data(xt_wr_data),
     .zmd(zmd),
     .zma(zma),
     .cram_we(cram_we),
     .sfile_we(sfile_we),
-    .int_start(int_start_frm),
-    .line_start_s(int_start_lin)
+    .int_start_s(int_start_frm),
+    .line_start_s(line_start_s),
+    .frame_start_s(frame_start_s)
   );
+  
+`ifdef COPPER
+  copper copper
+  (
+    .clk          (clk_28mhz),
+    .res          (res),
+    .cpu_data     (cpu_do_bus),
+    .cpu_wr       (copper_wr),
+    .cpu_xt_access(cpu_xt_access),
+    .cl_wr_addr   (zma),
+    .cl_wr_data   (zmd),
+    .cl_wr        (clist_we),
+    .ts_reg_addr  (copper_xt_wr_addr),
+    .ts_reg_data  (copper_xt_wr_data),
+    .ts_reg_wr    (copper_xt_wr),
+    .sig_int      (copper_int),
+    .sig_rdy      (copper_rdy),
+    .ray_x        (ray_x[8:1]),
+    .ray_y        (ray_y),
+    .dma_done     (!dma_act),
+    .line_start_s (line_start_s),
+    .frame_start_s(frame_start_s)
+  );
+`endif
 
 /*  slavespi slavespi
   (
@@ -777,6 +832,10 @@ assign clk_bus = clk_28mhz;
     .fmaddr(fmaddr),
     .zmd(zmd),
     .zma(zma),
+`ifdef COPPER
+    .dma_clist_we(dma_clist_we),
+    .clist_we(clist_we),
+`endif	 
     .dma_wraddr(dma_wraddr),
     .dma_data(dma_data),
     .dma_cram_we(dma_cram_we),
@@ -855,7 +914,7 @@ assign clk_bus = clk_28mhz;
     .sd_start(cpu_spi_req),
     .sd_dataout(spi_dout),
     .sd_datain(cpu_spi_din),
-    .sdcs_n(sdcs_n),
+    .sdcs_n(sdcs_i),
 `ifdef SD_CARD2
     .sd2cs_n(sd2cs_n),
 `endif
@@ -863,6 +922,8 @@ assign clk_bus = clk_28mhz;
 //`ifdef IDE_VDAC2
     .ftcs_n(ftcs_n),
 	 .espcs_n(espcs_n),
+	 .espcs_in(espcs_in),
+	 .esp_ft_spi_dis(esp_ft_spi_dis),
 //`endif
 //`ifdef IDE_HDD
     .ide_in(ide_d),
@@ -874,6 +935,8 @@ assign clk_bus = clk_28mhz;
     .ide_ready(ide_ready),
     .ide_stall(ide_stall),
 //`endif
+	 .xt_wr_addr(xt_wr_addr),
+    .xt_wr_data(xt_wr_data),
     .border_wr(border_wr),
     .zborder_wr(zborder_wr),
     .zvpage_wr(zvpage_wr),
@@ -908,6 +971,11 @@ assign clk_bus = clk_28mhz;
     .memconf(memconf),
     .intmask(intmask),
     .fddvirt(fddvirt),
+`ifdef COPPER
+    .copper_wr(copper_wr),
+    .copper_rdy(copper_rdy),
+    .cpu_xt_access(cpu_xt_access),
+`endif	 
 /*`ifdef FDR
     .fdr_cnt(fdr_cnt),
     .fdr_en(fdr_en),
@@ -944,7 +1012,7 @@ assign clk_bus = clk_28mhz;
     .c2(c2),
     .rst_n(rst_n),
     .int_start(int_start_dma),
-    .zdata(cpu_do_bus),
+	 .zdata(xt_wr_data),
     .dmaport_wr(dmaport_wr),
     .dma_act(dma_act),
     .dram_addr(dma_addr),
@@ -957,6 +1025,9 @@ assign clk_bus = clk_28mhz;
     .wraddr(dma_wraddr),
     .cram_we(dma_cram_we),
     .sfile_we(dma_sfile_we),
+`ifdef COPPER
+    .clist_we(dma_clist_we),
+`endif	 
 //`ifdef IDE_HDD
     .ide_in(ide_d),
     .ide_out(dma_ide_out),
@@ -1011,13 +1082,16 @@ assign clk_bus = clk_28mhz;
     .im2vect(im2vect),
     .intmask(intmask),
 //`ifdef IDE_VDAC2
-	 .int_start_lin(vdac2_sel ? int_start_ft : int_start_lin),
+	 .int_start_lin(vdac2_sel ? int_start_ft : line_start_s),
 //`else
-//    .int_start_lin(int_start_lin),
+//    .int_start_lin(line_start_s),
 //`endif
     .int_start_frm(int_start_frm),
     .int_start_dma(int_start_dma),
     .int_start_wtp(1'b0/*int_start_wtp*/),
+`ifdef COPPER
+    .int_start_cpr(copper_int),
+`endif	 
     .vdos(pre_vdos),
     .intack(intack),
     .int_n(cpu_int_n_TS)
@@ -1030,7 +1104,7 @@ assign clk_bus = clk_28mhz;
     // .zpos(zpos),
     // .zneg(zneg),
     // .rfsh_n(rfsh_n),
-    // .int_start(int_start),
+    // .int_start(int_start_s),
     // .set_nmi(set_nmi),
     // .clr_nmi(clr_nmi)
     // .in_nmi(in_nmi),    // commented to disable
@@ -1105,12 +1179,14 @@ assign clk_bus = clk_28mhz;
  // todo: ftint, vdac2_sel
  reg [1:0] ftint_r;
 // wire ftcs_n;
+//`ifdef ESP32_SPI
+//  wire esp_ft_spi_dis;
+//`endif
  wire ft_int = ftint;
  wire int_start_ft = ftint_r[1] && !ftint_r[0];
  
  always @(posedge clk_28mhz)
-	ftint_r <= {ftint_r[0], ft_int};
- 
+    ftint_r <= {ftint_r[0], ft_int}; // FT812 INT_n
 
 //`ifdef IDE_HDD
   ide ide

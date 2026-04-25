@@ -86,7 +86,7 @@ module zmem
 
   assign dos_on = win0 && opfetch_s && (za[13:8]==6'h3D) && rom128 && !w0_map_n;
   assign dos_off = !win0 && opfetch_s && !vdos;
-  assign dos = (dos_on || dos_off) ^^ dos_r;    // to make dos appear 1 clock earlier than dos_r
+  assign dos = dos_on ? 1'b1 : (dos_off ? 0 : dos_r);  // to make dos appear 1 clock earlier than dos_r
 
   always @(posedge clk)
   if (rst)
@@ -228,8 +228,8 @@ module zmem
     .address_b (ch_addr),
     .q_b (cache_d)
   );
-   
-/*  altdpram cache_data
+
+  /*altdpram cache_data
   (
     .inclock (clk),
     .outclock (clk),
@@ -263,8 +263,7 @@ module zmem
     cache_data.wraddress_aclr = "OFF",
     cache_data.wraddress_reg = "INCLOCK",
     cache_data.wrcontrol_aclr = "OFF",
-    cache_data.wrcontrol_reg = "INCLOCK";
-*/
+    cache_data.wrcontrol_reg = "INCLOCK";*/
 
   dpram #(.DATAWIDTH(14), .ADDRWIDTH(8))cache_addr
   (
@@ -310,8 +309,8 @@ module zmem
     cache_addr.wraddress_aclr = "OFF",
     cache_addr.wraddress_reg = "INCLOCK",
     cache_addr.wrcontrol_aclr = "OFF",
-    cache_addr.wrcontrol_reg = "INCLOCK";
-*/
+    cache_addr.wrcontrol_reg = "INCLOCK";*/
+
   // ROM chip
   assign csrom = rom_n_ram;
   assign romoe_n = !memrd;

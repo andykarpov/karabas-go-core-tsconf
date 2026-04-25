@@ -70,10 +70,10 @@ module karabas_minig_top (
 	output wire [3:0] 	TMDS_N,
 
 	//------------------ ft812 spi and ctl ---
-	output wire 			FT_SPI_CS_N,
-	output wire 			FT_SPI_SCK,
+	inout wire 				FT_SPI_CS_N,
+	inout wire 			FT_SPI_SCK,
 	input wire 				FT_SPI_MISO,
-	output wire 			FT_SPI_MOSI,
+	inout wire 			FT_SPI_MOSI,
 	input wire 				FT_INT_N,
 	input wire 				FT_CLK,
 	input wire 				FT_DE,
@@ -103,7 +103,7 @@ module karabas_minig_top (
 	input wire 				ADC_DOUT,
 	
 	//------------------ esp32 i2s and cs ----
-	output wire          ESP32_SPI_CS_N,
+	inout wire           ESP32_SPI_CS_N,
 	input wire           ESP32_PCM_BCK,
 	input wire           ESP32_PCM_RLCK,
 	input wire           ESP32_PCM_DAT,	
@@ -256,6 +256,8 @@ tsconf tsconf (
 
 	.ftcs_n				(ftcs_n),
 	.espcs_n          (espcs_n),
+	.espcs_in			(espcs_in),
+	.esp_ft_spi_dis	(esp_ft_spi_dis),	
 	.ftclk				(ftclk),
 	.ftdo					(ftdo),
 	.ftdi					(ftdi),
@@ -330,14 +332,15 @@ tsconf tsconf (
 wire [7:0] rtc_do_mapped;
 
 // ft control signals, mux between tsconf / mcu access
-wire ftcs_n, espcs_n, ftclk, ftdo, ftdi, ftint, vdac2_sel;
+wire ftcs_n, espcs_n, espcs_in, esp_ft_spi_dis, ftclk, ftdo, ftdi, ftint, vdac2_sel;
 wire mcu_ft_spi_on, mcu_ft_vga_on, mcu_ft_sck, mcu_ft_mosi, mcu_ft_cs_n, mcu_ft_reset;
 
-assign FT_SPI_CS_N = mcu_ft_spi_on ? mcu_ft_cs_n : ftcs_n;
-assign ESP32_SPI_CS_N = espcs_n;
-assign FT_SPI_SCK = mcu_ft_spi_on ? mcu_ft_sck : ftclk;
+assign espcs_in = (~ESP32_SPI_CS_N) ? 0 : 1;
+assign ESP32_SPI_CS_N = esp_ft_spi_dis ? (espcs_n ? 1'bZ : 1'b0) : espcs_n;
+assign FT_SPI_CS_N = esp_ft_spi_dis ? 1'bZ : (mcu_ft_spi_on ? mcu_ft_cs_n : ftcs_n);
+assign FT_SPI_SCK = esp_ft_spi_dis ? 1'bZ : (mcu_ft_spi_on ? mcu_ft_sck : ftclk);
 assign ftdi = FT_SPI_MISO;
-assign FT_SPI_MOSI = mcu_ft_spi_on ? mcu_ft_mosi : ftdo;
+assign FT_SPI_MOSI = esp_ft_spi_dis ? 1'bZ : (mcu_ft_spi_on ? mcu_ft_mosi : ftdo);
 assign ftint = FT_INT_N;
 
 // ft clk input buf
