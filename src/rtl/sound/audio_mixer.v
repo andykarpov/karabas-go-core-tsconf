@@ -42,7 +42,8 @@ module audio_mixer (
 	
 	input wire fm_ena,
 	
-	input wire [15:0] opl2,
+	input wire [15:0] opl3_l,
+	input wire [15:0] opl3_r,
 	
 	output wire signed [15:0] audio_l,
 	output wire signed [15:0] audio_r
@@ -77,7 +78,7 @@ wire signed [15:0] mix_l = 	$signed({tsfm_l[11:0], 4'b0000}) +
 `ifdef HW_ID3
 										$signed(esp_l[15:0]) +
 `endif
-										$signed(opl2[15:0]) + 
+										$signed(opl3_l[15:0]) + 
 										$signed({2'b00, saa_l, 6'b000000}) +
 										$signed({covox_l[11:0], 4'b0000}) + 
 										$signed({2'b00, speaker, 7'b0000000, 6'b0000});
@@ -90,7 +91,7 @@ wire signed [15:0] mix_r = 	$signed({tsfm_r[11:0], 4'b0000}) +
 `ifdef HW_ID3
 										$signed(esp_r[15:0]) +
 `endif							
-										$signed(opl2[15:0]) + 
+										$signed(opl3_r[15:0]) + 
 										$signed({2'b00, saa_r, 6'b000000}) +										
 										$signed({covox_r[11:0], 4'b0000}) + 
 										$signed({2'b00, speaker, 7'b0000000, 6'b000000});

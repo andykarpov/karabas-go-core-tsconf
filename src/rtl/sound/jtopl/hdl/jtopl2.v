@@ -27,7 +27,7 @@ module jtopl2(
     input wire                 addr,
     input wire                 cs_n,
     input wire                 wr_n,
-    output wire          [ 7:0] dout,
+    output wire         [ 7:0] dout,
     output wire                irq_n,
     // combined output
     output wire signed  [15:0] snd,

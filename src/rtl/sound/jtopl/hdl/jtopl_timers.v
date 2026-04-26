@@ -18,8 +18,6 @@
     Date: 10-6-2020
 
     */
-	 
-`default_nettype wire
 
 module jtopl_timers(
   input         clk,
