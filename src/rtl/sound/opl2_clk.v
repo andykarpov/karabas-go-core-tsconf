@@ -5,7 +5,8 @@ module opl2_clk (
 );
 
     reg [15:0] accumulator;
-	 localparam [15:0] FTW = 16'd8378;
+	 // (3.579 / 28.0) * 2^16= 8377
+	 localparam [15:0] FTW = 16'd8377;
     
     always @(posedge clk or posedge reset) begin
         if (reset) begin

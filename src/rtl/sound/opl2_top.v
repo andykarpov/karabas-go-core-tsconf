@@ -19,14 +19,31 @@ opl2_clk opl2_clk_inst(
 
 wire [15:0] snd;
 
+// write strobe
+reg prev_wr_n = 1;
+reg opl2_wr = 0;
+always @(posedge clk or posedge reset) begin
+	if (reset) begin
+		prev_wr_n <= 1;
+		opl2_wr <= 0;
+	end
+	else begin
+		prev_wr_n <= wr_n || cs_n;
+		opl2_wr <= 0;
+		if (~cs_n && ~wr_n && prev_wr_n) begin
+			opl2_wr <= 1;
+		end
+	end
+end
+
 jtopl #(.OPL_TYPE(2)) jtopl_inst(
 	 .rst(reset),
     .clk(clk),
     .cen(clk_en),
     .din(din),
     .addr(a),
-    .cs_n(cs_n),
-    .wr_n(wr_n),
+    .cs_n(1'b0),
+    .wr_n(~opl2_wr),
     .dout(dout),
     .irq_n(),
 	 .snd(snd),
