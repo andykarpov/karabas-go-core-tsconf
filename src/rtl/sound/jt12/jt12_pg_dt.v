@@ -27,9 +27,9 @@ http://gendev.spritesmind.net/forum/viewtopic.php?t=386&postdays=0&postorder=asc
     */
 
 module jt12_pg_dt(
-    input       [ 2:0]  block,
-    input       [10:0]  fnum,
-    input       [ 2:0]  detune,
+    input wire      [ 2:0]  block,
+    input wire      [10:0]  fnum,
+    input wire      [ 2:0]  detune,
 
     output reg  [ 4:0]  keycode,
     output reg signed [5:0] detune_signed

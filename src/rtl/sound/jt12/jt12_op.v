@@ -26,28 +26,28 @@
 
 
 module jt12_op(
-    input           rst,
-    input           clk,
-    input           clk_en /* synthesis direct_enable */,
-    input   [9:0]   pg_phase_VIII,
-    input   [9:0]   eg_atten_IX,        // output from envelope generator
-    input   [2:0]   fb_II,      // voice feedback
-    input           xuse_prevprev1,
-    input           xuse_prev2,
-    input           xuse_internal,
-    input           yuse_prev1,
-    input           yuse_prev2,
-    input           yuse_internal, 
-    input           test_214,
+    input wire          rst,
+    input wire          clk,
+    input wire          clk_en /* synthesis direct_enable */,
+    input wire  [9:0]   pg_phase_VIII,
+    input wire  [9:0]   eg_atten_IX,        // output from envelope generator
+    input wire  [2:0]   fb_II,      // voice feedback
+    input wire          xuse_prevprev1,
+    input wire          xuse_prev2,
+    input wire          xuse_internal,
+    input wire          yuse_prev1,
+    input wire          yuse_prev2,
+    input wire          yuse_internal, 
+    input wire          test_214,
     
-    input           s1_enters,
-    input           s2_enters,
-    input           s3_enters,
-    input           s4_enters,
-    input           zero,
+    input wire          s1_enters,
+    input wire          s2_enters,
+    input wire          s3_enters,
+    input wire          s4_enters,
+    input wire          zero,
     
-    output  signed [ 8:0]   op_result,
-    output  signed [13:0]   full_result
+    output wire signed [ 8:0]   op_result,
+    output wire signed [13:0]   full_result
 );
 
 parameter num_ch = 6;

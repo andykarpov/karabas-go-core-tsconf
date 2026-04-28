@@ -20,29 +20,29 @@
     */
 
 module jt12_eg (
-    input               rst,
-    input               clk,
-    input               clk_en /* synthesis direct_enable */,
-    input               zero,
-    input               eg_stop,
+    input wire              rst,
+    input wire              clk,
+    input wire              clk_en /* synthesis direct_enable */,
+    input wire              zero,
+    input wire              eg_stop,
     // envelope configuration
-    input       [4:0]   keycode_II,
-    input       [4:0]   arate_I, // attack  rate
-    input       [4:0]   rate1_I, // decay   rate
-    input       [4:0]   rate2_I, // sustain rate
-    input       [3:0]   rrate_I, // release rate
-    input       [3:0]   sl_I,   // sustain level
-    input       [1:0]   ks_II,     // key scale
+    input wire      [4:0]   keycode_II,
+    input wire      [4:0]   arate_I, // attack  rate
+    input wire      [4:0]   rate1_I, // decay   rate
+    input wire      [4:0]   rate2_I, // sustain rate
+    input wire      [3:0]   rrate_I, // release rate
+    input wire      [3:0]   sl_I,   // sustain level
+    input wire      [1:0]   ks_II,     // key scale
     // SSG operation
-    input               ssg_en_I,
-    input       [2:0]   ssg_eg_I,
+    input wire              ssg_en_I,
+    input wire      [2:0]   ssg_eg_I,
     // envelope operation
-    input               keyon_I,
+    input wire              keyon_I,
     // envelope number
-    input       [6:0]   lfo_mod,
-    input               amsen_IV,
-    input       [1:0]   ams_IV,
-    input       [6:0]   tl_IV,
+    input wire      [6:0]   lfo_mod,
+    input wire              amsen_IV,
+    input wire      [1:0]   ams_IV,
+    input wire      [6:0]   tl_IV,
 
     output  reg [9:0]   eg_V,
     output  reg         pg_rst_II

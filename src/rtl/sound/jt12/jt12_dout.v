@@ -21,14 +21,14 @@
 
 module jt12_dout(
     // input             rst_n,
-    input             clk,        // CPU clock
-    input             flag_A,
-    input             flag_B,
-    input             busy,
-    input      [5:0]  adpcma_flags,
-    input             adpcmb_flag,
-    input      [7:0]  psg_dout,
-    input      [1:0]  addr,
+    input wire            clk,        // CPU clock
+    input wire            flag_A,
+    input wire            flag_B,
+    input wire            busy,
+    input wire     [5:0]  adpcma_flags,
+    input wire            adpcmb_flag,
+    input wire     [7:0]  psg_dout,
+    input wire     [1:0]  addr,
     output reg [7:0]  dout
 );
 

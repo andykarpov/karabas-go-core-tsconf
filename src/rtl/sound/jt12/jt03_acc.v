@@ -31,18 +31,18 @@
 
 module jt03_acc
 (
-    input               rst,
-    input               clk,
-    input               clk_en /* synthesis direct_enable */,
-    input signed [13:0] op_result,
-    input               s1_enters,
-    input               s2_enters,
-    input               s3_enters,
-    input               s4_enters,
-    input               zero,
-    input   [2:0]       alg,
+    input wire              rst,
+    input wire              clk,
+    input wire              clk_en /* synthesis direct_enable */,
+    input wire signed [13:0] op_result,
+    input wire              s1_enters,
+    input wire              s2_enters,
+    input wire              s3_enters,
+    input wire              s4_enters,
+    input wire              zero,
+    input wire  [2:0]       alg,
     // combined output
-    output signed [15:0] snd
+    output wire signed [15:0] snd
 );
 
 reg sum_en;

@@ -21,23 +21,23 @@
 */
 
 module jt12_csr( // Circular Shift Register + input mux
-    input           rst,
-    input           clk,
-    input           clk_en /* synthesis direct_enable */,
-    input   [ 7:0]  din,
-    input   [43:0]  shift_in,
-    output  [43:0]  shift_out,
+    input wire          rst,
+    input  wire         clk,
+    input wire          clk_en /* synthesis direct_enable */,
+    input wire  [ 7:0]  din,
+    input wire  [43:0]  shift_in,
+    output wire [43:0]  shift_out,
 
-    input           up_tl,     
-    input           up_dt1,    
-    input           up_ks_ar,  
-    input           up_amen_dr,
-    input           up_sr,     
-    input           up_sl_rr,  
-    input           up_ssgeg,  
-    input           update_op_I,
-    input           update_op_II,
-    input           update_op_IV
+    input wire          up_tl,     
+    input wire          up_dt1,    
+    input wire          up_ks_ar,  
+    input wire          up_amen_dr,
+    input wire          up_sr,     
+    input wire          up_sl_rr,  
+    input wire          up_ssgeg,  
+    input wire          update_op_I,
+    input wire          update_op_II,
+    input wire          update_op_IV
 );
 
 localparam regop_width=44;

@@ -22,9 +22,9 @@
 // This implementation follows that of Alexey Khokholov (Nuke.YKT) in C language.
 
 module jt12_pm (
-	input [4:0] lfo_mod,
-	input [10:0] fnum,
-	input [2:0] pms,
+	input wire [4:0] lfo_mod,
+	input wire [10:0] fnum,
+	input wire [2:0] pms,
 	output reg signed [8:0] pm_offset
 );
 

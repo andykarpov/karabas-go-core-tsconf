@@ -2,16 +2,16 @@
 
 module dpram #(parameter DATAWIDTH=8, ADDRWIDTH=8, NUMWORDS=1<<ADDRWIDTH, MEM_INIT_FILE="")
 (
-	input	                 clock,
+	input	wire                 clock,
 
-	input	 [ADDRWIDTH-1:0] address_a,
-	input	 [DATAWIDTH-1:0] data_a,
-	input	                 wren_a,
+	input	wire [ADDRWIDTH-1:0] address_a,
+	input	wire [DATAWIDTH-1:0] data_a,
+	input	wire                 wren_a,
 	output reg [DATAWIDTH-1:0] q_a,
 
-	input	 [ADDRWIDTH-1:0] address_b,
-	input	 [DATAWIDTH-1:0] data_b,
-	input	                 wren_b,
+	input	wire [ADDRWIDTH-1:0] address_b,
+	input	wire [DATAWIDTH-1:0] data_b,
+	input	wire                 wren_b,
 	output reg [DATAWIDTH-1:0] q_b
 );
 

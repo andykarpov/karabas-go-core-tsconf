@@ -25,11 +25,11 @@ http://gendev.spritesmind.net/forum/viewtopic.php?t=386&postdays=0&postorder=asc
     */
 
 module jt12_pg_sum (
-    input       [ 3:0]  mul,        
-    input       [19:0]  phase_in,
-    input               pg_rst,
-    input signed [5:0]  detune_signed,
-    input       [16:0]  phinc_pure,
+    input wire      [ 3:0]  mul,        
+    input wire      [19:0]  phase_in,
+    input wire              pg_rst,
+    input wire signed [5:0]  detune_signed,
+    input wire      [16:0]  phinc_pure,
 
     output reg  [19:0]  phase_out,
     output reg  [ 9:0]  phase_op

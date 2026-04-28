@@ -21,87 +21,87 @@
 */
 
 module jt12_reg(
-    input           rst,
-    input           clk,
-    input           clk_en /* synthesis direct_enable */,
-    input   [7:0]   din,
+    input wire          rst,
+    input wire          clk,
+    input wire          clk_en /* synthesis direct_enable */,
+    input wire  [7:0]   din,
     
-    input   [2:0]   ch,     // channel to update
-    input   [1:0]   op,
+    input wire  [2:0]   ch,     // channel to update
+    input wire  [1:0]   op,
     
-    input           csm,
-    input           flag_A,
-    input           overflow_A,
+    input wire          csm,
+    input wire          flag_A,
+    input wire          overflow_A,
 
-    input           up_keyon,   
-    input           up_alg, 
-    input           up_fnumlo,
-    input           up_pms,
-    input           up_dt1,
-    input           up_tl,
-    input           up_ks_ar,
-    input           up_amen_dr,
-    input           up_sr,
+    input wire          up_keyon,   
+    input wire          up_alg, 
+    input wire          up_fnumlo,
+    input wire          up_pms,
+    input wire          up_dt1,
+    input wire          up_tl,
+    input wire          up_ks_ar,
+    input wire          up_amen_dr,
+    input wire          up_sr,
         
-    input           up_sl_rr,
-    input           up_ssgeg,
+    input wire          up_sl_rr,
+    input wire          up_ssgeg,
 
     output reg       ch6op,  // 1 when the operator belongs to CH6
     output reg [2:0] cur_ch,
     output reg [1:0] cur_op,
     
     // CH3 Effect-mode operation
-    input           effect,
-    input   [10:0]  fnum_ch3op2,
-    input   [10:0]  fnum_ch3op3, 
-    input   [10:0]  fnum_ch3op1,
-    input   [ 2:0]  block_ch3op2,
-    input   [ 2:0]  block_ch3op3,
-    input   [ 2:0]  block_ch3op1,
-    input   [ 5:0]  latch_fnum,
+    input wire          effect,
+    input wire  [10:0]  fnum_ch3op2,
+    input wire  [10:0]  fnum_ch3op3, 
+    input wire  [10:0]  fnum_ch3op1,
+    input wire  [ 2:0]  block_ch3op2,
+    input wire  [ 2:0]  block_ch3op3,
+    input wire  [ 2:0]  block_ch3op1,
+    input wire  [ 5:0]  latch_fnum,
     // Pipeline order
     output  reg     zero,
-    output          s1_enters,
-    output          s2_enters,
-    output          s3_enters,
-    output          s4_enters,
+    output  wire        s1_enters,
+    output  wire        s2_enters,
+    output  wire        s3_enters,
+    output  wire        s4_enters,
     
     // Operator
-    output          xuse_prevprev1,
-    output          xuse_internal,
-    output          yuse_internal, 
-    output          xuse_prev2,
-    output          yuse_prev1,
-    output          yuse_prev2,
+    output  wire        xuse_prevprev1,
+    output  wire        xuse_internal,
+    output  wire        yuse_internal, 
+    output  wire        xuse_prev2,
+    output  wire        yuse_prev1,
+    output  wire        yuse_prev2,
     
     // PG
-    output      [10:0]  fnum_I,
-    output      [ 2:0]  block_I,
+    output wire     [10:0]  fnum_I,
+    output wire     [ 2:0]  block_I,
     // channel configuration
-    output      [1:0]   rl,
+    output wire     [1:0]   rl,
     output reg  [2:0]   fb_II,
-    output      [2:0]   alg_I,
+    output wire     [2:0]   alg_I,
     // Operator multiplying
-    output      [ 3:0]  mul_II,
+    output wire     [ 3:0]  mul_II,
     // Operator detuning
-    output      [ 2:0]  dt1_I,
+    output wire     [ 2:0]  dt1_I,
     
     // EG
-    output      [4:0]   ar_I,   // attack  rate
-    output      [4:0]   d1r_I, // decay   rate
-    output      [4:0]   d2r_I, // sustain rate
-    output      [3:0]   rr_I,   // release rate
-    output      [3:0]   sl_I,   // sustain level
-    output      [1:0]   ks_II,     // key scale
-    output              ssg_en_I,
-    output      [2:0]   ssg_eg_I,
-    output      [6:0]   tl_IV,
-    output      [2:0]   pms_I,
-    output      [1:0]   ams_IV,
-    output              amsen_IV,
+    output wire     [4:0]   ar_I,   // attack  rate
+    output wire     [4:0]   d1r_I, // decay   rate
+    output wire     [4:0]   d2r_I, // sustain rate
+    output wire     [3:0]   rr_I,   // release rate
+    output wire     [3:0]   sl_I,   // sustain level
+    output wire     [1:0]   ks_II,     // key scale
+    output wire             ssg_en_I,
+    output wire     [2:0]   ssg_eg_I,
+    output wire     [6:0]   tl_IV,
+    output wire     [2:0]   pms_I,
+    output wire     [1:0]   ams_IV,
+    output wire             amsen_IV,
 
     // envelope operation
-    output          keyon_I
+    output wire         keyon_I
 );
 
 parameter num_ch=6; // Use only 3 (YM2203/YM2610) or 6 (YM2612/YM2608)

@@ -20,56 +20,56 @@
     */
 
 module jt12_eg_comb(
-    input               keyon_now,
-    input               keyoff_now,
-    input       [2:0]   state_in,
-    input       [9:0]   eg_in,
+    input wire              keyon_now,
+    input wire              keyoff_now,
+    input wire      [2:0]   state_in,
+    input wire      [9:0]   eg_in,
     // envelope configuration   
-    input       [4:0]   arate, // attack  rate
-    input       [4:0]   rate1, // decay   rate
-    input       [4:0]   rate2, // sustain rate
-    input       [3:0]   rrate,
-    input       [3:0]   sl,   // sustain level
+    input wire      [4:0]   arate, // attack  rate
+    input wire      [4:0]   rate1, // decay   rate
+    input wire      [4:0]   rate2, // sustain rate
+    input wire      [3:0]   rrate,
+    input wire      [3:0]   sl,   // sustain level
     // SSG operation
-    input               ssg_en,
-    input       [2:0]   ssg_eg,
+    input wire              ssg_en,
+    input wire      [2:0]   ssg_eg,
     // SSG output inversion
-    input               ssg_inv_in,
-    output          ssg_inv_out,
+    input wire              ssg_inv_in,
+    output wire         ssg_inv_out,
 
-    output  [4:0]   base_rate,
-    output  [2:0]   state_next,
-    output          pg_rst,
+    output wire [4:0]   base_rate,
+    output wire [2:0]   state_next,
+    output wire         pg_rst,
     ///////////////////////////////////
     // II
-    input           step_attack,
-    input [ 4:0]    step_rate_in,
-    input [ 4:0]    keycode,
-    input [14:0]    eg_cnt,
-    input           cnt_in,
-    input [ 1:0]    ks,
-    output          cnt_lsb,
-    output        step,
-    output  [5:0] step_rate_out,
-    output          sum_up_out,
+    input wire          step_attack,
+    input wire [ 4:0]    step_rate_in,
+    input wire [ 4:0]    keycode,
+    input wire [14:0]    eg_cnt,
+    input wire          cnt_in,
+    input wire [ 1:0]    ks,
+    output wire         cnt_lsb,
+    output wire       step,
+    output wire [5:0] step_rate_out,
+    output wire         sum_up_out,
     ///////////////////////////////////
     // III
-    input           pure_attack,
-    input           pure_step,
-    input [ 5:1]    pure_rate,
-    input           pure_ssg_en,
-    input [ 9:0]    pure_eg_in,
-    output   [9:0]  pure_eg_out,
-    input           sum_up_in,
+    input wire          pure_attack,
+    input wire          pure_step,
+    input wire [ 5:1]    pure_rate,
+    input wire          pure_ssg_en,
+    input wire [ 9:0]    pure_eg_in,
+    output wire  [9:0]  pure_eg_out,
+    input wire          sum_up_in,
     ///////////////////////////////////
     // IV
-    input [ 6:0]    lfo_mod,
-    input           amsen,
-    input [ 1:0]    ams,
-    input [ 6:0]    tl,
-    input [ 9:0]    final_eg_in,
-    input           final_ssg_inv,
-    output  [9:0] final_eg_out
+    input wire [ 6:0]    lfo_mod,
+    input wire          amsen,
+    input wire [ 1:0]    ams,
+    input wire [ 6:0]    tl,
+    input wire [ 9:0]    final_eg_in,
+    input wire          final_ssg_inv,
+    output wire [9:0] final_eg_out
 );
 
 // I

@@ -20,10 +20,10 @@
 	*/
 
 module jt12_eg_cnt(
-	input rst,
-	input clk,
-	input clk_en /* synthesis direct_enable */,
-	input zero,
+	input wire rst,
+	input wire clk,
+	input wire clk_en /* synthesis direct_enable */,
+	input wire zero,
 	output reg [14:0] eg_cnt
 );
 

@@ -20,12 +20,12 @@
 	*/
 
 module jt12_eg_pure(
-	input			attack,
-	input			step,
-	input [ 5:1]	rate,
-	input [ 9:0]	eg_in,
-	input 			ssg_en,	
-	input 			sum_up,
+	input	wire		attack,
+	input	wire		step,
+	input wire [ 5:1]	rate,
+	input wire [ 9:0]	eg_in,
+	input wire			ssg_en,	
+	input wire			sum_up,
 	output reg  [9:0] eg_pure
 );
 

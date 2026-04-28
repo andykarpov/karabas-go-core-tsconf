@@ -22,12 +22,12 @@
 module jt12_pcm_interpol
 #(parameter DW=9, stepw=5)
 (
-    input           rst_n,
-    input           clk,
-    input           cen,      // 8MHz cen
-    input           cen55,    // clk & cen55  =  55 kHz
-    input           pcm_wr,      // advance to next sample
-    input      signed [DW-1:0] pcmin,
+    input wire          rst_n,
+    input wire          clk,
+    input wire          cen,      // 8MHz cen
+    input wire          cen55,    // clk & cen55  =  55 kHz
+    input wire          pcm_wr,      // advance to next sample
+    input wire     signed [DW-1:0] pcmin,
     output reg signed [DW-1:0] pcmout
 );
 

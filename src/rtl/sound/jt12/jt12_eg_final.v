@@ -20,12 +20,12 @@
 	*/
 
 module jt12_eg_final(
-	input [ 6:0] lfo_mod,
-	input        amsen,
-	input [ 1:0] ams,
-	input [ 6:0] tl,
-	input [ 9:0] eg_pure_in,
-	input 		 ssg_inv,
+	input wire [ 6:0] lfo_mod,
+	input wire       amsen,
+	input wire [ 1:0] ams,
+	input wire [ 6:0] tl,
+	input wire [ 9:0] eg_pure_in,
+	input wire		 ssg_inv,
 	output reg	[9:0] eg_limited
 );
 

@@ -24,22 +24,22 @@
 
 
 module jt12_timers(
-  input     clk,
-  input     rst,
-  input     clk_en /* synthesis direct_enable */,
-  input         zero,
-  input [9:0] value_A,
-  input [7:0] value_B,
-  input     load_A,
-  input     load_B,
-  input     clr_flag_A,
-  input     clr_flag_B,
-  input     enable_irq_A,
-  input     enable_irq_B,
-  output    flag_A,
-  output    flag_B,
-  output    overflow_A,
-  output    irq_n
+  input wire    clk,
+  input wire    rst,
+  input wire    clk_en /* synthesis direct_enable */,
+  input wire        zero,
+  input wire [9:0] value_A,
+  input wire [7:0] value_B,
+  input wire    load_A,
+  input wire    load_B,
+  input wire    clr_flag_A,
+  input wire    clr_flag_B,
+  input wire    enable_irq_A,
+  input wire    enable_irq_B,
+  output wire   flag_A,
+  output wire   flag_B,
+  output wire   overflow_A,
+  output wire   irq_n
 );
 
 parameter num_ch = 6;
@@ -90,13 +90,13 @@ module jt12_timer #(parameter
     FW      = 4, // number of bits for the free-running counter
     FREE_EN = 0  // enables a 4-bit free enable count
 ) (
-    input   rst,
-    input   clk,
-    input   cen,
-    input   zero,
-    input   [CW-1:0] start_value,
-    input   load,
-    input   clr_flag,
+    input wire  rst,
+    input wire  clk,
+    input wire  cen,
+    input wire  zero,
+    input wire  [CW-1:0] start_value,
+    input wire  load,
+    input wire  clr_flag,
     output reg flag,
     output reg overflow
 );

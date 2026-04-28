@@ -20,8 +20,8 @@
 */
 
 module jt12_rst(
-    input   rst,
-    input   clk,
+    input wire  rst,
+    input wire  clk,
     output  reg rst_n
 );
 

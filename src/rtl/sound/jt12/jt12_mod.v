@@ -23,12 +23,12 @@
 */
 
 module jt12_mod(
-    input       s1_enters,
-    input       s2_enters,
-    input       s3_enters,
-    input       s4_enters,
+    input wire      s1_enters,
+    input wire      s2_enters,
+    input wire      s3_enters,
+    input wire      s4_enters,
     
-    input [2:0] alg_I,
+    input wire [2:0] alg_I,
     
     output reg  xuse_prevprev1,
     output reg  xuse_internal,

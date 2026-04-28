@@ -22,11 +22,11 @@
 // stages must be greater than 2
 module jt12_sh_rst #(parameter width=5, stages=32, rstval=1'b0 )
 (
-	input					rst,	
-	input 					clk,
-	input					clk_en /* synthesis direct_enable */,
-	input		[width-1:0]	din,
-   	output		[width-1:0]	drop
+	input	wire				rst,	
+	input wire					clk,
+	input	wire				clk_en /* synthesis direct_enable */,
+	input	wire	[width-1:0]	din,
+   	output wire		[width-1:0]	drop
 );
 
 reg [stages-1:0] bits[width-1:0];

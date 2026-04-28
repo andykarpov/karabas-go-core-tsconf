@@ -24,36 +24,36 @@
 
 
 module jt03(
-    input           rst,        // rst should be at least 6 clk&cen cycles long
-    input           clk,        // CPU clock
-    input           cen,        // optional clock enable, if not needed leave as 1'b1
-    input   [7:0]   din,
-    input           addr,
-    input           cs_n,
-    input           wr_n,
-	 input 			  ay_mode,
+    input wire          rst,        // rst should be at least 6 clk&cen cycles long
+    input wire          clk,        // CPU clock
+    input  wire         cen,        // optional clock enable, if not needed leave as 1'b1
+    input wire  [7:0]   din,
+    input wire          addr,
+    input wire          cs_n,
+    input wire          wr_n,
+	 input wire			  ay_mode,
 
-    output  [7:0]   dout,
-    output          irq_n,
+    output wire [7:0]   dout,
+    output wire         irq_n,
     // I/O pins used by YM2203 embedded YM2149 chip
-    input   [7:0]   IOA_in,
-    input   [7:0]   IOB_in,
-    output  [7:0]   IOA_out,
-    output  [7:0]   IOB_out,
-    output          IOA_oe,
-    output          IOB_oe,
+    input wire  [7:0]   IOA_in,
+    input wire  [7:0]   IOB_in,
+    output wire [7:0]   IOA_out,
+    output wire [7:0]   IOB_out,
+    output wire         IOA_oe,
+    output wire         IOB_oe,
     // Separated output
-    output          [ 7:0] psg_A,
-    output          [ 7:0] psg_B,
-    output          [ 7:0] psg_C,
-    output  signed  [15:0] fm_snd,
+    output wire         [ 7:0] psg_A,
+    output wire         [ 7:0] psg_B,
+    output wire         [ 7:0] psg_C,
+    output wire signed  [15:0] fm_snd,
     // combined output
-    output          [ 9:0] psg_snd,
-    output  signed  [15:0] snd,
-    output                 snd_sample,
+    output wire         [ 9:0] psg_snd,
+    output wire signed  [15:0] snd,
+    output wire                snd_sample,
     // Debug
     //input           [ 7:0] debug_bus,
-    output          [ 7:0] debug_view
+    output wire         [ 7:0] debug_view
 );
 
 jt12_top #(

@@ -62,13 +62,13 @@ The LFO seems to have 3 sections:
 */
 
 module jt12_lfo(
-	input			 	rst,
-	input			 	clk,
-	input				clk_en,
-	input				zero,
-	input				lfo_rst,
-	input				lfo_en,
-	input		[2:0]	lfo_freq,
+	input	wire		 	rst,
+	input	wire		 	clk,
+	input	wire			clk_en,
+	input	wire			zero,
+	input	wire			lfo_rst,
+	input	wire			lfo_en,
+	input	wire	[2:0]	lfo_freq,
 	output	reg	[6:0]	lfo_mod		// 7-bit width according to spritesmind.net
 );
 

@@ -25,9 +25,9 @@
 
 module zclock
 (
-  input             clk,
+  input wire            clk,
   output reg        zclk_out = 0,   // generated Z80 clock, passed through inverter externally
-  input             c0, c2,
+  input wire            c0, c2,
 
   input wire        iorq_s,
   input wire        external_port,
@@ -47,7 +47,7 @@ module zclock
   input  wire       upper8,
 `endif
 
-  input [1:0]       turbo   // 2'b00 -  3.5 MHz
+  input wire [1:0]       turbo   // 2'b00 -  3.5 MHz
                             // 2'b01 -  7.0 MHz
                             // 2'b1x - 14.0 MHz
 );

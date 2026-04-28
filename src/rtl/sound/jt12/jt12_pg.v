@@ -32,25 +32,25 @@ http://gendev.spritesmind.net/forum/viewtopic.php?t=386&postdays=0&postorder=asc
 */
 
 module jt12_pg(
-    input               clk,
-    input               clk_en /* synthesis direct_enable */,
-    input               rst,
+    input wire              clk,
+    input wire              clk_en /* synthesis direct_enable */,
+    input wire              rst,
     // Channel frequency
-    input       [10:0]  fnum_I,
-    input       [ 2:0]  block_I,
+    input wire      [10:0]  fnum_I,
+    input wire      [ 2:0]  block_I,
     // Operator multiplying
-    input       [ 3:0]  mul_II,
+    input wire      [ 3:0]  mul_II,
     // Operator detuning
-    input       [ 2:0]  dt1_I, // same as JT51's DT1
+    input wire      [ 2:0]  dt1_I, // same as JT51's DT1
     // phase modulation from LFO
-    input       [ 6:0]  lfo_mod,
-    input       [ 2:0]  pms_I,
+    input wire      [ 6:0]  lfo_mod,
+    input wire      [ 2:0]  pms_I,
     // phase operation
-    input               pg_rst_II,
-    input               pg_stop,    // not implemented
+    input wire              pg_rst_II,
+    input wire              pg_stop,    // not implemented
     
     output  reg [ 4:0]  keycode_II,
-    output      [ 9:0]  phase_VIII
+    output  wire    [ 9:0]  phase_VIII
 );
 
 parameter num_ch=6;

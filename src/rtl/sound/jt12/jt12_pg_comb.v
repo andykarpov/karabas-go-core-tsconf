@@ -24,30 +24,30 @@ http://gendev.spritesmind.net/forum/viewtopic.php?t=386&postdays=0&postorder=asc
 */
 
 module jt12_pg_comb(
-    input       [ 2:0]  block,
-    input       [10:0]  fnum,
+    input wire      [ 2:0]  block,
+    input wire      [10:0]  fnum,
     // Phase Modulation
-    input       [ 4:0]  lfo_mod,
-    input       [ 2:0]  pms,
+    input wire      [ 4:0]  lfo_mod,
+    input wire      [ 2:0]  pms,
     // output       [ 7:0]  pm_out,
 
     // Detune
-    input       [ 2:0]  detune,
+    input wire      [ 2:0]  detune,
 
-    output  [ 4:0]  keycode,
-    output  signed [5:0] detune_out,
+    output wire  [ 4:0]  keycode,
+    output wire signed [5:0] detune_out,
     // Phase increment  
-    output  [16:0]  phinc_out,
+    output wire [16:0]  phinc_out,
     // Phase add
-    input       [ 3:0]  mul,
-    input       [19:0]  phase_in,
-    input               pg_rst,
+    input wire      [ 3:0]  mul,
+    input wire      [19:0]  phase_in,
+    input wire              pg_rst,
     // input signed [7:0]   pm_in,
-    input signed [5:0]  detune_in,
-    input       [16:0]  phinc_in,
+    input wire signed [5:0]  detune_in,
+    input wire      [16:0]  phinc_in,
 
-    output  [19:0]  phase_out,
-    output  [ 9:0]  phase_op
+    output wire [19:0]  phase_out,
+    output wire [ 9:0]  phase_op
 );
 
 wire signed [8:0] pm_offset;

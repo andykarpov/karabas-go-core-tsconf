@@ -17,7 +17,7 @@ module sram
 
   // sram phy interface
   output reg [20:0]   sram_addr,
-  inout      [15:0]   sram_data,
+  inout  wire    [15:0]   sram_data,
   output reg [1:0]    sram_we_n,
   output reg [1:0]    sram_rd_n,
   

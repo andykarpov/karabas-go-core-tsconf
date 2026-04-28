@@ -25,9 +25,9 @@ http://gendev.spritesmind.net/forum/viewtopic.php?t=386&postdays=0&postorder=asc
     */
 
 module jt12_pg_inc (
-    input       [ 2:0] block,
-    input       [10:0] fnum,
-    input signed [8:0] pm_offset,
+    input wire      [ 2:0] block,
+    input wire      [10:0] fnum,
+    input wire signed [8:0] pm_offset,
     output reg  [16:0] phinc_pure
 );
 

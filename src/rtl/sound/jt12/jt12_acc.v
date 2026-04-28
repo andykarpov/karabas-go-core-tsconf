@@ -34,20 +34,20 @@
  */
 
 module jt12_acc(
-    input               rst,
-    input               clk,
-    input               clk_en /* synthesis direct_enable */,
-    input signed [8:0]  op_result,
-    input        [ 1:0] rl,
-    input               zero,
-    input               s1_enters,
-    input               s2_enters,
-    input               s3_enters,
-    input               s4_enters,
-    input               ch6op,
-    input   [2:0]       alg,
-    input               pcm_en, // only enabled for channel 6
-    input   signed [8:0] pcm,
+    input wire              rst,
+    input wire              clk,
+    input wire             clk_en /* synthesis direct_enable */,
+    input wire signed [8:0]  op_result,
+    input wire       [ 1:0] rl,
+    input wire              zero,
+    input wire              s1_enters,
+    input wire              s2_enters,
+    input wire              s3_enters,
+    input wire              s4_enters,
+    input wire              ch6op,
+    input wire  [2:0]       alg,
+    input wire              pcm_en, // only enabled for channel 6
+    input wire  signed [8:0] pcm,
     // combined output
     output reg signed   [11:0]  left,
     output reg signed   [11:0]  right

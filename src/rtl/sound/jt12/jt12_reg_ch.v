@@ -25,18 +25,18 @@
 // channels go through the CSR. So the channel data
 // cannot be CSR, but regular registers.
 module jt12_reg_ch(
-    input         rst,
-    input         clk,
-    input         cen,
-    input  [ 7:0] din,
+    input wire        rst,
+    input wire        clk,
+    input wire        cen,
+    input wire [ 7:0] din,
 
-    input  [ 2:0] up_ch,
-    input  [ 5:0] latch_fnum,
-    input         up_fnumlo,
-    input         up_alg,
-    input         up_pms,
+    input wire [ 2:0] up_ch,
+    input wire [ 5:0] latch_fnum,
+    input wire        up_fnumlo,
+    input wire        up_alg,
+    input wire        up_pms,
 
-    input      [ 2:0] ch, // next active channel
+    input  wire    [ 2:0] ch, // next active channel
     output reg [ 2:0] block,
     output reg [10:0] fnum,
     output reg [ 2:0] fb,

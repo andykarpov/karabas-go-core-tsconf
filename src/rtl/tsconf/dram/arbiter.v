@@ -82,7 +82,7 @@ module arbiter
   output reg         cpu_next,        // next cycle is allowed to be used by CPU
   output reg         cpu_strobe,
   output reg         cpu_latch,
-  output  		      curr_cpu_o,
+  output wire 		      curr_cpu_o,
 
   // DMA
   input  wire [20:0] dma_addr,

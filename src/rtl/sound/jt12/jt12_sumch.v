@@ -24,7 +24,7 @@
 
 module jt12_sumch
 (	
-	input		[4:0] chin,
+	input	wire	[4:0] chin,
    	output reg 	[4:0] chout
 );
 

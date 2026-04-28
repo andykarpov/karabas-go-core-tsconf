@@ -23,17 +23,17 @@
 */
 
 module jt12_kon(
-    input           rst,
-    input           clk,
-    input           clk_en /* synthesis direct_enable */,
-    input   [3:0]   keyon_op,
-    input   [2:0]   keyon_ch,
-    input   [1:0]   next_op,
-    input   [2:0]   next_ch,
-    input           up_keyon,
-    input           csm,
+    input wire          rst,
+    input wire          clk,
+    input wire          clk_en /* synthesis direct_enable */,
+    input wire  [3:0]   keyon_op,
+    input wire  [2:0]   keyon_ch,
+    input wire  [1:0]   next_op,
+    input wire  [2:0]   next_ch,
+    input wire          up_keyon,
+    input wire          csm,
     // input            flag_A,
-    input           overflow_A,
+    input wire          overflow_A,
 
     output  reg     keyon_I
 );

@@ -20,10 +20,10 @@
 
 
 module jt12_div(
-    input           rst,
-    input           clk,
-    input           cen /* synthesis direct_enable */,
-    input     [1:0] div_setting,
+    input wire          rst,
+    input wire          clk,
+    input wire          cen /* synthesis direct_enable */,
+    input wire    [1:0] div_setting,
     output reg      clk_en,      // after prescaler
     output reg      clk_en_2,    // cen divided by 2
     output reg      clk_en_ssg,

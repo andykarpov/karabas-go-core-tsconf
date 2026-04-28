@@ -26,9 +26,9 @@
 
 module jt12_logsin
 (
-    input [7:0] addr,
-    input clk, 
-    input clk_en,
+    input wire [7:0] addr,
+    input wire clk, 
+    input wire clk_en,
     output reg [11:0] logsin
 );  
 

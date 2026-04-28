@@ -41,27 +41,27 @@
 
 module ym2149
 (
-	input        CLK,       // Global clock
-	input        CE,        // PSG Clock enable
-	input        RESET,     // Chip RESET (set all Registers to '0', active hi)
-	input        BDIR,      // Bus Direction (0 - read , 1 - write)
-	input        BC,        // Bus control
-	input  [7:0] DI,        // Data In
-	output [7:0] DO,        // Data Out
-	output [7:0] CHANNEL_A, // PSG Output channel A
-	output [7:0] CHANNEL_B, // PSG Output channel B
-	output [7:0] CHANNEL_C, // PSG Output channel C
+	input wire       CLK,       // Global clock
+	input wire       CE,        // PSG Clock enable
+	input wire       RESET,     // Chip RESET (set all Registers to '0', active hi)
+	input wire       BDIR,      // Bus Direction (0 - read , 1 - write)
+	input wire       BC,        // Bus control
+	input wire [7:0] DI,        // Data In
+	output wire [7:0] DO,        // Data Out
+	output wire [7:0] CHANNEL_A, // PSG Output channel A
+	output wire [7:0] CHANNEL_B, // PSG Output channel B
+	output wire [7:0] CHANNEL_C, // PSG Output channel C
 
-	input        SEL,
-	input        MODE,
+	input wire       SEL,
+	input wire       MODE,
 	
-	output [5:0] ACTIVE,
+	output wire [5:0] ACTIVE,
 
-	input  [7:0] IOA_in,
-	output [7:0] IOA_out,
+	input  wire [7:0] IOA_in,
+	output wire [7:0] IOA_out,
 
-	input  [7:0] IOB_in,
-	output [7:0] IOB_out
+	input  wire [7:0] IOB_in,
+	output wire [7:0] IOB_out
 );
 
 assign ACTIVE  = ~ymreg[7][5:0];

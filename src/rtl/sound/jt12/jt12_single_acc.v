@@ -28,11 +28,11 @@ module jt12_single_acc #(parameter
         win=14, // input data width 
         wout=16 // output data width
 )(
-    input                 clk,
-    input                 clk_en /* synthesis direct_enable */,
-    input [win-1:0]       op_result,
-    input                 sum_en,
-    input                 zero,
+    input wire                clk,
+    input wire                clk_en /* synthesis direct_enable */,
+    input wire [win-1:0]       op_result,
+    input wire                sum_en,
+    input wire                zero,
     output reg [wout-1:0] snd
 );
 

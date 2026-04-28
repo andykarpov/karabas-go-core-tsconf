@@ -25,52 +25,52 @@ http://gendev.spritesmind.net/forum/viewtopic.php?t=386&postdays=0&postorder=asc
     */
 
 module jt12_top (
-    input           rst,        // rst should be at least 6 clk&cen cycles long
-    input           clk,        // CPU clock
-    (* direct_enable *) input cen,        // optional clock enable, if not needed leave as 1'b1
-    input   [7:0]   din,
-    input   [1:0]   addr,
-    input           cs_n,
-    input           wr_n,
-	 input 			  ay_mode,
+    input wire          rst,        // rst should be at least 6 clk&cen cycles long
+    input wire          clk,        // CPU clock
+    (* direct_enable *) input wire cen,        // optional clock enable, if not needed leave as 1'b1
+    input wire  [7:0]   din,
+    input wire  [1:0]   addr,
+    input wire          cs_n,
+    input wire          wr_n,
+	 input wire			  ay_mode,
 
-    output  [7:0]   dout,
-    output          irq_n,
+    output wire [7:0]   dout,
+    output wire         irq_n,
     // Configuration
-    input           en_hifi_pcm,  // high to enable PCM interpolation on YM2612 mode
+    input wire          en_hifi_pcm,  // high to enable PCM interpolation on YM2612 mode
     // ADPCM pins
-    output  [19:0]  adpcma_addr,  // real hardware has 10 pins multiplexed through RMPX pin
-    output  [ 3:0]  adpcma_bank,
-    output          adpcma_roe_n, // ADPCM-A ROM output enable
-    input   [ 7:0]  adpcma_data,  // Data from RAM
-    output  [23:0]  adpcmb_addr,  // real hardware has 12 pins multiplexed through PMPX pin
-    input   [ 7:0]  adpcmb_data,
-    output          adpcmb_roe_n, // ADPCM-B ROM output enable
+    output wire [19:0]  adpcma_addr,  // real hardware has 10 pins multiplexed through RMPX pin
+    output wire [ 3:0]  adpcma_bank,
+    output wire         adpcma_roe_n, // ADPCM-A ROM output enable
+    input wire  [ 7:0]  adpcma_data,  // Data from RAM
+    output wire [23:0]  adpcmb_addr,  // real hardware has 12 pins multiplexed through PMPX pin
+    input wire  [ 7:0]  adpcmb_data,
+    output wire         adpcmb_roe_n, // ADPCM-B ROM output enable
     // I/O pins used by YM2203 embedded YM2149 chip
-    input      [7:0] IOA_in,
-    input      [7:0] IOB_in,
-    output     [7:0] IOA_out,
-    output     [7:0] IOB_out,
-    output           IOA_oe,
-    output           IOB_oe,
+    input wire     [7:0] IOA_in,
+    input wire     [7:0] IOB_in,
+    output wire    [7:0] IOA_out,
+    output wire    [7:0] IOB_out,
+    output wire          IOA_oe,
+    output wire          IOB_oe,
     // Separated output
-    output          [ 7:0] psg_A,
-    output          [ 7:0] psg_B,
-    output          [ 7:0] psg_C,
-    output  signed  [15:0] fm_snd_left,
-    output  signed  [15:0] fm_snd_right,
-    output  signed  [15:0] adpcmA_l,
-    output  signed  [15:0] adpcmA_r,
-    output  signed  [15:0] adpcmB_l,
-    output  signed  [15:0] adpcmB_r,
+    output wire         [ 7:0] psg_A,
+    output wire         [ 7:0] psg_B,
+    output wire         [ 7:0] psg_C,
+    output wire signed  [15:0] fm_snd_left,
+    output wire signed  [15:0] fm_snd_right,
+    output wire signed  [15:0] adpcmA_l,
+    output wire signed  [15:0] adpcmA_r,
+    output wire signed  [15:0] adpcmB_l,
+    output wire signed  [15:0] adpcmB_r,
     // combined output
-    output          [ 9:0] psg_snd,
-    output  signed  [15:0] snd_right, // FM+PSG
-    output  signed  [15:0] snd_left,  // FM+PSG
-    output                 snd_sample,
-    input           [ 5:0] ch_enable, // ADPCM-A channels
-    input           [ 7:0] debug_bus,
-    output          [ 7:0] debug_view
+    output wire         [ 9:0] psg_snd,
+    output wire signed  [15:0] snd_right, // FM+PSG
+    output wire signed  [15:0] snd_left,  // FM+PSG
+    output wire                snd_sample,
+    input wire          [ 5:0] ch_enable, // ADPCM-A channels
+    input wire          [ 7:0] debug_bus,
+    output wire         [ 7:0] debug_view
 );
 
 // parameters to select the features for each chip type

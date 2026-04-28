@@ -20,13 +20,13 @@
     */
 
 module jt12_eg_step(
-    input           attack,
-    input [ 4:0]    base_rate,
-    input [ 4:0]    keycode,
-    input [14:0]    eg_cnt,
-    input           cnt_in,
-    input [ 1:0]    ks,
-    output          cnt_lsb,
+    input wire          attack,
+    input wire [ 4:0]    base_rate,
+    input wire [ 4:0]    keycode,
+    input wire [14:0]    eg_cnt,
+    input wire          cnt_in,
+    input wire [ 1:0]    ks,
+    output wire         cnt_lsb,
     output       reg step,
     output reg [5:0] rate,
     output reg      sum_up

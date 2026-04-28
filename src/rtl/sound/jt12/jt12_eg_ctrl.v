@@ -20,21 +20,21 @@
 	*/
 
 module jt12_eg_ctrl(
-	input				keyon_now,
-	input				keyoff_now,
-	input		[2:0]	state_in,
-	input		[9:0]	eg,
+	input	wire			keyon_now,
+	input	wire			keyoff_now,
+	input	wire	[2:0]	state_in,
+	input	wire	[9:0]	eg,
 	// envelope configuration
-	input		[4:0]	arate, // attack  rate
-	input		[4:0]	rate1, // decay   rate
-	input		[4:0]	rate2, // sustain rate
-	input		[3:0]	rrate,
-	input		[3:0]	sl,   // sustain level
+	input	wire	[4:0]	arate, // attack  rate
+	input	wire	[4:0]	rate1, // decay   rate
+	input	wire	[4:0]	rate2, // sustain rate
+	input	wire	[3:0]	rrate,
+	input	wire	[3:0]	sl,   // sustain level
 	// SSG operation
-	input				ssg_en,
-	input		[2:0]	ssg_eg,
+	input	wire			ssg_en,
+	input	wire	[2:0]	ssg_eg,
 	// SSG output inversion
-	input				ssg_inv_in,
+	input	wire			ssg_inv_in,
 	output reg			ssg_inv_out,
 
 	output reg	[4:0]	base_rate,
