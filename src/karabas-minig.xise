@@ -912,8 +912,6 @@
     <!-- project is analyzed based on files automatically identified as       -->
     <!-- include files.                                                       -->
     <file xil_pn:name="rtl/tune.v" xil_pn:type="FILE_VERILOG"/>
-    <file xil_pn:name="rtl/sound/opl3/opl3.vh" xil_pn:type=""/>
-    <file xil_pn:name="rtl/sound/opl2/opl3.vh" xil_pn:type=""/>
   </autoManagedFiles>
 
 </project>
