@@ -248,6 +248,7 @@ module karabas_go_top (
 	wire kb_nmi;
 	wire mcu_busy;
 	wire f1;
+	wire [1:0] hw_btn;
 
 	tsconf tsconf (
      .clk(clk_sys),
@@ -423,6 +424,8 @@ mcu mcu(
 	.JOY_L(joy_l),
 	.JOY_R(joy_r),
 	
+	.BTNS(hw_btn),
+	
 	.RTC_A(rtc_addr),
 	.RTC_DI(rtc_di),
 	.RTC_DO(rtc_do),
@@ -517,8 +520,8 @@ soft_switches soft_switches(
 	.RESET(kb_reset)
 );
 
-assign btn_reset_n = ~kb_reset & ~mcu_busy;
-assign btn_reset_gs_n = ~kb_reset_gs & ~mcu_busy;
+assign btn_reset_n = ~kb_reset && ~hw_btn[0] && ~mcu_busy;
+assign btn_reset_gs_n = ~kb_reset_gs && ~mcu_busy;
 
 //---------- Mouse / cursor ------------
 
