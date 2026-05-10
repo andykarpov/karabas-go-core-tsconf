@@ -215,6 +215,7 @@ wire kb_pause, kb_reset, kb_reset_gs, kb_nmi, mcu_busy;
 wire f1;
 wire [7:0] hwid;
 wire dvi_only;
+wire [1:0] hw_btn;
 
 tsconf tsconf (
 	.clk					(clk_sys),
@@ -253,6 +254,9 @@ tsconf tsconf (
 	.sddi					(SD_DO),
 
 	.ftcs_n				(ftcs_n),
+	.espcs_n				(espcs_n),
+	.espcs_in			(espcs_in),
+	.esp_ft_spi_dis	(esp_ft_spi_dis),	
 	.ftclk				(ftclk),
 	.ftdo					(ftdo),
 	.ftdi					(ftdi),
@@ -327,13 +331,14 @@ tsconf tsconf (
 wire [7:0] rtc_do_mapped;
 
 // ft control signals, mux between tsconf / mcu access
-wire ftcs_n, ftclk, ftdo, ftdi, ftint, vdac2_sel;
+wire ftcs_n, espcs_n, espcs_in, esp_ft_spi_dis, ftclk, ftdo, ftdi, ftint, vdac2_sel;
 wire mcu_ft_spi_on, mcu_ft_vga_on, mcu_ft_sck, mcu_ft_mosi, mcu_ft_cs_n, mcu_ft_reset;
 
-assign FT_SPI_CS_N = mcu_ft_spi_on ? mcu_ft_cs_n : ftcs_n;
-assign FT_SPI_SCK = mcu_ft_spi_on ? mcu_ft_sck : ftclk;
+assign espcs_in = 1;
+assign FT_SPI_CS_N = esp_ft_spi_dis ? 1'bZ : (mcu_ft_spi_on ? mcu_ft_cs_n : ftcs_n);
+assign FT_SPI_SCK = esp_ft_spi_dis ? 1'bZ : (mcu_ft_spi_on ? mcu_ft_sck : ftclk);
 assign ftdi = FT_SPI_MISO;
-assign FT_SPI_MOSI = mcu_ft_spi_on ? mcu_ft_mosi : ftdo;
+assign FT_SPI_MOSI = esp_ft_spi_dis ? 1'bZ : (mcu_ft_spi_on ? mcu_ft_mosi : ftdo);
 assign ftint = FT_INT_N;
 assign FT_RESET = ~mcu_ft_reset; // 1'b1
 
@@ -350,7 +355,7 @@ hdmi_top #(.SAMPLERATE(44100)) hdmi_top(
 	.clk				(v_clk_int),
 	.clk_ref			(clk_bus),
 	.clk_8			(clk_8mhz),
-	.reset			(areset || kb_reset),
+	.reset			(areset || kb_reset || hw_btn[0]),
 
 	.vga_rgb			({osd_r[7:0], osd_g[7:0], osd_b[7:0]}),
 	.vga_hs			(video_hsync),
@@ -459,6 +464,8 @@ mcu mcu(
 
 	.JOY_L			(joy_l),
 	.JOY_R			(joy_r),
+	
+	.BTNS				(hw_btn),
 
 	.RTC_A			(rtc_addr),
 	.RTC_DI			(rtc_di),
@@ -558,8 +565,8 @@ soft_switches soft_switches(
 	.RESET			(kb_reset)
 );
 
-assign btn_reset_n = ~kb_reset & ~mcu_busy;
-assign btn_reset_gs_n = ~kb_reset_gs & ~mcu_busy;
+assign btn_reset_n = ~kb_reset && ~hw_btn[0] && ~mcu_busy;
+assign btn_reset_gs_n = ~kb_reset_gs && ~mcu_busy;
 
 //---------- Mouse / cursor ------------
 

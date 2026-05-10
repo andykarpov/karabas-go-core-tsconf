@@ -280,6 +280,9 @@ module karabas_go_top (
      .sddi(SD_DO),
 	  
 	  .ftcs_n(ftcs_n),
+	  .espcs_n(espcs_n),
+	  .espcs_in(espcs_in),
+	  .esp_ft_spi_dis(esp_ft_spi_dis),		  
 	  .ftclk(ftclk),
 	  .ftdo(ftdo),
 	  .ftdi(ftdi),
@@ -367,7 +370,7 @@ module karabas_go_top (
 	 
 wire [7:0] rtc_do_mapped;
 	 
-wire ftcs_n, ftclk, ftdo, ftdi, ftint, vdac2_sel;
+wire ftcs_n, espcs_n, espcs_in, esp_ft_spi_dis, ftclk, ftdo, ftdi, ftint, vdac2_sel;
 wire mcu_ft_spi_on, mcu_ft_vga_on, mcu_ft_sck, mcu_ft_mosi, mcu_ft_cs_n;
 
 assign VGA_R[7:0] = (vdac2_sel ? 8'bZZZZZZZZ : osd_r[7:0]);
@@ -376,11 +379,13 @@ assign VGA_B[7:0] = (vdac2_sel ? 8'bZZZZZZZZ : osd_b[7:0]);
 assign VGA_HS = (vdac2_sel ? 1'bZ : video_hsync);
 assign VGA_VS = (vdac2_sel ? 1'bZ : video_vsync);
 assign V_CLK = (vdac2_sel ? FT_CLK : ce_28m);
-assign FT_SPI_CS_N = mcu_ft_spi_on ? mcu_ft_cs_n : ftcs_n;
-assign FT_SPI_SCK = mcu_ft_spi_on ? mcu_ft_sck : ftclk;
-assign FT_OE_N = mcu_ft_vga_on ? 1'b0 : (vdac2_sel ? 1'b0 : 1'b1);
+
+assign espcs_in = 1;
+assign FT_SPI_CS_N = esp_ft_spi_dis ? 1'bZ : (mcu_ft_spi_on ? mcu_ft_cs_n : ftcs_n);
+assign FT_SPI_SCK = esp_ft_spi_dis ? 1'bZ : (mcu_ft_spi_on ? mcu_ft_sck : ftclk);
 assign ftdi = FT_SPI_MISO;
-assign FT_SPI_MOSI = mcu_ft_spi_on ? mcu_ft_mosi : ftdo;
+assign FT_SPI_MOSI = esp_ft_spi_dis ? 1'bZ : (mcu_ft_spi_on ? mcu_ft_mosi : ftdo);
+assign FT_OE_N = esp_ft_spi_dis ? 1'b0 : (mcu_ft_vga_on ? 1'b0 : ~vdac2_sel);
 assign ftint = FT_INT_N;
 
 
