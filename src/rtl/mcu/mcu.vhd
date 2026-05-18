@@ -138,6 +138,7 @@ architecture rtl of mcu is
 
 	 -- spi
 	 signal spi_do_valid 	: std_logic := '0';
+	 signal prev_spi_do_valid: std_logic := '0';
 	 signal spi_di 			: std_logic_vector(23 downto 0);
 	 signal spi_do 			: std_logic_vector(23 downto 0);
 	 signal spi_di_req 		: std_logic;
@@ -243,8 +244,8 @@ begin
 	process (CLK)
 	begin
 		if (rising_edge(CLK)) then
-		
-			if spi_do_valid = '1' then
+			prev_spi_do_valid <= spi_do_valid;
+			if spi_do_valid = '1' and prev_spi_do_valid = '0' then
 				case spi_do(23 downto 16) is 
 					-- keyboard
 					when CMD_KBD => 
@@ -310,7 +311,7 @@ begin
 					when CMD_BTNS => 
 						case spi_do(15 downto 8) is
 							when x"00" => BTNS(0) <= spi_do(0);
-							when x"01" => BTNS(1) <= spi_do(1);
+							when x"01" => BTNS(1) <= spi_do(0);
 							when others => null;
 						end case;
 
