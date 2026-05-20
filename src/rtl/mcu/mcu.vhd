@@ -244,8 +244,7 @@ begin
 	process (CLK)
 	begin
 		if (rising_edge(CLK)) then
-			prev_spi_do_valid <= spi_do_valid;
-			if spi_do_valid = '1' and prev_spi_do_valid = '0' then
+			if spi_do_valid = '1' then
 				case spi_do(23 downto 16) is 
 					-- keyboard
 					when CMD_KBD => 

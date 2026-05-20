@@ -13,6 +13,7 @@ A famous ZX-Evolution TS-Conf core ported to the Karabas Go hardware.
 - USB mouse
 - 2x Joysticks support (selectable via OSD)
 - Turbosound + FM
+- OPL2 (YM3812)
 - General Sound (2 MB)
 - SAA
 - MIDI (Dream SAM2695)
