@@ -10,7 +10,7 @@ use IEEE.std_logic_unsigned.all;
 
 entity hid_parser is
 	generic (
-		NUM_KEYS : integer := 5
+		NUM_KEYS : integer := 4
 	);	
 	port
 	(

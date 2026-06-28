@@ -150,7 +150,13 @@ module tsconf
 	
 	// midi
 	output wire        midi_reset_n,
-	output wire        midi_tx
+	output wire        midi_tx,
+	
+	// dot matrix
+	output reg [7:0]   matrix_ctl,
+	output reg         matrix_ctl_wr,
+	output reg [15:0]  matrix_pix,
+	output reg         matrix_pix_wr
 );
 
   // cpu
@@ -1440,6 +1446,47 @@ audio_mixer audio_mixer
 
 assign n_reset = locked & resetbtn_n;
 assign n_reset_gs = locked & resetgsbtn_n;
+
+// zxuno ports
+// #FC3B - adr
+// -- F0 - matrix ctl
+// -- F1 - matrix xy
+// -- F2 - matrix color
+// #FD3B - data
+wire zxuno_reg_port = ~cpu_iorq_n & cpu_a_bus[15:0] == 16'hFC3B & ~cpu_wr_n;
+wire zxuno_data_port = ~cpu_iorq_n & cpu_a_bus[15:0] == 16'hFD3B & ~cpu_wr_n;
+reg [7:0] zxuno_reg;
+always @(posedge clk_bus) begin
+	if (zxuno_reg_port)
+		zxuno_reg <= cpu_do_bus;
+end
+
+// dot matrix regs & control signals
+wire matrix_ctl_port = zxuno_data_port & zxuno_reg == 8'hF0;
+wire matrix_xy_port = zxuno_data_port & zxuno_reg == 8'hF1;
+wire matrix_color_port = zxuno_data_port & zxuno_reg == 8'hF2;
+reg [7:0] matrix_xy;
+reg matrix_ctl_prev, matrix_xy_prev, matrix_color_prev;
+always @(posedge clk_bus) begin
+	matrix_ctl_prev <= matrix_ctl_port;
+	matrix_xy_prev <= matrix_xy_port;
+	matrix_color_prev <= matrix_color_port;
+	matrix_ctl_wr <= 0;
+	matrix_pix_wr <= 0;
+	if (matrix_ctl_port) begin
+		matrix_ctl <= cpu_do_bus;
+		if (~matrix_ctl_prev)
+			matrix_ctl_wr <= 1;
+	end
+	if (matrix_xy_port) begin
+		matrix_xy <= cpu_do_bus;
+	end
+	if (matrix_color_port) begin
+		matrix_pix <= {matrix_xy, cpu_do_bus};
+		if (~matrix_color_prev)
+			matrix_pix_wr <= 1;
+	end
+end
 
 assign cpu_di_bus = 
 		(csrom && ~cpu_mreq_n && ~cpu_rd_n) 						?	rom_do_bus			:	// BIOS

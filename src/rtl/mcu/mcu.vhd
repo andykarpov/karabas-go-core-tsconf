@@ -91,6 +91,13 @@ entity mcu is
 	 FT_MISO	  : in  std_logic := '1';
 	 FT_CS_N   : out std_logic := '1';
 	 FT_RESET  : out std_logic := '0'; -- ft hw reset by mcu side (active 1)
+
+	 -- dot matrix control / data registers
+	 MATRIX_CTL : in std_logic_vector(7 downto 0) := (others => '0');
+	 MATRIX_CTL_WR : in std_logic := '0';
+
+	 MATRIX_PIX : in std_logic_vector(15 downto 0) := (others => '0');
+	 MATRIX_PIX_WR : in std_logic := '0';
 	 
 	 -- debug
 	 DEBUG_ADDR : in std_logic_vector(15 downto 0) := (others => '0');
@@ -127,7 +134,9 @@ architecture rtl of mcu is
 
 	constant CMD_OSD 			: std_logic_vector(7 downto 0) := x"20";
 	constant CMD_DEBUG_ADDR : std_logic_vector(7 downto 0) := x"30";
-	constant CMD_DEBUG_DATA : std_logic_vector(7 downto 0) := x"31";	
+	constant CMD_DEBUG_DATA : std_logic_vector(7 downto 0) := x"31";
+	constant CMD_MATRIX_CTL : std_logic_vector(7 downto 0) := x"60";
+	constant CMD_MATRIX_PIX : std_logic_vector(7 downto 0) := x"61";
 	constant CMD_HW_SETUP	: std_logic_vector(7 downto 0) := x"F9"; 
 	constant CMD_RTC 			: std_logic_vector(7 downto 0) := x"FA";
 	constant CMD_FLASHBOOT  : std_logic_vector(7 downto 0) := x"FB";
@@ -489,6 +498,12 @@ begin
 			elsif RTC_WR_N = '0' AND RTC_CS = '1' and BUSY = '0' and (RTC_A /= x"0C" and RTC_A < x"F0") then -- add rtc register write to queue
 				queue_wr_req <= '1';
 				queue_di <= CMD_RTC & RTC_A & RTC_DI;
+			elsif MATRIX_CTL_WR = '1' then -- send matrix ctl reg
+				queue_wr_req <= '1';
+				queue_di <= CMD_MATRIX_CTL & "00000000" & MATRIX_CTL;
+			elsif MATRIX_PIX_WR = '1' then -- send matrix pixel reg
+				queue_wr_req <= '1';
+				queue_di <= CMD_MATRIX_PIX & MATRIX_PIX;
 			elsif DEBUG_ADDR /= prev_debug_addr then -- debug address
 				queue_wr_req <= '1';
 				queue_di <= CMD_DEBUG_ADDR & DEBUG_ADDR;
