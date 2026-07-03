@@ -513,6 +513,9 @@ mcu mcu(
 	.MATRIX_PIX    (matrix_pix),
 	.MATRIX_PIX_WR (matrix_pix_wr),
 	
+	.AUDIO_L       (audio_mix_l),
+	.AUDIO_R       (audio_mix_r),
+	
 	.HWID				(hwid),
 	.DVI_ONLY		(dvi_only),
 
@@ -521,24 +524,6 @@ mcu mcu(
 
 	.BUSY				(mcu_busy)
 );
-
-// --------- dot matrix -----------------
-/*matrix matrix(
-	.clk				(clk_bus),
-	.reset			(areset),
-	
-	.clear         (matrix_clear),
-	.update        (matrix_update),
-	.brightness    (matrix_brightness),
-	.x             (matrix_x),
-	.y             (matrix_y),
-	.c             (matrix_c),
-	
-	.matrix_ctl    (matrix_ctl),
-	.matrix_ctl_wr (matrix_ctl_wr),
-	.matrix_pix    (matrix_pix),
-	.matrix_pix_wr (matrix_pix_wr)
-);*/
 
 //---------- Keyboard parser ------------
 
