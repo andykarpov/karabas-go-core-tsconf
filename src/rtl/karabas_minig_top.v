@@ -213,10 +213,11 @@ wire f1;
 wire [7:0] hwid;
 wire dvi_only;
 wire [1:0] hw_btn;
-wire [7:0] matrix_ctl;
-wire matrix_ctl_wr;
-wire [15:0] matrix_pix;
-wire matrix_pix_wr;
+wire [23:0] matrix_cmd;
+wire matrix_cmd_wr;
+wire iowr;
+wire [25:0] ioa;
+wire [7:0] iod;
 
 tsconf tsconf (
 	.clk					(clk_sys),
@@ -333,10 +334,9 @@ tsconf tsconf (
 	.midi_reset_n		(),
 	.midi_tx				(MIDI_TX),
 	
-	.matrix_ctl       (matrix_ctl),
-	.matrix_ctl_wr    (matrix_ctl_wr),
-	.matrix_pix       (matrix_pix),
-	.matrix_pix_wr    (matrix_pix_wr)
+    .iowr               (iowr),
+    .ioa                (ioa),
+    .iod                (iod)
  );
 
 wire [7:0] rtc_do_mapped;
@@ -508,13 +508,8 @@ mcu mcu(
 	.FT_CS_N			(mcu_ft_cs_n),
 	.FT_RESET		(mcu_ft_reset),
 	
-	.MATRIX_CTL    (matrix_ctl),
-	.MATRIX_CTL_WR (matrix_ctl_wr),
-	.MATRIX_PIX    (matrix_pix),
-	.MATRIX_PIX_WR (matrix_pix_wr),
-	
-	.AUDIO_L       (audio_mix_l),
-	.AUDIO_R       (audio_mix_r),
+	.MATRIX_CMD    (matrix_cmd),
+	.MATRIX_CMD_WR (matrix_cmd_wr),
 	
 	.HWID				(hwid),
 	.DVI_ONLY		(dvi_only),
@@ -625,6 +620,20 @@ overlay overlay(
 	.HSYNC_I			(video_hsync),
 	.VSYNC_I			(video_vsync),
 	.OSD_COMMAND	(osd_command)
+);
+
+// --------- Dot Matrix --------
+
+dot_matrix dot_matrix(
+    .clk            (clk_bus),
+    .reset          (areset),
+    .audio_l        (audio_mix_l),
+    .audio_r        (audio_mix_r),
+    .iowr           (iowr),
+    .ioa            (ioa),
+    .iod            (iod),
+    .cmd_wr         (matrix_cmd_wr),
+    .cmd            (matrix_cmd)
 );
 
 endmodule

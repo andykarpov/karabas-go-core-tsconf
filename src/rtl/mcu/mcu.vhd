@@ -92,17 +92,10 @@ entity mcu is
 	 FT_CS_N   : out std_logic := '1';
 	 FT_RESET  : out std_logic := '0'; -- ft hw reset by mcu side (active 1)
 
-	 -- dot matrix control / data registers
-	 MATRIX_CTL : in std_logic_vector(7 downto 0) := (others => '0');
-	 MATRIX_CTL_WR : in std_logic := '0';
+	 -- dot matrix
+	 MATRIX_CMD : in std_logic_vector(23 downto 0) := (others => '0');
+	 MATRIX_CMD_WR : in std_logic := '0';
 
-	 MATRIX_PIX : in std_logic_vector(15 downto 0) := (others => '0');
-	 MATRIX_PIX_WR : in std_logic := '0';
-	 
-	 -- audio data for audio peaks
-	 AUDIO_L : in std_logic_vector(15 downto 0) := (others => '0');
-	 AUDIO_R : in std_logic_vector(15 downto 0) := (others => '0');
-	 
 	 -- debug
 	 DEBUG_ADDR : in std_logic_vector(15 downto 0) := (others => '0');
 	 DEBUG_DATA : in std_logic_vector(15 downto 0) := (others => '0');	 
@@ -186,16 +179,7 @@ architecture rtl of mcu is
 	signal queue_rd_req		: std_logic := '0';
 	signal queue_do			: std_logic_vector(23 downto 0);
 	signal queue_rd_empty   : std_logic;
-	
-	-- audio peaks
-	signal audio_peaks_l_wr  : std_logic := '0';
-	signal audio_peaks_r_wr  : std_logic := '0';
-	signal audio_peaks_cnt   : std_logic_vector(20 downto 0) := (others => '0'); -- divide 28 MHz to 50 Hz, val = 560000
-	signal audio_peaks_l     : std_logic_vector(15 downto 0) := (others => '0');
-	signal audio_peaks_r     : std_logic_vector(15 downto 0) := (others => '0');
-	signal audio_abs_l       : std_logic_vector(15 downto 0) := (others => '0');
-	signal audio_abs_r       : std_logic_vector(15 downto 0) := (others => '0');
-	
+		
 	--state machine for queue writes
 	type qmachine IS(idle, rtc_wr_req, rtc_wr_ack);
 	signal qstate : qmachine := idle;
@@ -513,18 +497,9 @@ begin
 			elsif RTC_WR_N = '0' AND RTC_CS = '1' and BUSY = '0' and (RTC_A /= x"0C" and RTC_A < x"F0") then -- add rtc register write to queue
 				queue_wr_req <= '1';
 				queue_di <= CMD_RTC & RTC_A & RTC_DI;
-			elsif MATRIX_CTL_WR = '1' then -- send matrix ctl reg
+			elsif MATRIX_CMD_WR = '1' then -- send matrix cmd
 				queue_wr_req <= '1';
-				queue_di <= CMD_MATRIX_CTL & "00000000" & MATRIX_CTL;
-			elsif MATRIX_PIX_WR = '1' then -- send matrix pixel reg
-				queue_wr_req <= '1';
-				queue_di <= CMD_MATRIX_PIX & MATRIX_PIX;
-			elsif audio_peaks_l_wr = '1' then -- audio peaks data L (50 hz rate)
-				queue_wr_req <= '1';
-				queue_di <= CMD_AUDIO_PEAKS_L & audio_peaks_l;
-			elsif audio_peaks_r_wr = '1' then -- audio peaks data R (50 hz rate)
-				queue_wr_req <= '1';
-				queue_di <= CMD_AUDIO_PEAKS_R & audio_peaks_r;		
+				queue_di <= MATRIX_CMD;
 			elsif DEBUG_ADDR /= prev_debug_addr then -- debug address
 				queue_wr_req <= '1';
 				queue_di <= CMD_DEBUG_ADDR & DEBUG_ADDR;
@@ -557,53 +532,6 @@ begin
 				rtcw_a <= rtcr_a;
 				rtcw_di <= rtcr_d;
 				last_rtcr_command <= rtcr_command;
-			end if;
-		end if;
-	end process;
-	
-	-- absoule audio
-	U_ABS_L: entity work.abs_level
-	port map(
-		clk => CLK,
-		audio_sample => AUDIO_L,
-		audio_abs => audio_abs_l
-	);
-
-	U_ABS_R: entity work.abs_level
-	port map(
-		clk => CLK,
-		audio_sample => AUDIO_R,
-		audio_abs => audio_abs_r
-	);
-
-	-- audio peaks
-	process (CLK)
-	begin
-		if rising_edge(CLK) then 
-			
-			audio_peaks_l_wr <= '0';
-			audio_peaks_r_wr <= '0';
-			
-			if (audio_peaks_cnt >= 560002) then
-				audio_peaks_cnt <= (others => '0');
-				audio_peaks_l <= (others => '0');
-				audio_peaks_r <= (others => '0');
-			else
-				-- max values for past 560k samples
-				if (audio_abs_l > audio_peaks_l) then
-					audio_peaks_l <= audio_abs_l;
-				end if;
-				if (audio_abs_r > audio_peaks_r) then
-					audio_peaks_r <= audio_abs_r;
-				end if;
-				
-				if (audio_peaks_cnt = 560000) then
-					audio_peaks_l_wr <= '1';
-				end if;
-				if (audio_peaks_cnt = 560001) then
-					audio_peaks_r_wr <= '1';
-				end if;
-				audio_peaks_cnt <= audio_peaks_cnt + 1;
 			end if;
 		end if;
 	end process;
