@@ -439,7 +439,8 @@ begin
 
 					-- capability query: answer through the queue to the mcu
 					when CMD_CAPS =>
-						if spi_do(15 downto 8) = x"00" then
+						-- once per frame: spi_do_valid can stay high for more than one clock
+						if spi_do(15 downto 8) = x"00" and prev_spi_do_valid = '0' then
 							caps_req <= not caps_req;
 						end if;
 
@@ -449,6 +450,8 @@ begin
 					when others => null;
 				end case;
 			end if;
+
+			prev_spi_do_valid <= spi_do_valid;
 
 			-- burst data (the same rom loader signals as CMD_ROMBANK / CMD_ROMDATA;
 			-- ROMLOAD_WR follows the address change below)
