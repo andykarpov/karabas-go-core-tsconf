@@ -1454,7 +1454,7 @@ assign cpu_di_bus =
       (gs_oe)																?  gs_do_bus 			:  // gs
 		(opl3_port_cs && ~cpu_rd_n)									? opl3_do_bus			:  // opl3
 `ifndef HW_ID2
-		(fdc_oe)																?  fdc_do_bus 			:  // floppy
+		(fdc_oe & ~vdos)													?  fdc_do_bus 			:  // floppy
 `endif
 		(ena_ports)															?	dout_ports			:  // zports
 		(intack)																?	im2vect 				:
@@ -1502,7 +1502,7 @@ wire vg_cs_n;
 
 `ifndef HW_ID2
 
-wire fdc_oe;
+wire fdc_oe, fdc_oe_n;
 wire [7:0] fdc_do_bus;
 //assign fdc_ds = vg_a;
 
@@ -1515,40 +1515,40 @@ begin
 	endcase
 end
 
-
-Firefly_FDC fdc
+hrdy_fdc fdc
 (
-	.iCLK(clk_28mhz),
-	.iCLK16(clk_16), 
-	.iRESET(rst),
-
-	.iADDR(cpu_a_bus),
-	.iDATA(cpu_do_bus),
-	.iM1(cpu_m1_n),
-	.iWR(cpu_wr_n),
-	.iRD(cpu_rd_n),
-	.iIORQ(cpu_iorq_n),
+	.clk(clk_28mhz),
+	.clk_8(clk8),
+	.reset(rst),
+	.turbo_fdc(1'b0),
 	
-	.iDOS(dos),
-	.iVDOS(vdos),
-   .iCSn(vg_cs_n),
-   .iWRFF(vg_wrFF),
+	.a(cpu_a_bus),
+	.d(cpu_do_bus),
+	.m1_n(cpu_m1_n),
+	.wr_n(cpu_wr_n),
+	.rd_n(cpu_rd_n),
+	.iorq_n(cpu_iorq_n),
+	
+	.cs_n(vg_cs_n),
+	.csff_n(~vg_wrFF),
 
-	.oCS(fdc_oe),		
-	.oDATA(fdc_do_bus), 
+	.oe_n(fdc_oe_n),
+	.dout(fdc_do_bus),
+	
+	.FDC_SIDE1(fdc_side),
+	.FDC_RDATA(fdc_rdata),
+	.FDC_WPRT(fdc_wprt),
+	.FDC_TR00(fdc_tr00),
+	.FDC_INDEX(fdc_index),
+	.FDC_WG(fdc_wg),
+	.FDC_WR_DATA(fdc_wr_data),
+	.FDC_STEP(fdc_step),
+	.FDC_DIR(fdc_dir),
+	.FDC_MOTOR(fdc_motor),
+	.FDC_DS()
+);
 
-	.oFDC_SIDE1(fdc_side),
-	.iFDC_RDATA(fdc_rdata),
-	.iFDC_WPRT(fdc_wprt),
-	.iFDC_TR00(fdc_tr00),
-	.iFDC_INDEX(fdc_index),
-	.oFDC_WG(fdc_wg),
-	.oFDC_WR_DATA(fdc_wr_data),
-	.oFDC_STEP(fdc_step),
-	.oFDC_DIR(fdc_dir),
-	.oFDC_MOTOR(fdc_motor),
-	.oFDC_DS()
-);	
+assign fdc_oe = ~fdc_oe_n;
 
 `endif
 
