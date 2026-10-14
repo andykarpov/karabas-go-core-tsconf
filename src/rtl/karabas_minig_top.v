@@ -444,7 +444,9 @@ assign MCU_IO[1] = mcu_burst_ready;
 assign MCU_IO[0] = 1'bz;
 assign MCU_IO[5:2] = 4'bzzzz;
 
-mcu mcu(
+// Rev.G has MCU_SCK on a global clock pin: bursts at up to 32 MHz (verified in simulation,
+// burst_rx needs 8 / f_SCK > 5 / f_CLK with CLK = clk_bus 28 MHz)
+mcu #(.BURST_MAX_MHZ(32)) mcu(
 	.CLK				(clk_bus),
 	.N_RESET			(~areset),
 

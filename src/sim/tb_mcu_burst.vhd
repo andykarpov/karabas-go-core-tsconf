@@ -12,12 +12,17 @@ use IEEE.std_logic_1164.all;
 use IEEE.numeric_std.all;
 
 entity tb_mcu_burst is
+	generic (
+		BURST_SCK_HALF_PS : integer := 31250; -- burst SCK half period (31250 = 16 MHz, 15625 = 32 MHz)
+		MAX_MHZ           : integer := 0      -- BURST_MAX_MHZ of the DUT, expected in the CMD_CAPS answer
+	);
 end tb_mcu_burst;
 
 architecture sim of tb_mcu_burst is
 
 	constant CLK_PERIOD : time := 35.714 ns; -- 28 MHz
-	constant SCK_HALF   : time := 31.25 ns;  -- 16 MHz
+	constant SCK_HALF   : time := 31.25 ns;  -- 16 MHz, classic frames
+	constant BURST_HALF : time := BURST_SCK_HALF_PS * 1 ps;
 
 	signal clk       : std_logic := '0';
 	signal n_reset   : std_logic := '0';
@@ -49,6 +54,9 @@ begin
 	clk <= not clk after CLK_PERIOD / 2 when not done;
 
 	DUT: entity work.mcu
+	generic map (
+		BURST_MAX_MHZ => MAX_MHZ
+	)
 	port map (
 		CLK => clk,
 		N_RESET => n_reset,
@@ -103,18 +111,23 @@ begin
 	stimulus: process
 
 		-- one spi byte, mode 0: MOSI set while SCK low, sampled on the rising edge
-		procedure spi_byte(tx : in std_logic_vector(7 downto 0); rx : out std_logic_vector(7 downto 0)) is
+		procedure spi_byte_at(tx : in std_logic_vector(7 downto 0); rx : out std_logic_vector(7 downto 0); half : in time) is
 			variable r : std_logic_vector(7 downto 0);
 		begin
 			for i in 7 downto 0 loop
 				mosi <= tx(i);
-				wait for SCK_HALF;
+				wait for half;
 				sck <= '1';
 				r(i) := miso;
-				wait for SCK_HALF;
+				wait for half;
 				sck <= '0';
 			end loop;
 			rx := r;
+		end procedure;
+
+		procedure spi_byte(tx : in std_logic_vector(7 downto 0); rx : out std_logic_vector(7 downto 0)) is
+		begin
+			spi_byte_at(tx, rx, SCK_HALF);
 		end procedure;
 
 		-- classic frame, returns the fpga's frame of the same transfer
@@ -141,13 +154,13 @@ begin
 			a := std_logic_vector(addr);
 			bcs_n <= '0';
 			wait for 100 ns;
-			spi_byte(btype, dummy);
-			spi_byte(a(31 downto 24), dummy);
-			spi_byte(a(23 downto 16), dummy);
-			spi_byte(a(15 downto 8), dummy);
-			spi_byte(a(7 downto 0), dummy);
+			spi_byte_at(btype, dummy, BURST_HALF);
+			spi_byte_at(a(31 downto 24), dummy, BURST_HALF);
+			spi_byte_at(a(23 downto 16), dummy, BURST_HALF);
+			spi_byte_at(a(15 downto 8), dummy, BURST_HALF);
+			spi_byte_at(a(7 downto 0), dummy, BURST_HALF);
 			for i in data'range loop
-				spi_byte(data(i), dummy);
+				spi_byte_at(data(i), dummy, BURST_HALF);
 			end loop;
 			-- raise CS right after the last byte (the receiver must not lose it)
 			bcs_n <= '1';
@@ -184,7 +197,7 @@ begin
 			if rc = x"F7" then
 				caps_seen := true;
 				assert ra = x"03" report "caps: expected 03" severity error;
-				assert rd = x"00" report "caps: expected max_mhz 00" severity error;
+				assert rd = std_logic_vector(to_unsigned(MAX_MHZ, 8)) report "caps: wrong max_mhz" severity error;
 				report "caps answer after " & integer'image(i) & " polls";
 				exit;
 			end if;

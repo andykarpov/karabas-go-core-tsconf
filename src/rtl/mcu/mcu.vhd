@@ -9,6 +9,11 @@ use IEEE.numeric_std.all;
 use IEEE.std_logic_unsigned.all;
 
 entity mcu is
+	generic (
+		-- highest burst SCK announced to the mcu in the CMD_CAPS answer, MHz (0 = normal link
+		-- clock, 16 MHz). Raise it only on boards where bursts were verified at that clock.
+		BURST_MAX_MHZ : integer := 0
+	);
 	port
 	(
 	 CLK			 : in std_logic;
@@ -190,9 +195,9 @@ architecture rtl of mcu is
 	signal qstate : qmachine := idle;
 	
 	-- capabilities answered to the CMD_CAPS query:
-	-- bit 0 = burst write, bit 1 = MCU_BURST_READY is driven; max burst SCK 0 = normal link clock
+	-- bit 0 = burst write, bit 1 = MCU_BURST_READY is driven; max burst SCK from BURST_MAX_MHZ
 	constant CAPS           : std_logic_vector(7 downto 0) := x"03";
-	constant CAPS_MAX_MHZ   : std_logic_vector(7 downto 0) := x"00";
+	constant CAPS_MAX_MHZ   : std_logic_vector(7 downto 0) := std_logic_vector(to_unsigned(BURST_MAX_MHZ, 8));
 	signal caps_req         : std_logic := '0';
 	signal caps_ack         : std_logic := '0';
 
