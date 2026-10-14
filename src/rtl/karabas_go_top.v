@@ -392,6 +392,11 @@ assign ftint = FT_INT_N;
 
 //---------- MCU ------------
 
+// burst transfers from the mcu (karabas-go-firmware docs/burst_protocol.md)
+wire mcu_burst_ready;
+assign MCU_SPI_IO[0] = mcu_burst_ready;
+assign MCU_SPI_IO[1] = 1'bz;
+
 mcu mcu(
 	.CLK(clk_bus),
 	.N_RESET(~areset),
@@ -403,6 +408,9 @@ mcu mcu(
 	
 	.MCU_SPI_FT_SS(MCU_SPI_FT_CS_N),
 	.MCU_SPI_SD2_SS(MCU_SPI_SD2_CS_N),	
+	// burst transfers: firmware IO0 (GPIO14) = MCU_SPI_IO[1] (M11), IO1 (GPIO2) = MCU_SPI_IO[0] (N9)
+	.MCU_BURST_CS_N(MCU_SPI_IO[1]),
+	.MCU_BURST_READY(mcu_burst_ready),
 	
 	.MS_X(ms_x),
 	.MS_Y(ms_y),

@@ -9,6 +9,11 @@ use IEEE.numeric_std.all;
 use IEEE.std_logic_unsigned.all;
 
 entity mcu is
+	generic (
+		-- highest burst SCK announced to the mcu in the CMD_CAPS answer, MHz (0 = normal link
+		-- clock, 16 MHz). Raise it only on boards where bursts were verified at that clock.
+		BURST_MAX_MHZ : integer := 0
+	);
 	port
 	(
 	 CLK			 : in std_logic;
@@ -21,6 +26,10 @@ entity mcu is
 	 MCU_SS 		 : in std_logic;
 	 MCU_SPI_FT_SS : in std_logic;
 	 MCU_SPI_SD2_SS : in std_logic;
+
+	 -- burst transfers (karabas-go-firmware docs/burst_protocol.md)
+	 MCU_BURST_CS_N  : in std_logic := '1';
+	 MCU_BURST_READY : out std_logic := '1';
 
 	 -- usb mouse
 	 MS_X 	 	: out std_logic_vector(7 downto 0) := "00000000";
@@ -47,8 +56,8 @@ entity mcu is
 	 XT_SCANCODE_UPD : buffer std_logic := '0';
 
 	 -- joysticks
-	 JOY_L			: out std_logic_vector(12 downto 0) := "000000000000";
-	 JOY_R			: out std_logic_vector(12 downto 0) := "000000000000";
+	 JOY_L			: out std_logic_vector(12 downto 0) := (others => '0');
+	 JOY_R			: out std_logic_vector(12 downto 0) := (others => '0');
 	 
 	 -- hw buttons
 	 BTNS				: out std_logic_vector(1 downto 0) := "00";
@@ -136,6 +145,7 @@ architecture rtl of mcu is
 	constant CMD_MATRIX_PIX : std_logic_vector(7 downto 0) := x"61";
 	constant CMD_AUDIO_PEAKS_L: std_logic_vector(7 downto 0) := x"70";
 	constant CMD_AUDIO_PEAKS_R: std_logic_vector(7 downto 0) := x"71";	
+	constant CMD_CAPS		: std_logic_vector(7 downto 0) := x"F7";
 	constant CMD_HW_SETUP	: std_logic_vector(7 downto 0) := x"F9"; 
 	constant CMD_RTC 			: std_logic_vector(7 downto 0) := x"FA";
 	constant CMD_FLASHBOOT  : std_logic_vector(7 downto 0) := x"FB";
@@ -184,6 +194,19 @@ architecture rtl of mcu is
 	type qmachine IS(idle, rtc_wr_req, rtc_wr_ack);
 	signal qstate : qmachine := idle;
 	
+	-- capabilities answered to the CMD_CAPS query:
+	-- bit 0 = burst write, bit 1 = MCU_BURST_READY is driven; max burst SCK from BURST_MAX_MHZ
+	constant CAPS           : std_logic_vector(7 downto 0) := x"03";
+	constant CAPS_MAX_MHZ   : std_logic_vector(7 downto 0) := std_logic_vector(to_unsigned(BURST_MAX_MHZ, 8));
+	signal caps_req         : std_logic := '0';
+	signal caps_ack         : std_logic := '0';
+
+	-- burst receiver
+	signal burst_type       : std_logic_vector(7 downto 0);
+	signal burst_addr       : std_logic_vector(31 downto 0);
+	signal burst_data       : std_logic_vector(7 downto 0);
+	signal burst_wr         : std_logic;
+
 	-- debug
 	signal prev_debug_addr  : std_logic_vector(15 downto 0) := (others => '0');
 	signal prev_debug_data  : std_logic_vector(15 downto 0) := (others => '0');
@@ -220,6 +243,28 @@ begin
 	);
 
 	spi_di <= queue_do; -- when queue_rd_empty = '0' else x"FFFFFF";
+
+	--------------------------------------------------------------------------
+	-- MCU burst transfers (second chip select, see docs/burst_protocol.md)
+	--------------------------------------------------------------------------
+
+	U_BURST: entity work.burst_rx
+	port map(
+		CLK      => CLK,
+		SCK      => MCU_SCK,
+		MOSI     => MCU_MOSI,
+		CS_N     => MCU_BURST_CS_N,
+		TYPE_O   => burst_type,
+		ADDR_O   => burst_addr,
+		DATA_O   => burst_data,
+		WR_O     => burst_wr,
+		ACTIVE_O => open
+	);
+
+	-- the rom / gs rom loaders of this core take a byte every clock, so a whole burst can
+	-- always be accepted. A core with a slower consumer (e.g. sdram behind an arbiter) puts a
+	-- fifo here and drops READY while it has less than 512 bytes free.
+	MCU_BURST_READY <= '1';
 --	queue_rd_req <= spi_di_req;
 	
 	MCU_MISO <= 
@@ -392,11 +437,27 @@ begin
 					-- init done
 					when CMD_INIT_DONE => BUSY <= '0';
 
+					-- capability query: answer through the queue to the mcu
+					when CMD_CAPS =>
+						-- once per frame: spi_do_valid can stay high for more than one clock
+						if spi_do(15 downto 8) = x"00" and prev_spi_do_valid = '0' then
+							caps_req <= not caps_req;
+						end if;
+
 					-- nope
 					when CMD_NOPE => null;
 					
 					when others => null;
 				end case;
+			end if;
+
+			prev_spi_do_valid <= spi_do_valid;
+
+			-- burst data (the same rom loader signals as CMD_ROMBANK / CMD_ROMDATA;
+			-- ROMLOAD_WR follows the address change below)
+			if burst_wr = '1' and burst_type = CMD_ROMDATA then
+				ROMLOAD_ADDR <= burst_addr;
+				ROMLOAD_DATA <= burst_data;
 			end if;
 		end if;
 	end process;
@@ -481,7 +542,11 @@ begin
 	begin
 		if rising_edge(CLK) then
 			queue_wr_req <= '0';
-			if UART_TX_WR = '1' then -- send UART byte
+			if caps_req /= caps_ack then -- answer the capability query
+				queue_wr_req <= '1';
+				queue_di <= CMD_CAPS & CAPS & CAPS_MAX_MHZ;
+				caps_ack <= caps_req;
+			elsif UART_TX_WR = '1' then -- send UART byte
 				queue_wr_req <= '1';
 				if (UART_TX_MODE = '1') then
 					queue_di <= CMD_UART & "00000011" & UART_TX_DATA;

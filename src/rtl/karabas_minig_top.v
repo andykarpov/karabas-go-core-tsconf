@@ -113,7 +113,7 @@ module karabas_minig_top (
 	input wire 				MCU_SCK,
 	input wire 				MCU_MOSI,
 	output wire 			MCU_MISO,
-	input wire [5:0] 		MCU_IO,
+	inout wire [5:0] 		MCU_IO,  // [0] burst cs_n, [1] burst ready, [2] sd2 cs_n, [3] ft cs_n
 
 	//------------------ midi ----------------
 	output wire 			MIDI_TX,
@@ -438,7 +438,15 @@ assign audio_mix_l = audio_out_l;
 assign audio_mix_r = audio_out_r;
 
 //---------- MCU ------------
-mcu mcu(
+// burst transfers from the mcu (karabas-go-firmware docs/burst_protocol.md)
+wire mcu_burst_ready;
+assign MCU_IO[1] = mcu_burst_ready;
+assign MCU_IO[0] = 1'bz;
+assign MCU_IO[5:2] = 4'bzzzz;
+
+// Rev.G has MCU_SCK on a global clock pin: bursts at up to 32 MHz (verified in simulation,
+// burst_rx needs 8 / f_SCK > 5 / f_CLK with CLK = clk_bus 28 MHz)
+mcu #(.BURST_MAX_MHZ(32)) mcu(
 	.CLK				(clk_bus),
 	.N_RESET			(~areset),
 
@@ -449,6 +457,8 @@ mcu mcu(
 
 	.MCU_SPI_FT_SS	(MCU_IO[3]),
 	.MCU_SPI_SD2_SS(MCU_IO[2]),
+	.MCU_BURST_CS_N(MCU_IO[0]),
+	.MCU_BURST_READY(mcu_burst_ready),
 
 	.MS_X				(ms_x),
 	.MS_Y				(ms_y),
