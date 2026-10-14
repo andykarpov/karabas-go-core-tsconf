@@ -918,9 +918,9 @@
     <!-- project is analyzed based on files automatically identified as       -->
     <!-- include files.                                                       -->
     <file xil_pn:name="rtl/tune.v" xil_pn:type="FILE_VERILOG"/>
-    <file xil_pn:name="rtl/vg93/vg93_actions.vh" xil_pn:type="FILE_VERILOG"/>
     <file xil_pn:name="rtl/vg93/vg93_common.vh" xil_pn:type="FILE_VERILOG"/>
     <file xil_pn:name="rtl/vg93/vg93_ucode.vh" xil_pn:type="FILE_VERILOG"/>
+    <file xil_pn:name="rtl/vg93/vg93_actions.vh" xil_pn:type="FILE_VERILOG"/>
   </autoManagedFiles>
 
 </project>
