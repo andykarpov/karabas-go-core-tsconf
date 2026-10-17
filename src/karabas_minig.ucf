@@ -226,12 +226,10 @@ NET "FLASH_HOLD_N"     LOC="P12"    | IOSTANDARD = LVCMOS33; # CONF_IO3
 
 NET "clk_sys" TNM_NET = "clk_sys";
 NET "clk_bus" TNM_NET = "clk_bus";
-NET "tsconf/ce_14m" TNM_NET = "ce_14m";
 NET "clk_8mhz" TNM_NET = "clk_8mhz";
 
 TIMESPEC "TS_CLK_SYS" = PERIOD "clk_sys" 84 MHz;
 TIMESPEC "TS_CLK_BUS" = PERIOD "clk_bus" 28 MHz;
-TIMESPEC "TS_CE_14M" = PERIOD "ce_14m" 14 MHz;
 TIMESPEC "TS_CLK_8" = PERIOD "clk_8mhz" 8 MHz;
 
 NET "FT_CLK" TNM_NET = "clk_ft";
@@ -245,3 +243,25 @@ NET "hdmi_top/clk_hdmi_n" TNM_NET = "CLK_HDMI_n";
 
 NET "hdmi_top/hdmi_pll/freq_counter_inst/o_freq*" TIG; // ignore detected freq
 NET "tsconf/video_top/video_ports/vconf*" TIG; // ignore vdac2_sel
+NET "tsconf/fdc/vg93_top/rawread_pin" TIG;
+
+# Asynchronous MCU SPI clock domain crossing
+TIMESPEC "TS_MCU_TO_BUS" = FROM "clk_mcu" TO "clk_bus" TIG;
+TIMESPEC "TS_BUS_TO_MCU" = FROM "clk_bus" TO "clk_mcu" TIG;
+TIMESPEC "TS_MCU_TO_SYS" = FROM "clk_mcu" TO "clk_sys" TIG;
+TIMESPEC "TS_SYS_TO_MCU" = FROM "clk_sys" TO "clk_mcu" TIG;
+
+# Asynchronous FT_CLK clock domain crossing
+TIMESPEC "TS_FT_TO_BUS" = FROM "clk_ft" TO "clk_bus" TIG;
+TIMESPEC "TS_BUS_TO_FT" = FROM "clk_bus" TO "clk_ft" TIG;
+TIMESPEC "TS_FT_TO_SYS" = FROM "clk_ft" TO "clk_sys" TIG;
+TIMESPEC "TS_SYS_TO_FT" = FROM "clk_sys" TO "clk_ft" TIG;
+
+# GS SDRAM read data to Z80 CPU (multicycle)
+TIMEGRP "GRP_GS_SDRAM" = FFS("tsconf/gs_top/sdram/data_reg*");
+TIMEGRP "GRP_GS_CPU"   = FFS("tsconf/gs_top/gs/*");
+TIMESPEC "TS_GS_SDRAM_TO_CPU" = FROM "GRP_GS_SDRAM" TO "GRP_GS_CPU" TS_CLK_BUS * 2;
+
+# SRAM Controller read buffer (84 MHz) to 28 MHz domain (multicycle)
+TIMEGRP "GRP_SRAM_DO" = FFS("tsconf/sram/sram_do*");
+TIMESPEC "TS_SRAM_DO_TO_BUS" = FROM "GRP_SRAM_DO" TO "clk_bus" TS_CLK_BUS;

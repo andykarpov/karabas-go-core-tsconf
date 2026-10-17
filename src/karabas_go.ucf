@@ -222,19 +222,31 @@ NET "FLASH_HOLD_N"  LOC="P12"  | IOSTANDARD = LVCMOS33; # CONF_IO3
 
 NET "clk_sys" TNM_NET = "clk_sys";
 NET "clk_bus" TNM_NET = "clk_bus";
-NET "tsconf/ce_14m" TNM_NET = "ce_14m";
-#NET "clk_16mhz" TNM_NET = "clk_16mhz";
 NET "clk_8mhz" TNM_NET = "clk_8mhz";
 
 TIMESPEC "TS_CLK_SYS" = PERIOD "clk_sys" 84000 kHz;
 TIMESPEC "TS_CLK_BUS" = PERIOD "clk_bus" 28000 kHz;
-TIMESPEC "TS_CE_14M" = PERIOD "ce_14m" 14000 kHz;
-#TIMESPEC "TS_CLK_16" = PERIOD "clk_16mhz" 16000 kHz;
 TIMESPEC "TS_CLK_8" = PERIOD "clk_8mhz" 8000 kHz;
-
-PIN "tsconf/U_BUFG.O" CLOCK_DEDICATED_ROUTE = FALSE;
 
 NET "MCU_SCK" TNM_NET = "clk_mcu";
 TIMESPEC "TS_CLK_MCU" = PERIOD "clk_mcu" 30 MHz;
+
+# Asynchronous MCU SPI clock domain crossing
+TIMESPEC "TS_MCU_TO_BUS" = FROM "clk_mcu" TO "clk_bus" TIG;
+TIMESPEC "TS_BUS_TO_MCU" = FROM "clk_bus" TO "clk_mcu" TIG;
+TIMESPEC "TS_MCU_TO_SYS" = FROM "clk_mcu" TO "clk_sys" TIG;
+TIMESPEC "TS_SYS_TO_MCU" = FROM "clk_sys" TO "clk_mcu" TIG;
+
+# Asynchronous floppy rawread pin
+NET "tsconf/fdc/vg93_top/rawread_pin" TIG;
+
+# GS SDRAM read data to Z80 CPU (multicycle)
+TIMEGRP "GRP_GS_SDRAM" = FFS("tsconf/gs_top/sdram/data_reg*");
+TIMEGRP "GRP_GS_CPU"   = FFS("tsconf/gs_top/gs/*");
+TIMESPEC "TS_GS_SDRAM_TO_CPU" = FROM "GRP_GS_SDRAM" TO "GRP_GS_CPU" TS_CLK_BUS * 2;
+
+# SRAM Controller read buffer (84 MHz) to 28 MHz domain (multicycle)
+TIMEGRP "GRP_SRAM_DO" = FFS("tsconf/sram/sram_do*");
+TIMESPEC "TS_SRAM_DO_TO_BUS" = FROM "GRP_SRAM_DO" TO "clk_bus" TS_CLK_BUS;
 
 
