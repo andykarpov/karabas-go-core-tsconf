@@ -43,7 +43,7 @@ module video_ports
 
   // video parameters
   output reg [7:0] border   = 0,
-  output reg [7:0] vpage    = 0,
+  output reg [7:0] vpage    = 8'h05,
   output reg [7:0] vconf    = 0,
   output reg [8:0] gx_offs  = 0,
   output reg [8:0] gy_offs  = 0,
@@ -61,7 +61,7 @@ module video_ports
   output reg [7:0] sgpage   = 0
 );
 
-  reg [7:0] vpage_r    = 0;
+  reg [7:0] vpage_r    = 8'h05;
   reg [7:0] vconf_r    = 0;
   reg [7:0] t0gpage_r  = 0;
   reg [7:0] t1gpage_r  = 0;
