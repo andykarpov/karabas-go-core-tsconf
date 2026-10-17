@@ -91,7 +91,7 @@ wire clkgen, prog_done, locked_dcm;
 DCM_CLKGEN
   #(.CLKFXDV_DIVIDE        (2),
     .CLKFX_DIVIDE          (1),
-    .CLKFX_MULTIPLY        (10), 
+    .CLKFX_MULTIPLY        (4), 
     .SPREAD_SPECTRUM       ("NONE"),
     .STARTUP_WAIT          ("FALSE"),
     .CLKIN_PERIOD          (125.0),

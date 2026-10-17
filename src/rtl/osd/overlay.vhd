@@ -172,9 +172,9 @@ begin
 	 -- mem read character / attribute
 	 -- paper2 -> load
 	 -- paper -> active
-	 process (CLK, osd_popup, paper, paper2, hcnt, vcnt, vram_do)
+	 process (CLK)
 	 begin
---		if (rising_edge(CLK)) then 
+		if rising_edge(CLK) then 
 				if (OSD_POPUP = '1') then 
 					if paper2 = '1' then
 						case (hcnt(3 downto 0)) is
@@ -197,7 +197,7 @@ begin
 						end case;
 					end if;
 				end if;
---		end if;
+		end if;
 	 end process;
 	 
 	 process (clk) 
