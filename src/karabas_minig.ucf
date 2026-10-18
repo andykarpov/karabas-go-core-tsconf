@@ -243,7 +243,7 @@ NET "hdmi_top/clk_hdmi_n" TNM_NET = "CLK_HDMI_n";
 
 NET "hdmi_top/hdmi_pll/freq_counter_inst/o_freq*" TIG; // ignore detected freq
 NET "tsconf/video_top/video_ports/vconf*" TIG; // ignore vdac2_sel
-NET "tsconf/fdc/vg93_top/rawread_pin" TIG;
+#NET "tsconf/fdc/vg93_top/rawread_pin" TIG; // ony affected in go core
 
 # Asynchronous MCU SPI clock domain crossing
 TIMESPEC "TS_MCU_TO_BUS" = FROM "clk_mcu" TO "clk_bus" TIG;
