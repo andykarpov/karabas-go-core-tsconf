@@ -30,8 +30,13 @@ JSON_go = core.json
 JSON_mini = core_mini.json
 JSON_minig = core_minig.json
 
-# map / par options (as the .xise projects had them, the same for the three boards)
-MAP_OPT = -logic_opt off -ol high -xe n -t 1 -xt 0 -register_duplication off -r 4 -global_opt off -mt 2 -detail -ir off -pr b -lc off -power off
+# map / par options (as the .xise projects had them, the same for the three boards but the cost table)
+# The cost table (map -t, the placement seed) of the Mini is 2: with 1 the placement of the build of 2026-10-19
+# put a shift register of the 5x clock of zhdmi far from its OSERDES (-0.21 ns); 2, 3, 4 met all constraints.
+MAP_T_go = 1
+MAP_T_mini = 2
+MAP_T_minig = 1
+MAP_OPT = -logic_opt off -ol high -xe n -xt 0 -register_duplication off -r 4 -global_opt off -mt 2 -detail -ir off -pr b -lc off -power off
 PAR_OPT = -ol high -xe n -mt 4
 
 # included or read by the sources, not in the prj
@@ -55,7 +60,7 @@ karabas_$(1).ngc: karabas_$(1).prj karabas_$(1).xst $$(SRC_$(1)) $(INCLUDES)
 
 karabas_$(1).bin: karabas_$(1).ngc karabas_$(1).ucf karabas_$(1).ut
 	$(XIL) ngdbuild -intstyle ise -dd _ngo -nt timestamp -uc karabas_$(1).ucf -p $(PART) karabas_$(1).ngc karabas_$(1).ngd
-	$(XIL) map -intstyle ise -p $(PART) -w $(MAP_OPT) -o karabas_$(1)_map.ncd karabas_$(1).ngd karabas_$(1).pcf
+	$(XIL) map -intstyle ise -p $(PART) -w $(MAP_OPT) -t $(MAP_T_$(1)) -o karabas_$(1)_map.ncd karabas_$(1).ngd karabas_$(1).pcf
 	$(XIL) par -w -intstyle ise $(PAR_OPT) karabas_$(1)_map.ncd karabas_$(1).ncd karabas_$(1).pcf
 	$(XIL) trce -intstyle ise -v 3 -s 2 -n 3 -fastpaths -xml karabas_$(1).twx karabas_$(1).ncd -o karabas_$(1).twr karabas_$(1).pcf -ucf karabas_$(1).ucf
 	$(XIL) bitgen -intstyle ise -f karabas_$(1).ut karabas_$(1).ncd
