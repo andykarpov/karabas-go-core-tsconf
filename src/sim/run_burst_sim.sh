@@ -7,15 +7,16 @@ SETTINGS=${1:-/opt/Xilinx/14.7/ISE_DS/settings64.sh}
 source "$SETTINGS" > /dev/null
 
 cd "$(dirname "$0")"
-RTL=../rtl
 OUT=build
 mkdir -p $OUT
 cd $OUT
 
-# fifo.v / dpram.v cannot be elaborated from VHDL with open or unconnected ports in ISim:
-# use behavioural VHDL models of them (synthesis keeps the verilog files)
-vhpcomp -work work ../fifo_sim.vhd ../dpram_sim.vhd
-vhpcomp -work work ../$RTL/spi/spi_slave.vhd ../$RTL/mcu/burst_rx.vhd ../$RTL/mcu/mcu.vhd ../tb_mcu_burst.vhd
+# kg_mcu and its modules from the karabas-go-modules submodule
+M=../../../modules/rtl
+vlogcomp -work work -i $M/mcu $M/mem/kg_fifo.v $M/mem/kg_sdpram.v $M/mcu/kg_spi_slave.v $M/mcu/kg_burst_rx.v \
+	$M/mcu/kg_mcu_link.v $M/mcu/kg_mcu_ctl.v $M/mcu/kg_mcu_hid.v $M/mcu/kg_mcu_loader.v $M/mcu/kg_mcu_rtc.v \
+	$M/mcu/kg_mcu_uart.v $M/mcu/kg_mcu_img.v $M/mcu/kg_mcu_debug.v $M/mcu/kg_mcu.v > vlogcomp.log
+vhpcomp -work work ../tb_mcu_burst.vhd > vhpcomp.log
 echo "run 2 ms; quit" > run.tcl
 
 # bursts at 16 MHz (BURST_MAX_MHZ 0) and at 32 MHz (BURST_MAX_MHZ 32, Mini G); classic frames stay at 16 MHz

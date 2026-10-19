@@ -221,9 +221,9 @@ NET "FLASH_HOLD_N"  LOC="P12"  | IOSTANDARD = LVCMOS33; # CONF_IO3
 
 # Timings
 
-NET "clk_sys" TNM_NET = "clk_sys";
+NET "pll_clk<0>" TNM_NET = "clk_sys";
 NET "clk_bus" TNM_NET = "clk_bus";
-NET "clk_8mhz" TNM_NET = "clk_8mhz";
+NET "pll_clk<1>" TNM_NET = "clk_8mhz";
 
 TIMESPEC "TS_CLK_SYS" = PERIOD "clk_sys" 84 MHz;
 TIMESPEC "TS_CLK_BUS" = PERIOD "clk_bus" 28 MHz;

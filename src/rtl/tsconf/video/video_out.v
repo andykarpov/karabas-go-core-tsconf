@@ -140,14 +140,16 @@ module video_out
 	 .dout(vpixel)
   );*/
   
-  dpram #(.DATAWIDTH(16), .ADDRWIDTH(8), .MEM_INIT_FILE("rtl/tsconf/video/video_cram.mif"))video_cram
+  kg_sdpram #(.DW(16), .AW(8), .INIT_FILE("rtl/tsconf/video/video_cram.mif")) video_cram
   (
-    .clock (clk),  
-    .wren_a (cram_we),
-    .address_a (cram_addr_in),
-    .data_a (cram_data_in),
-    .address_b (vdata),
-    .q_b (vpixel)
+    .clka (clk),
+    .wea (cram_we),
+    .addra (cram_addr_in),
+    .dina (cram_data_in),
+    .clkb (clk),
+    .enb (1'b1),
+    .addrb (vdata),
+    .doutb (vpixel)
   );
   
 /*

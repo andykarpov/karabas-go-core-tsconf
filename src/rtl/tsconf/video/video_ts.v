@@ -352,14 +352,16 @@ module video_ts
   end
 
   // SFile
-  dpram #(.DATAWIDTH(16), .ADDRWIDTH(8))video_sfile
+  kg_sdpram #(.DW(16), .AW(8)) video_sfile
   (
-    .clock (clk),  
-    .wren_a (sfile_we),
-    .address_a (sfile_addr_in),
-    .data_a (sfile_data_in),
-    .address_b (sreg),
-    .q_b (sfile_rdata)
+    .clka (clk),
+    .wea (sfile_we),
+    .addra (sfile_addr_in),
+    .dina (sfile_data_in),
+    .clkb (clk),
+    .enb (1'b1),
+    .addrb (sreg),
+    .doutb (sfile_rdata)
   );
   
 /*  altdpram video_sfile
@@ -400,14 +402,16 @@ module video_ts
 
   // 4 buffers * 2 tile-planes * 64 tiles * 16 bits (9x16) - used to prefetch tiles
   // (2 altdprams)
-  dpram #(.DATAWIDTH(16), .ADDRWIDTH(9))video_tmbuf
+  kg_sdpram #(.DW(16), .AW(9)) video_tmbuf
   (
-    .clock (clk),  
-    .wren_a (tm_next),
-    .address_a (tmb_waddr),
-    .data_a (dram_rdata),
-    .address_b (tmb_raddr),
-    .q_b (tmb_rdata)
+    .clka (clk),
+    .wea (tm_next),
+    .addra (tmb_waddr),
+    .dina (dram_rdata),
+    .clkb (clk),
+    .enb (1'b1),
+    .addrb (tmb_raddr),
+    .doutb (tmb_rdata)
   );
 /*
   altdpram video_tmbuf

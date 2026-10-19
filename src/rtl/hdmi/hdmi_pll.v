@@ -55,22 +55,23 @@ begin
 end
 
 // programming data for dcm_clkgen
-reg [15:0] fctl; // {M,D}
+// fctl follows hdmi_freq, so prog_data takes the M / D of the new frequency with hdmi_reset. It was a
+// register loaded with hdmi_reset too: the frequency before the change was programmed (X / 0 the first
+// time, and PROGDONE did not come back), and its 32-bit constants kept D only (M 0).
+reg [15:0] fctl; // {M,D}, 8 bits each
 reg [24:0] prog_data, prog_en;
-always @(posedge clk_ref) begin
-	if (hdmi_reset) begin
-		case (hdmi_freq)
-			8'd24: fctl <= {16'd3, 16'd1}; // M 3, D 1
-			8'd32: fctl <= {16'd4, 16'd1}; // M 4, D 1
-			8'd40: fctl <= {16'd5, 16'd1}; // M 5, D 1
-			8'd48: fctl <= {16'd6, 16'd1}; // M 6, D 1
-			8'd56: fctl <= {16'd7, 16'd1}; // M 7, D 1
-			8'd64: fctl <= {16'd8, 16'd1}; // M 8, D 1
-			8'd72: fctl <= {16'd9, 16'd1}; // M 9, D 1
-			8'd80: fctl <= {16'd10, 16'd1}; // M 10, D 1		
-			default: fctl <= {16'd10, 16'd1}; // M 10, D 1
-		endcase
-	end
+always @(*) begin
+	case (hdmi_freq)
+		8'd24: fctl = {8'd3, 8'd1}; // M 3, D 1
+		8'd32: fctl = {8'd4, 8'd1}; // M 4, D 1
+		8'd40: fctl = {8'd5, 8'd1}; // M 5, D 1
+		8'd48: fctl = {8'd6, 8'd1}; // M 6, D 1
+		8'd56: fctl = {8'd7, 8'd1}; // M 7, D 1
+		8'd64: fctl = {8'd8, 8'd1}; // M 8, D 1
+		8'd72: fctl = {8'd9, 8'd1}; // M 9, D 1
+		8'd80: fctl = {8'd10, 8'd1}; // M 10, D 1
+		default: fctl = {8'd10, 8'd1}; // M 10, D 1
+	endcase
 end
 
 // following https://docs.amd.com/v/u/en-US/ug382 section Dynamic Frequency Synthesis
@@ -78,7 +79,9 @@ always @(posedge clk_ref) begin
 	if (hdmi_reset) begin
 		// serial prog_data[0] : 10 - loadD command, D[0:7], 00 - gap, 11 - loadM command, M[0:7], 00 - gap, 1 - go.
 		// serial prog_en[0]   : 11,               11111111, 00 - gap, 11,               11111111, 00 - gap, 0 - go.
-		prog_data <= {1'b0, 2'b00, fctl[15:8]-1, 2'b11, 2'b00, fctl[7:0]-1, 2'b01};
+		// 8-bit M - 1 and D - 1: with "- 1" both were 32 bits wide, and only {D - 1, 01} was left in the 25 bits
+		// (M kept its static value, the first bit of LoadM was taken as GO)
+		prog_data <= {1'b0, 2'b00, fctl[15:8] - 8'd1, 2'b11, 2'b00, fctl[7:0] - 8'd1, 2'b01};
 		prog_en <=   {1'b1, 2'b00, 8'b11111111,  2'b11, 2'b00, 8'b11111111, 2'b11}; 
 	end else begin
 		prog_en   <= { 1'b0, prog_en  [24:1] };

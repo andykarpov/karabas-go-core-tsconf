@@ -511,14 +511,16 @@ module video_top
   );
 
   // 2 buffers: 512 pixels * 8 bits (9x8) - used as bitmap buffer for TS overlay over graphics
-  dpram #(.DATAWIDTH(8), .ADDRWIDTH(9))video_tsline0
+  kg_sdpram #(.DW(8), .AW(9)) video_tsline0
   (
-    .clock (clk),  
-    .wren_a (ts_we0),
-    .address_a (ts_waddr0),
-    .data_a (ts_wdata0),
-    .address_b (ts_raddr),
-    .q_b (ts_rdata0)
+    .clka (clk),
+    .wea (ts_we0),
+    .addra (ts_waddr0),
+    .dina (ts_wdata0),
+    .clkb (clk),
+    .enb (1'b1),
+    .addrb (ts_raddr),
+    .doutb (ts_rdata0)
   );
   /*
   altdpram video_tsline0
@@ -557,14 +559,16 @@ module video_top
     video_tsline0.wrcontrol_aclr = "OFF",
     video_tsline0.wrcontrol_reg = "INCLOCK";
 */
-  dpram #(.DATAWIDTH(8), .ADDRWIDTH(9))video_tsline1
+  kg_sdpram #(.DW(8), .AW(9)) video_tsline1
   (
-    .clock (clk),  
-    .wren_a (ts_we1),
-    .address_a (ts_waddr1),
-    .data_a (ts_wdata1),
-    .address_b (ts_raddr),
-    .q_b (ts_rdata1)
+    .clka (clk),
+    .wea (ts_we1),
+    .addra (ts_waddr1),
+    .dina (ts_wdata1),
+    .clkb (clk),
+    .enb (1'b1),
+    .addrb (ts_raddr),
+    .doutb (ts_rdata1)
   );
 /*
   altdpram video_tsline1
@@ -606,14 +610,16 @@ module video_top
   wire [7:0] vgaplex_tmp;
 
   // 2 lines * 512 pix * 8 bit (10x8) - used for VGA doubler
-  dpram #(.DATAWIDTH(8), .ADDRWIDTH(10))video_vmem
+  kg_sdpram #(.DW(8), .AW(10)) video_vmem
   (
-    .clock (clk),  
-    .wren_a (c3),
-    .address_a (vga_cnt_in),
-    .data_a (vplex),
-    .address_b (vga_cnt_out),
-    .q_b (vgaplex_tmp)
+    .clka (clk),
+    .wea (c3),
+    .addra (vga_cnt_in),
+    .dina (vplex),
+    .clkb (clk),
+    .enb (1'b1),
+    .addrb (vga_cnt_out),
+    .doutb (vgaplex_tmp)
   );
   
   always @(posedge clk)
