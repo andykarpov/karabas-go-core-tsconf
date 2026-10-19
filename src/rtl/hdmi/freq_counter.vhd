@@ -27,6 +27,7 @@ signal test : std_logic_vector(3 downto 0) := "0000"; -- test signal rising coun
 signal test_r : std_logic_vector(1 downto 0); -- register to transfer test(3) to ref clock domain
 signal prev_test_r : std_logic;
 signal prev_freq : std_logic_vector(15 downto 0);
+signal prev_sel : std_logic := '0';
 
 begin
 
@@ -82,7 +83,9 @@ begin
 		
 		if (i_vdac2_sel = '0') then
 			o_freq <= x"1C"; -- 28 MHz		
-		elsif (prev_freq /= freq) then
+		-- karabas: also when the FT mode starts: i_clk_test is FT_CLK in both modes now (it was a mux of the
+		-- 28 MHz and FT_CLK), the FT812 may run at the same frequency before and after, and freq does not change
+		elsif (prev_freq /= freq or prev_sel = '0') then
 			if (freq > 75000/time_div) then
 				o_freq <= x"50"; -- 80 MHz
 			elsif (freq > 70000/time_div) then 
@@ -106,6 +109,7 @@ begin
 			end if;
 		end if;
 		prev_freq <= freq;
+		prev_sel <= i_vdac2_sel;
 	end if;
 end process;
 

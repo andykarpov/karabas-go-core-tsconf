@@ -51,8 +51,8 @@ module video_ports
   output reg [8:0] t0y_offs = 0,
   output reg [8:0] t1x_offs = 0,
   output reg [8:0] t1y_offs = 0,
-  output reg [7:0] palsel   = 0,
-  output reg [7:0] hint_beg = 0,
+  output reg [7:0] palsel   = 8'h0F, // the reset value: an initial value other than it made XST build a latch
+  output reg [7:0] hint_beg = 8'd1, // the reset value (as palsel)
   output reg [8:0] vint_beg = 0,
   output reg [7:0] tsconf   = 0,
   output reg [7:0] tmpage   = 0,
@@ -68,7 +68,7 @@ module video_ports
   reg [8:0] gx_offs_r  = 0;
   reg [8:0] t0x_offs_r = 0;
   reg [8:0] t1x_offs_r = 0;
-  reg [7:0] palsel_r   = 0;
+  reg [7:0] palsel_r   = 8'h0F;
   reg [3:0] vint_inc   = 0;
 
   wire [8:0] vint_beg_inc = vint_beg + vint_inc;

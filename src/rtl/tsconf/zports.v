@@ -5,7 +5,7 @@
 
 module zports
 (
-  input  wire        zclk,    // z80 clock
+  input  wire        zpos,    // clk enable of the z80 clock rising (zclk = !zclk_out of zclock rises at that negedge clk)
   input  wire        clk,
 
   input  wire [ 7:0] din,
@@ -346,13 +346,13 @@ module zports
 
   assign dataout = porthit && iord && (~external_port);
 
-  // zclk-synchronous strobes
+  // zclk-synchronous strobes: posedge zclk is the negedge clk with zpos (zclock.v), as a clock enable here
   reg iowr_reg;
   reg iord_reg;
   reg port_wr;
   reg port_rd;
 
-  always @(posedge zclk)
+  always @(negedge clk) if (zpos)
   begin
     iowr_reg <= iowr;
     iord_reg <= iord;
@@ -736,7 +736,7 @@ module zports
   wire comport_rd   = ((loa == COMPORT) && port_rd);
 
   // write to wait registers
-  always @(posedge zclk)
+  always @(negedge clk) if (zpos)
   begin
     // gluclocks
     if (gluclock_on && portf7_wr)
@@ -768,6 +768,7 @@ module zports
   // do NOT generate IDE write, if neither of ide_wrhi|lo latches set and writing to NIDE10
   wire ide_cs0 = ide_even && !ide_portc8;
   wire ide_cs1 = ide_portc8;
+  wire ide_rd_latch, ide_wrlo_latch, ide_wrhi_latch; // the trigger states of the cycle, below
   wire ide_rd = rd && !(ide_rd_latch && ide_port10);
   wire ide_wr = wr && !(!ide_wrlo_latch && !ide_wrhi_latch && ide_port10);
   assign ide_req = iorq_s && ide_even && (ide_rd || ide_wr);
@@ -783,7 +784,7 @@ module zports
   // control read & write triggers, which allow nemo-divide mod to work.
   // read trigger:
   reg ide_rd_trig;  // nemo-divide read trigger
-  always @(posedge zclk)
+  always @(negedge clk) if (zpos)
   begin
     if (ide_port10 && port_rd && !ide_rd_trig)
       ide_rd_trig <= 1'b1;
@@ -793,7 +794,7 @@ module zports
 
   // two triggers for write sequence
   reg ide_wrlo_trig,  ide_wrhi_trig;  // nemo-divide write triggers
-  always @(posedge zclk)
+  always @(negedge clk) if (zpos)
   if (ide_all && (port_rd || port_wr))
   begin
     if (ide_port11 && port_wr)
@@ -815,7 +816,7 @@ module zports
 
   reg [15:0] idewrreg; // write register, either low or high part is pre-written here,
                         // while other part is out directly from Z80 bus
-  always @(posedge zclk)
+  always @(negedge clk) if (zpos)
   begin
     if (port_wr && ide_port11)
       idewrreg[15:8] <= din;
@@ -827,18 +828,23 @@ module zports
   // generate read cycles for IDE as usual, except for reading #10
   // instead of #11 for high byte (nemo-divide). I use additional latch
   // since 'ide_rd_trig' clears during second Z80 IO read cycle to #10
-  reg ide_rd_latch; // to save state of trigger during read cycle
-  always @*
+  // These were latches (transparent outside the cycle). The triggers change at negedge clk, rd / wr after a
+  // posedge: a register at posedge clk with the trigger passed through outside the cycle gives the same values.
+  reg ide_rd_held = 1'b0;
+  always @(posedge clk)
     if (!rd)
-      ide_rd_latch <= ide_rd_trig;
+      ide_rd_held <= ide_rd_trig;
+  assign ide_rd_latch = rd ? ide_rd_held : ide_rd_trig; // to save state of trigger during read cycle
 
-  reg ide_wrlo_latch, ide_wrhi_latch; // save state during write cycles
-  always @*
+  reg ide_wrlo_held = 1'b0, ide_wrhi_held = 1'b0;
+  always @(posedge clk)
     if (!wr)
     begin
-      ide_wrlo_latch <= ide_wrlo_trig; // same for write triggers
-      ide_wrhi_latch <= ide_wrhi_trig;
+      ide_wrlo_held <= ide_wrlo_trig; // same for write triggers
+      ide_wrhi_held <= ide_wrhi_trig;
     end
+  assign ide_wrlo_latch = wr ? ide_wrlo_held : ide_wrlo_trig; // save state during write cycles
+  assign ide_wrhi_latch = wr ? ide_wrhi_held : ide_wrhi_trig;
 
   // data read by Z80 from IDE
   wire idein_lo_rd  = port_rd && ide_port10 && (!ide_rd_trig);                      // while high part is remembered here
