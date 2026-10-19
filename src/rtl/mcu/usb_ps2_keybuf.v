@@ -53,9 +53,11 @@ end
 assign keybuf_do = keybuf[7:0];
 assign keybuf_data = (keybuf_full) ? 8'hFF : keybuf_do;
 
+// karabas: keybuf_di is held until the next scancode: the write into the buffer takes it two clocks after
+// kb_scancode_upd changed (keybuf_wr, then keybuf_wr_req). Cleared one clock later it put 00 into the buffer; the
+// old mcu.vhd toggled kb_scancode_upd twice for a frame, which wrote it again and hid this.
 always @(posedge clk)begin
 	keybuf_wr <= 0;
-	keybuf_di <= 0;
 	if (kb_scancode_upd != prev_kb_scancode_upd) begin
 		keybuf_wr <= 1;
 		keybuf_di <= kb_scancode;
