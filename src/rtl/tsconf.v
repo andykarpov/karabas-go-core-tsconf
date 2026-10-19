@@ -3,14 +3,14 @@
 
 module tsconf
 (
-  // clocks
-	input wire clk,
-	input wire clk8,
-	input wire ce,
+  // clocks, from the PLL of the top with phase 0: clk_bus is clk / 3, its edges are edges of clk
+	input wire clk,       // 84 MHz: the SRAM controller, the SDRAM of the General Sound
+	input wire clk_bus,   // 28 MHz: the machine
+	input wire clk8,      // 8 MHz: the FDC (Go)
+	input wire ce,        // clk: the clock before each edge of clk_bus
 	input wire resetbtn_n,
 	input wire resetgsbtn_n,
 	input wire locked,
-	output wire clk_bus,
 	output wire f1_out,
 
    // SRAM
@@ -107,7 +107,6 @@ module tsconf
 	
 	// fdc
 `ifndef HW_ID2
-	input wire clk_16,
 	output wire fdc_side,
 	input wire fdc_rdata,
 	input wire fdc_wprt,
@@ -477,16 +476,8 @@ wire [7:0] clocktm;
 
 assign midi_reset_n = rst_n;
 
-// clock
-wire clk_28mhz;// = clk & ce;
-
-BUFGCE U_BUFG (
-.O(clk_28mhz),
-.I(clk),
-.CE(ce)
-);
-
-assign clk_bus = clk_28mhz;
+// clock: a PLL output (it was a BUFGCE of clk with ce, a gated clock of 1/3 duty behind the BUFG of clk)
+wire clk_28mhz = clk_bus;
 
   t80pa t80pa
   (
@@ -891,7 +882,7 @@ assign clk_bus = clk_28mhz;
 
   zports zports
   (
-    .zclk(zclk),
+    .zpos(zpos),
     .clk(clk_28mhz),
     .din(cpu_do_bus),
     .dout(dout_ports),
@@ -1323,9 +1314,18 @@ wire saa_wr_n;
 wire [7:0] saa_out_l;
 wire [7:0] saa_out_r;
 
+// 8 MHz clock enable for the SAA1099 (its clock in the SAM Coupe): a phase accumulator,
+// 8 / 28.0303 * 2^16 = 18704 (8.0002 MHz on average, one clk_bus of jitter). It ran on clk8 before,
+// with the CPU writes and its output crossing to clk_bus unsynchronised.
+reg [16:0] acc8 = 17'd0;
+always @(posedge clk_bus)
+	acc8 <= {1'b0, acc8[15:0]} + 17'd18704;
+wire ce_8 = acc8[16];
+
 saa1099 saa1099
 (
-	.clk(clk8),
+	.clk(clk_bus),
+	.ena(ce_8),
 	.rst_n(~rst),
 	.cs_n(1'b0),
 	.a0(cpu_a_bus[8]),
@@ -1555,17 +1555,10 @@ assign fdc_oe = ~fdc_oe_n;
 // gs cpu clock 14 mhz
 
 reg ce_14m;
-wire clk_gs;
 always @(negedge clk_bus)
 begin
 	ce_14m <= !ce_14m;
 end
-
-BUFGCE U_BUFG14 (
-.O(clk_gs),
-.I(clk_bus),
-.CE(ce_14m)
-);
 
 // gs
 

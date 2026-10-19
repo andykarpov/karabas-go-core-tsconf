@@ -145,16 +145,17 @@ module karabas_go_top (
 	wire clk_sys;
 	wire clk_8mhz;
 	wire clk_bus;
-	wire clk_16mhz;
 	wire clk_12mhz;
    wire locked;
 	wire areset;
-	// VCO 50 * 37 / 2 = 925 MHz: 84.09, 7.97, 15.95, 12.01 MHz
+	// VCO 50 * 37 / 2 = 925 MHz, phase 0: clk_sys 84.09 MHz (/11), clk_8 7.97 MHz (/116), clk_bus 28.03 MHz (/33,
+	// every third edge of clk_sys), MIDI 12.01 MHz (/77). clk_bus was a BUFGCE of clk_sys with ce_28m. Its BUFG is
+	// here, as on the Mini (where its PLL output also drives the BUFGMUXes of HDMI): the same net names in the ucf.
 	wire [5:0] pll_clk;
 	kg_pll #(
 		.DIVCLK_DIVIDE(2), .CLKFBOUT_MULT(37),
-		.CLKOUT0_DIVIDE(11), .CLKOUT1_DIVIDE(116), .CLKOUT2_DIVIDE(58), .CLKOUT3_DIVIDE(77),
-		.BUFG_MASK(6'b001111)
+		.CLKOUT0_DIVIDE(11), .CLKOUT1_DIVIDE(116), .CLKOUT2_DIVIDE(33), .CLKOUT3_DIVIDE(77),
+		.BUFG_MASK(6'b001011)
 	) pll (
 		.clk_in(CLK_50MHZ),
 		.rst(1'b0),
@@ -163,7 +164,7 @@ module karabas_go_top (
 	);
 	assign clk_sys = pll_clk[0];
 	assign clk_8mhz = pll_clk[1];
-	assign clk_16mhz = pll_clk[2];
+	BUFG bufg_clk_bus(.I(pll_clk[2]), .O(clk_bus));
 	assign clk_12mhz = pll_clk[3];
 
 	// midi clk
@@ -180,20 +181,9 @@ module karabas_go_top (
 	
 	assign areset = ~locked;
 	
-	reg ce_28m;
-	reg [1:0] div = 2'd0;
-	always @(negedge clk_sys) 
-	begin
-		div <= div + 1'd1;
-		if(div == 2) div <= 0;
-		ce_28m <= !div;
-	end
-
-	reg ce_14m;
-	always @(posedge clk_bus)
-	begin
-		ce_14m <= ~ce_14m;
-	end 
+	// clk_sys enables of the edges of clk_bus: ce_28m for the SRAM controller, v_clk for the V_CLK pin
+	wire ce_28m, v_clk;
+	bus_ce bus_ce(.clk_sys(clk_sys), .clk_bus(clk_bus), .ce(ce_28m), .v_clk(v_clk));
 	
 	reg tape_in_r;
 	always @(posedge clk_bus)
@@ -335,7 +325,6 @@ module karabas_go_top (
 	  .psg_type(psg_type),
 	  .vga_60hz(kb_vga_60hz),
 	  
-	  .clk_16(clk_16mhz),
 	  .fdc_side(FDC_SIDE_N),
 	  .fdc_rdata(FDC_RDATA),
 	  .fdc_wprt(FDC_WPRT),
@@ -387,7 +376,7 @@ assign VGA_G[7:0] = (vdac2_sel ? 8'bZZZZZZZZ : osd_g[7:0]);
 assign VGA_B[7:0] = (vdac2_sel ? 8'bZZZZZZZZ : osd_b[7:0]);
 assign VGA_HS = (vdac2_sel ? 1'bZ : video_hsync);
 assign VGA_VS = (vdac2_sel ? 1'bZ : video_vsync);
-assign V_CLK = (vdac2_sel ? FT_CLK : ce_28m);
+assign V_CLK = (vdac2_sel ? FT_CLK : v_clk);
 
 assign espcs_in = 1;
 assign FT_SPI_CS_N = esp_ft_spi_dis ? 1'bZ : (mcu_ft_spi_on ? mcu_ft_cs_n : ftcs_n);

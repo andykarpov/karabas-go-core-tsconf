@@ -28,7 +28,6 @@ always #(ft_half) ft_clk = ~ft_clk;
 
 reg reset = 1'b1;
 reg ft_sel = 1'b0;
-wire clk = ft_sel ? ft_clk : clk_ref; // the BUFGMUX of the tops
 
 // ---------------- video generators ----------------
 
@@ -82,7 +81,7 @@ wire [15:0] audio_r = ~audio_l;
 wire [3:0] tmds_p, tmds_n;
 wire [7:0] freq;
 hdmi_top #(.SAMPLERATE(SAMPLERATE)) dut(
-	.clk(clk), .clk_ref(clk_ref), .clk_8(clk_8), .reset(reset),
+	.clk(ft_clk), .clk_ref(clk_ref), .clk_ref_pll(clk_ref), .clk_8(clk_8), .reset(reset),
 	.vga_rgb(vga_rgb), .vga_hs(vga_hs), .vga_vs(vga_vs), .vga_de(vga_de),
 	.ft_rgb(ft_rgb), .ft_hs(ft_hs), .ft_vs(ft_vs), .ft_de(ft_de),
 	.ft_sel(ft_sel), .audio_en(1'b1), .audio_l(audio_l), .audio_r(audio_r),

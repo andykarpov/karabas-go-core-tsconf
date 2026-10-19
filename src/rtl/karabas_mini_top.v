@@ -135,15 +135,17 @@ assign FLASH_SCK 		= 1'b0;
 //assign FLASH_HOLD_N 	= 1'b1;
 
 // system clocks
-wire clk_sys, clk_8mhz, clk_bus, clk_16mhz, clk_12mhz, v_clk_int;
+wire clk_sys, clk_8mhz, clk_bus, clk_bus_pll, clk_12mhz;
 wire locked, areset;
 
-// VCO 50 * 37 / 2 = 925 MHz: 84.09, 7.97, 15.95, 12.01 MHz
+// VCO 50 * 37 / 2 = 925 MHz, phase 0: clk_sys 84.09 MHz (/11), clk_8 7.97 MHz (/116), clk_bus 28.03 MHz (/33,
+// every third edge of clk_sys), MIDI 12.01 MHz (/77). clk_bus was a BUFGCE of clk_sys with ce_28m. Its PLL output
+// has no BUFG in kg_pll: it drives the BUFG of clk_bus and the BUFGMUXes of hdmi_pll (no BUFG in front of them).
 wire [5:0] pll_clk;
 kg_pll #(
 	.DIVCLK_DIVIDE(2), .CLKFBOUT_MULT(37),
-	.CLKOUT0_DIVIDE(11), .CLKOUT1_DIVIDE(116), .CLKOUT2_DIVIDE(58), .CLKOUT3_DIVIDE(77),
-	.BUFG_MASK(6'b001111)
+	.CLKOUT0_DIVIDE(11), .CLKOUT1_DIVIDE(116), .CLKOUT2_DIVIDE(33), .CLKOUT3_DIVIDE(77),
+	.BUFG_MASK(6'b001011)
 ) pll (
 	.clk_in			(CLK_50MHZ),
 	.rst				(1'b0),
@@ -152,8 +154,9 @@ kg_pll #(
 );
 assign clk_sys = pll_clk[0];
 assign clk_8mhz = pll_clk[1];
-assign clk_16mhz = pll_clk[2];
+assign clk_bus_pll = pll_clk[2];
 assign clk_12mhz = pll_clk[3];
+BUFG bufg_clk_bus(.I(clk_bus_pll), .O(clk_bus));
 
 // midi clk 12mhz out
 ODDR2 u_midi_clk (.Q(MIDI_CLK), .C0(clk_12mhz), .C1(~clk_12mhz), .CE(1'b1), .D0(1'b1), .D1(1'b0), .R(1'b0), .S(1'b0));
@@ -163,22 +166,9 @@ ODDR2 u_ft_clk (.Q(FT_CLK_OUT), .C0(clk_8mhz), .C1(~clk_8mhz), .CE(1'b1), .D0(1'
 
 assign areset = ~locked;
 
-// 28 MHz CE
-reg ce_28m;
-reg [1:0] div = 2'd0;
-always @(negedge clk_sys) 
-begin
-	div <= div + 1'd1;
-	if(div == 2) div <= 0;
-	ce_28m <= !div;
-end
-
-// 14 MHz CE
-reg ce_14m;
-always @(posedge clk_bus)
-begin
-	ce_14m <= ~ce_14m;
-end
+// clk_sys enable of the edges of clk_bus, for the SRAM controller
+wire ce_28m;
+bus_ce bus_ce(.clk_sys(clk_sys), .clk_bus(clk_bus), .ce(ce_28m), .v_clk());
 
 // tape in reg
 reg tape_in_r;
@@ -350,18 +340,18 @@ assign FT_SPI_MOSI = esp_ft_spi_dis ? 1'bZ : (mcu_ft_spi_on ? mcu_ft_mosi : ftdo
 assign ftint = FT_INT_N;
 assign FT_RESET = ~mcu_ft_reset; // 1'b1
 
-// ft clk input buf
-wire ft_clk_int;
-IBUFG(.I(FT_CLK), .O(ft_clk_int));
-
-// 28 / FT_CLK mux 
-BUFGMUX v_clk_mux(.I0(ce_28m), .I1(ft_clk_int), .O(v_clk_int), .S(vdac2_sel));
+// FT_CLK: the pixel clock of the FT812 (its video is taken on its falling edge, hdmi_pll measures it). It was a
+// BUFGMUX with ce_28m, a register, as the other input: hdmi_pll does not measure in the mode of the core.
+wire ft_clk_ibufg, ft_clk_int;
+IBUFG ibufg_ft_clk(.I(FT_CLK), .O(ft_clk_ibufg));
+BUFG bufg_ft_clk(.I(ft_clk_ibufg), .O(ft_clk_int));
 
 // hdmi
 wire [7:0] hdmi_freq;
 hdmi_top #(.SAMPLERATE(44100)) hdmi_top(
-	.clk				(v_clk_int),
+	.clk				(ft_clk_int),
 	.clk_ref			(clk_bus),
+	.clk_ref_pll	(clk_bus_pll),
 	.clk_8			(clk_8mhz),
 	.reset			(areset || kb_reset || hw_btn[0]),
 

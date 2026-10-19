@@ -82,7 +82,9 @@ wire [7:0] dal = (~cs_n & ~wr_n) ? d : 8'bZ;
 wire drq, intrq, motor, vfoe, wg, wd, rg, rclk, tr43, early, late, rawread_n;
 wire fdc_re_n = rd_n | cs_n;
 wire fdc_we_n = wr_n | cs_n;
-vg93_top vg93_top(
+// RAWREAD_n is a pulse of one clk_8 period made of the flip-flops rd_reg: the catcher of vg93_read_path runs
+// on clk_8 (it was clocked by the AND of rd_reg, a clock from logic)
+vg93_top #(.SYNC_RAWREAD(1)) vg93_top(
 	.SYSCLK (clk_8),
 	.CLK(fdc_clk),
 	.MR_n(mr_n_sync),

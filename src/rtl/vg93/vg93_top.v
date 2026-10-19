@@ -42,7 +42,9 @@
 //   x_q        a pin sampled by SYSCLK (active high); x_pin a pin straight, not sampled (active high)
 //   x_n        active low
 // Schematic names (U123, q257, F1 / F2, REG_*) appear in comments only, as cross references.
-module vg93_top (
+module vg93_top #(
+    parameter SYNC_RAWREAD = 0  // vg93_read_path: 1 when RAWREAD_n comes from flip-flops on SYSCLK
+) (
     input  wire SYSCLK,         // system clock, >= 8 x CLK, from the oscillator of CLK and RCLK
     // CLK: controller clock, 1 MHz (2 MHz on turbo boards). IMPORTANT: it must be a square wave (50 % duty). As on
     // the chip, the MFM write window is the CLK low phase: a WD pulse lasts exactly as long as CLK is low (500 ns at
@@ -251,7 +253,7 @@ module vg93_top (
         .ip_seen(ip_seen), .wprt_q(wprt_q), .head_loaded(head_loaded), .lost_seen(lost_seen), .drq(drq),
         .type1(type1), .intrq(intrq), .status_byte(status_byte));
 
-    vg93_read_path read_path (
+    vg93_read_path #(.SYNC_RAWREAD(SYNC_RAWREAD)) read_path (
         .sysclk(SYSCLK), .cell_ends(cell_ends), .word_ends(word_ends), .second_half(second_half),
         .cell_window(cell_window), .mfm(mfm), .mr_s(mr_s), .mr_next(mr_next), .rclk_q(rclk_q),
         .rawread_pin(rawread_pin), .rclk_pin(RCLK), .rawread_q(rawread_q), .read_enable(read_enable),

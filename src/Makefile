@@ -4,7 +4,8 @@
 #   make                 all three boards (tsconf.kg1, tsconf.kg2, tsconf.kg3)
 #   make go|mini|minig   one board: synthesis, implementation, bitstream, .kg file
 #   make minig-xst       one step: <board>-xst (.ngc), <board>-impl (.bin), <board>-core (.kg)
-#   make minig-report    LUTs, slices, block RAMs and the timing result of the last build
+#   make minig-report    LUTs, slices, block RAMs and the timing result of the last build (and of -coremode)
+#   make minig-coremode  the timing of the last build in the mode of the core of HDMI (Mini, Mini G; see below)
 #   make clean           the intermediate files (not the .bin / .kg files, they are in git)
 #
 # Inputs per board: karabas_<board>.prj (the source list, the shared modules as
@@ -34,9 +35,14 @@ MAP_OPT = -logic_opt off -ol high -xe n -t 1 -xt 0 -register_duplication off -r 
 PAR_OPT = -ol high -xe n -mt 4
 
 # included or read by the sources, not in the prj
-INCLUDES = $(wildcard ../modules/rtl/mcu/*.vh rtl/vg93/*.vh) rtl/tune.v rtl/tsconf/video/video_cram.mif
+INCLUDES = $(wildcard ../modules/rtl/mcu/*.vh rtl/vg93/*.vh) rtl/tune.v rtl/tsconf/video/video_cram.mif rtl/sound/saa1099_compressor_lut.hex
 
-.PHONY: all clean $(BOARDS) $(BOARDS:=-xst) $(BOARDS:=-impl) $(BOARDS:=-core) $(BOARDS:=-report)
+.PHONY: all clean $(BOARDS) $(BOARDS:=-xst) $(BOARDS:=-impl) $(BOARDS:=-core) $(BOARDS:=-report) mini-coremode minig-coremode
+
+# The pixel clock of HDMI (Mini, Mini G) is a BUFGMUX of clk_bus and the FT812 clock: its flip-flops are on both,
+# and the ucf bounds the paths from clk_bus as asynchronous ones (TS_BUS_TO_PIX). <board>-coremode runs trce again
+# without the constraints of the FT mode (pcf_core.py): the paths clk_bus -> pixel clock with the setup and hold of
+# clk_bus, as they are in the mode of the core. Run it after every build of these boards.
 
 all: $(BOARDS)
 
@@ -64,12 +70,25 @@ $(1)-core: $(KG_$(1))
 $(1)-report:
 	@grep -E "Number of (Slice LUTs|occupied Slices|RAMB16BWERs|RAMB8BWERs):" karabas_$(1)_map.mrp
 	@grep -E "constraints? (was|were) met|constraints? not met|Timing Score" karabas_$(1).par | sort -u
+	@if [ -f karabas_$(1)_core.twr ]; then echo "mode of the core (-coremode):"; \
+		grep -E "constraints? (was|were) met|constraints? not met|Timing errors" karabas_$(1)_core.twr | sort -u; fi
 endef
 
 $(foreach b,$(BOARDS),$(eval $(call board,$(b))))
+
+define core_mode
+$(1)-coremode: karabas_$(1)_core.twr
+karabas_$(1)_core.twr: karabas_$(1).bin pcf_core.py
+	python3 pcf_core.py karabas_$(1).pcf karabas_$(1)_core.pcf
+	$(XIL) trce -intstyle ise -v 3 -s 2 -n 3 -fastpaths karabas_$(1).ncd -o karabas_$(1)_core.twr karabas_$(1)_core.pcf \
+		| tee karabas_$(1)_core.log | grep -E "ERROR|WARNING" || true
+	@! grep -q "No timing constraints found" karabas_$(1)_core.twr || { echo "trce did not read karabas_$(1)_core.pcf"; \
+		rm -f karabas_$(1)_core.twr; exit 1; }
+endef
+$(foreach b,mini minig,$(eval $(call core_mode,$(b))))
 
 clean:
 	rm -rf xst _ngo _xmsgs xlnx_auto_0_xdb iseconfig
 	rm -f $(foreach b,$(BOARDS),$(addprefix karabas_$(b),.ngc .ngd .ngr .syr .lso .bld .pcf .ncd _map.ncd _map.ngm \
 		_map.map _map.mrp _map.xrpt .par .pad _pad.csv _pad.txt .twr .twx .unroutes .xpi .ptwx .bgn .bit .drc \
-		_bitgen.xwbt _summary.xml _usage.xml _xst.xrpt _ngdbuild.xrpt _par.xrpt _guide.ncd))
+		_bitgen.xwbt _summary.xml _usage.xml _xst.xrpt _ngdbuild.xrpt _par.xrpt _guide.ncd _core.pcf _core.twr _core.log))

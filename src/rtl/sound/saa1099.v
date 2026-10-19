@@ -21,7 +21,8 @@
 //
 //////////////////////////////////////////////////////////////////////////////////
 module saa1099 (
-    input wire clk,  // 8 MHz
+    input wire clk,  // clk_bus (28 MHz)
+	 input wire ena, // 8 MHz clock enable
     input wire rst_n,
     input wire cs_n,
     input wire a0,  // 0=data, 1=address
@@ -49,7 +50,7 @@ module saa1099 (
             ctrl <= 8'h00;
         end
         else begin
-            if (cs_n == 1'b0 && wr_n == 1'b0) begin
+            if (ena == 1'b1 && cs_n == 1'b0 && wr_n == 1'b0) begin
                 if (a0 == 1'b1)
                     addr <= din[4:0];
                 else begin
@@ -111,6 +112,7 @@ module saa1099 (
 
     saa1099_tone_gen freq_gen0 (
         .clk(clk),
+		  .ena(ena),
         .octave(oct10[2:0]),
         .freq(freq0),
         .out(gen0_tone),
@@ -119,6 +121,7 @@ module saa1099 (
 
     saa1099_tone_gen freq_gen1 (
         .clk(clk),
+		  .ena(ena),
         .octave(oct10[6:4]),
         .freq(freq1),
         .out(gen1_tone),
@@ -127,6 +130,7 @@ module saa1099 (
 
     saa1099_tone_gen freq_gen2 (
         .clk(clk),
+		  .ena(ena),
         .octave(oct32[2:0]),
         .freq(freq2),
         .out(gen2_tone),
@@ -135,6 +139,7 @@ module saa1099 (
 
     saa1099_noise_gen noise_gen0 (
         .clk(clk),
+		  .ena(ena),
         .rst_n(rst_n),
         .pulse_from_gen(pulse_to_noise0),
         .noise_freq(noisegen[1:0]),
@@ -146,6 +151,7 @@ module saa1099 (
 
     saa1099_tone_gen freq_gen3 (
         .clk(clk),
+		  .ena(ena),
         .octave(oct32[6:4]),
         .freq(freq3),
         .out(gen3_tone),
@@ -154,6 +160,7 @@ module saa1099 (
 
     saa1099_tone_gen freq_gen4 (
         .clk(clk),
+		  .ena(ena),
         .octave(oct54[2:0]),
         .freq(freq4),
         .out(gen4_tone),
@@ -162,6 +169,7 @@ module saa1099 (
 
     saa1099_tone_gen freq_gen5 (
         .clk(clk),
+		  .ena(ena),
         .octave(oct54[6:4]),
         .freq(freq5),
         .out(gen5_tone),
@@ -170,6 +178,7 @@ module saa1099 (
 
     saa1099_noise_gen noise_gen1 (
         .clk(clk),
+		  .ena(ena),
         .rst_n(rst_n),
         .pulse_from_gen(pulse_to_noise1),
         .noise_freq(noisegen[5:4]),
@@ -181,6 +190,7 @@ module saa1099 (
 
     sa1099_mixer_and_amplitude mixer0 (
         .clk(clk),
+		  .ena(ena),
         .en_tone(freqenable[0] == 1'b1 && noisegen[1:0] != 2'd3),  // if gen0 is being used to generate noise, don't use this channel for tone output
         .en_noise(noiseenable[0]),
         .tone(gen0_tone),
@@ -193,6 +203,7 @@ module saa1099 (
 
     sa1099_mixer_and_amplitude mixer1 (
         .clk(clk),
+		  .ena(ena),
         .en_tone(freqenable[1] == 1'b1 && envelope0[7] == 1'b0),
         .en_noise(noiseenable[1]),
         .tone(gen1_tone),
@@ -205,6 +216,7 @@ module saa1099 (
 
     sa1099_mixer_and_amplitude mixer2 (
         .clk(clk),
+		  .ena(ena),
         .en_tone(freqenable[2]),
         .en_noise(noiseenable[2]),
         .tone(gen2_tone),
@@ -217,6 +229,7 @@ module saa1099 (
 
     sa1099_mixer_and_amplitude mixer3 (
         .clk(clk),
+		  .ena(ena),
         .en_tone(freqenable[3] == 1'b1 && noisegen[5:4] != 2'd3),  // if gen3 is being used to generate noise, don't use this channel for tone output
         .en_noise(noiseenable[3]),
         .tone(gen3_tone),
@@ -229,6 +242,7 @@ module saa1099 (
 
     sa1099_mixer_and_amplitude mixer4 (
         .clk(clk),
+		  .ena(ena),
         .en_tone(freqenable[4] == 1'b1 && envelope1[7] == 1'b0),
         .en_noise(noiseenable[4]),
         .tone(gen4_tone),
@@ -241,6 +255,7 @@ module saa1099 (
 
     sa1099_mixer_and_amplitude mixer5 (
         .clk(clk),
+		  .ena(ena),
         .en_tone(freqenable[5]),
         .en_noise(noiseenable[5]),
         .tone(gen5_tone),
@@ -256,6 +271,7 @@ module saa1099 (
 
     saa1099_envelope_gen envelope_gen0 (
         .clk(clk),
+		  .ena(ena),
         .rst_n(rst_n),
         .envreg(envelope0),
         .write_to_envreg_addr(cs_n == 1'b0 && wr_n == 1'b0 && a0 == 1'b1 && din[4:0] == 5'h18),
@@ -271,6 +287,7 @@ module saa1099 (
     
     saa1099_envelope_gen envelope_gen1 (
         .clk(clk),
+		  .ena(ena),
         .rst_n(rst_n),
         .envreg(envelope1),
         .write_to_envreg_addr(cs_n == 1'b0 && wr_n == 1'b0 && a0 == 1'b1 && din[4:0] == 5'h19),
@@ -288,6 +305,7 @@ module saa1099 (
 
     saa1099_output_mixer outmix_left (
         .clk(clk),
+		  .ena(ena),
         .sound_enable(ctrl[0]),
         .i0(mixout0_l),
         .i1(mixout1_l),
@@ -300,6 +318,7 @@ module saa1099 (
 
     saa1099_output_mixer outmix_right (
         .clk(clk),
+		  .ena(ena),
         .sound_enable(ctrl[0]),
         .i0(mixout0_r),
         .i1(mixout1_r),
@@ -315,6 +334,7 @@ endmodule
 
 module saa1099_tone_gen (
     input wire clk,
+	 input wire ena,
     input wire [2:0] octave,
     input wire [8:0] freq,
     output reg out,
@@ -337,10 +357,12 @@ module saa1099_tone_gen (
   
     reg [7:0] count = 8'd0;
     always @(posedge clk) begin
+		if (ena) begin
         if (count == fcounter)
             count <= 8'd0;
         else
         count <= count + 1;
+		end
     end
   
     reg pulse;
@@ -354,7 +376,7 @@ module saa1099_tone_gen (
     initial out = 1'b0;    
     reg [8:0] cfinal = 9'd0;
     always @(posedge clk) begin
-        if (pulse == 1'b1) begin
+        if (ena == 1'b1 && pulse == 1'b1) begin
             if (cfinal == freq) begin
                 cfinal <= 9'd0;
                 out <= ~out;
@@ -374,6 +396,7 @@ endmodule
 
 module saa1099_noise_gen (
     input wire clk,
+	 input wire ena,
     input wire rst_n,
     input wire pulse_from_gen,
     input wire [1:0] noise_freq,
@@ -392,18 +415,20 @@ module saa1099_noise_gen (
   
     reg [10:0] count = 11'd0;
     always @(posedge clk) begin
+		if (ena == 1'b1) begin
         if (count == fcounter)
             count <= 11'd0;
         else
         count <= count + 1;
+		end
     end
     
     reg [30:0] lfsr = 31'h11111111;
     always @(posedge clk) begin
         if (rst_n == 1'b0)
             lfsr <= 31'h11111111;  // just a seed
-        if ((noise_freq == 2'd3 && pulse_from_gen == 1'b1) ||
-            (noise_freq != 2'd3 && count == fcounter)) begin
+        if (ena && ((noise_freq == 2'd3 && pulse_from_gen == 1'b1) ||
+            (noise_freq != 2'd3 && count == fcounter))) begin
                 if ((lfsr[2] ^ lfsr[30]) == 1'b1)
                     lfsr <= {lfsr[29:0], 1'b1};
                 else
@@ -417,6 +442,7 @@ endmodule
 
 module sa1099_mixer_and_amplitude (
     input wire clk,
+	 input wire ena,
     input wire en_tone,
     input wire en_noise,
     input wire tone,
@@ -444,13 +470,16 @@ module sa1099_mixer_and_amplitude (
     end
     
     always @(posedge clk) begin
+		if (ena) begin
         out_l <= next_out_l;
         out_r <= next_out_r;
+		end
     end
 endmodule
 
 module saa1099_envelope_gen (
     input wire clk,
+	 input wire ena,
     input wire rst_n,
     input wire [7:0] envreg,
     input wire write_to_envreg_addr,
@@ -540,7 +569,7 @@ module saa1099_envelope_gen (
             write_to_data_prev <= 1'b0;
             pending_data <= 1'b0;
         end
-        else begin
+        else if (ena == 1'b1) begin
             write_to_address_prev <= write_to_envreg_addr;
             write_to_data_prev <= write_to_envreg_data;
             if (write_to_data_edge == 1'b1)
@@ -576,6 +605,7 @@ module saa1099_envelope_gen (
     reg [3:0] envleft = 4'b0000;
     wire [3:0] envright = (stereoshape == 1'b0)? envleft : ~envleft;  // bit 0 of envreg inverts envelope shape
     always @(posedge clk)
+		if (ena)
         envleft <= envelopes[{envshape,envcounter}];  // take current envelope from envelopes ROM
     
     wire [4:0] temp_out_left, temp_out_right;
@@ -615,6 +645,7 @@ endmodule
 
 module saa1099_output_mixer (
     input wire clk,
+	 input wire ena,
     input wire sound_enable,
     input wire [4:0] i0,
     input wire [4:0] i1,
@@ -639,6 +670,7 @@ module saa1099_output_mixer (
     end
     
     always @(posedge clk) begin
+		if (ena)
         o <= compressor_table[mix];
     end
 endmodule
