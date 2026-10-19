@@ -1,5 +1,5 @@
 -------------------------------------------------------------------------------
--- Testbench: mcu.vhd burst transfers and capability query
+-- Testbench: kg_mcu (karabas-go-modules) burst transfers and capability query
 -- (karabas-go-firmware docs/burst_protocol.md)
 --
 -- Plays the RP2040 side: classic 3-byte frames on MCU_SS and bursts on
@@ -14,13 +14,14 @@ use IEEE.numeric_std.all;
 entity tb_mcu_burst is
 	generic (
 		BURST_SCK_HALF_PS : integer := 31250; -- burst SCK half period (31250 = 16 MHz, 15625 = 32 MHz)
-		MAX_MHZ           : integer := 0      -- BURST_MAX_MHZ of the DUT, expected in the CMD_CAPS answer
+		MAX_MHZ           : integer := 0;     -- BURST_MAX_MHZ of the DUT, expected in the CMD_CAPS answer
+		CLK_PERIOD_PS     : integer := 35714  -- mcu CLK (clk_bus, 28 MHz)
 	);
 end tb_mcu_burst;
 
 architecture sim of tb_mcu_burst is
 
-	constant CLK_PERIOD : time := 35.714 ns; -- 28 MHz
+	constant CLK_PERIOD : time := CLK_PERIOD_PS * 1 ps;
 	constant SCK_HALF   : time := 31.25 ns;  -- 16 MHz, classic frames
 	constant BURST_HALF : time := BURST_SCK_HALF_PS * 1 ps;
 
@@ -53,9 +54,21 @@ begin
 
 	clk <= not clk after CLK_PERIOD / 2 when not done;
 
-	DUT: entity work.mcu
+	-- kg_mcu with the parameters of the tops (karabas_minig_top.v: MATRIX on, the others have it off)
+	DUT: entity work.kg_mcu
 	generic map (
-		BURST_MAX_MHZ => MAX_MHZ
+		BURST_MAX_MHZ => MAX_MHZ,
+		CS_FILTER => 3,
+		ENABLE_RTC => 1,
+		RTC_SKIP_0D => 0,
+		RTC_SEND_LIMIT => 240,
+		ENABLE_UART => 1,
+		ENABLE_MATRIX => 1,
+		ENABLE_DEBUG => 0,
+		ENABLE_IMG => 0,
+		ENABLE_FILE => 0,
+		ENABLE_FT => 1,
+		ENABLE_SD2 => 0
 	)
 	port map (
 		CLK => clk,
@@ -70,11 +83,8 @@ begin
 		MCU_BURST_READY => ready,
 		RTC_A => x"00",
 		RTC_DI => x"00",
-		RTC_DO => open,
 		RTC_CS => '0',
 		RTC_WR_N => '1',
-		UART_RX_DATA => open,
-		UART_RX_IDX => open,
 		UART_TX_DATA => x"00",
 		UART_TX_WR => '0',
 		UART_TX_MODE => '0',
@@ -82,18 +92,18 @@ begin
 		UART_DLL => x"00",
 		UART_DLM_WR => '0',
 		UART_DLL_WR => '0',
-		SOFTSW_COMMAND => open,
 		ROMLOADER_ACTIVE => rl_active,
 		ROMLOAD_ADDR => rl_addr,
 		ROMLOAD_DATA => rl_data,
 		ROMLOAD_WR => rl_wr,
 		FT_MISO => '1',
-		MATRIX_CMD => (others => '0'),
+		SD2_MISO => '1',
+		MATRIX_CMD => x"000000",
 		MATRIX_CMD_WR => '0',
-		DEBUG_ADDR => (others => '0'),
-		DEBUG_DATA => (others => '0'),
-		OSD_COMMAND => open,
-		BUSY => open
+		DEBUG_ADDR => x"0000",
+		DEBUG_DATA => x"0000",
+		IMG_Q_WR => '0',
+		IMG_Q_DI => x"000000"
 	);
 
 	-- record every ROMLOAD write
@@ -192,7 +202,7 @@ begin
 
 		-- 1. capability query: answer {F7, 03, 00} in the reply bytes of a following frame
 		frame(x"F7", x"00", x"01", rc, ra, rd);
-		for i in 1 to 8 loop
+		for i in 1 to 16 loop -- the firmware polls up to 16 frames
 			frame(x"FF", x"00", x"00", rc, ra, rd);
 			if rc = x"F7" then
 				caps_seen := true;

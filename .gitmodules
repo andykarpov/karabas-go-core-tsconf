@@ -1,3 +1,6 @@
 [submodule "src/rtl/fd1793"]
 	path = src/rtl/fd1793
 	url = https://github.com/demyanenko-d/FD1793_1818VG93
+[submodule "modules"]
+	path = modules
+	url = ../karabas-go-modules.git

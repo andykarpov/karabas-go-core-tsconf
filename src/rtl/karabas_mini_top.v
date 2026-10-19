@@ -138,14 +138,22 @@ assign FLASH_SCK 		= 1'b0;
 wire clk_sys, clk_8mhz, clk_bus, clk_16mhz, clk_12mhz, v_clk_int;
 wire locked, areset;
 
-pll pll (
-	.CLK_IN1				(CLK_50MHZ),
-	.CLK_OUT1			(clk_sys),
-	.CLK_OUT2			(clk_8mhz),
-	.CLK_OUT3			(clk_16mhz),
-	.CLK_OUT4			(clk_12mhz),
-	.LOCKED				(locked)
+// VCO 50 * 37 / 2 = 925 MHz: 84.09, 7.97, 15.95, 12.01 MHz
+wire [5:0] pll_clk;
+kg_pll #(
+	.DIVCLK_DIVIDE(2), .CLKFBOUT_MULT(37),
+	.CLKOUT0_DIVIDE(11), .CLKOUT1_DIVIDE(116), .CLKOUT2_DIVIDE(58), .CLKOUT3_DIVIDE(77),
+	.BUFG_MASK(6'b001111)
+) pll (
+	.clk_in			(CLK_50MHZ),
+	.rst				(1'b0),
+	.clk_out			(pll_clk),
+	.locked			(locked)
 );
+assign clk_sys = pll_clk[0];
+assign clk_8mhz = pll_clk[1];
+assign clk_16mhz = pll_clk[2];
+assign clk_12mhz = pll_clk[3];
 
 // midi clk 12mhz out
 ODDR2 u_midi_clk (.Q(MIDI_CLK), .C0(clk_12mhz), .C1(~clk_12mhz), .CE(1'b1), .D0(1'b1), .D1(1'b0), .R(1'b0), .S(1'b0));
@@ -380,22 +388,22 @@ hdmi_top #(.SAMPLERATE(44100)) hdmi_top(
 );
 
 //------- Sigma-Delta DAC ---------
-dac dac_l(
-	.I_CLK			(clk_bus),
-	.I_RESET			(areset),
-	.I_DATA			({2'b00, !audio_mix_l[15], audio_mix_l[14:4], 2'b00}),
-	.O_DAC			(AUDIO_L)
+kg_sigma_delta_dac #(.MSBI(15)) dac_l(
+	.clk				(clk_bus),
+	.reset			(areset),
+	.din				({2'b00, !audio_mix_l[15], audio_mix_l[14:4], 2'b00}),
+	.dout				(AUDIO_L)
 );
 
-dac dac_r(
-	.I_CLK			(clk_bus),
-	.I_RESET			(areset),
-	.I_DATA			({2'b00, !audio_mix_r[15], audio_mix_r[14:4], 2'b00}),
-	.O_DAC			(AUDIO_R)
+kg_sigma_delta_dac #(.MSBI(15)) dac_r(
+	.clk				(clk_bus),
+	.reset			(areset),
+	.din				({2'b00, !audio_mix_r[15], audio_mix_r[14:4], 2'b00}),
+	.dout				(AUDIO_R)
 );
 
 //---------- Optional I2S DAC on FLASH pins ------------
-PCM5102 PCM5102(
+kg_pcm5102 #(.DIV_BITS(1)) PCM5102(
 	.clk				(clk_bus),
 	.reset			(areset),
 	.left				(audio_mix_l),
@@ -436,7 +444,22 @@ assign MCU_IO[1] = mcu_burst_ready;
 assign MCU_IO[0] = 1'bz;
 assign MCU_IO[3:2] = 2'bzz;
 
-mcu mcu(
+// the tsconf configuration of kg_mcu: RTC (all registers below F0 sent, D too), USB UART with the
+// EVO RS232 registers, FT812 chip select passed through; no debug, file loader, image mounter
+kg_mcu #(
+	.BURST_MAX_MHZ(0),
+	.CS_FILTER(3),
+	.ENABLE_RTC(1),
+	.RTC_SKIP_0D(0),
+	.RTC_SEND_LIMIT(8'hF0),
+	.ENABLE_UART(1),
+	.ENABLE_MATRIX(0),
+	.ENABLE_DEBUG(0),
+	.ENABLE_IMG(0),
+	.ENABLE_FILE(0),
+	.ENABLE_FT(1),
+	.ENABLE_SD2(0)
+) mcu(
 	.CLK				(clk_bus),
 	.N_RESET			(~areset),
 
@@ -511,8 +534,13 @@ mcu mcu(
 	.HWID				(hwid),
 	.DVI_ONLY		(dvi_only),
 
+	.SD2_MISO		(1'b1),
+	.MATRIX_CMD		(24'd0),
+	.MATRIX_CMD_WR	(1'b0),
 	.DEBUG_ADDR		(16'd0),
 	.DEBUG_DATA		(16'd0),
+	.IMG_Q_WR		(1'b0),
+	.IMG_Q_DI		(24'd0),
 
 	.BUSY				(mcu_busy)
 );
@@ -558,20 +586,26 @@ hid_parser hid_parser(
 wire covox_en, psg_type;
 wire [1:0] psg_mix;
 
-soft_switches soft_switches(
-	.CLK				(clk_bus),
-	.SOFTSW_COMMAND(softsw_command),
-	.COVOX_EN		(covox_en),
-	.PSG_MIX			(psg_mix),
-	.PSG_TYPE		(psg_type),
-	.JOY_TYPE_L		(kb_joy_type_l),
-	.JOY_TYPE_R		(kb_joy_type_r),
-	.VGA_60HZ		(kb_vga_60hz),
-	.PAUSE			(kb_pause),
-	.RESET_GS		(kb_reset_gs),
-	.NMI				(kb_nmi),
-	.RESET			(kb_reset)
+// OSD switches (core_mini.json "osd", in this order): register n = regs[n*8 +: 8]
+wire [10*8-1:0] softsw;
+
+kg_soft_switches #(.N(10)) soft_switches(
+	.clk				(clk_bus),
+	.command			(softsw_command),
+	.regs				(softsw),
+	.upd				()
 );
+
+assign covox_en = softsw[0];
+assign psg_mix = softsw[9:8];
+assign psg_type = softsw[16];
+assign kb_joy_type_l = softsw[26:24];
+assign kb_joy_type_r = softsw[34:32];
+assign kb_vga_60hz = softsw[40];
+assign kb_pause = softsw[48];
+assign kb_reset_gs = softsw[56];
+assign kb_nmi = softsw[64];
+assign kb_reset = softsw[72];
 
 assign btn_reset_n = ~kb_reset && ~hw_btn[0] && ~mcu_busy;
 assign btn_reset_gs_n = ~kb_reset_gs && ~mcu_busy;
@@ -583,20 +617,17 @@ wire [3:0] ms_z, cursor_z;
 wire [2:0] ms_b, cursor_b;
 wire ms_upd;
 
-cursor cursor(
-	.CLK				(clk_bus),
-	.RESET			(areset),
-
-	.MS_X				(ms_x),
-	.MS_Y				(ms_y),
-	.MS_Z				(ms_z),
-	.MS_B				(ms_b),
-	.MS_UPD			(ms_upd),
-
-	.OUT_X			(cursor_x),
-	.OUT_Y			(cursor_y),
-	.OUT_Z			(cursor_z),
-	.OUT_B			(cursor_b)
+kg_cursor #(.Z_W(4), .Z_NEG(1), .Z_ACC(1)) cursor(
+	.clk				(clk_bus),
+	.ms_x				(ms_x),
+	.ms_y				(ms_y),
+	.ms_z				(ms_z),
+	.ms_b				(ms_b),
+	.ms_upd			(ms_upd),
+	.x					(cursor_x),
+	.y					(cursor_y),
+	.z					(cursor_z),
+	.b					(cursor_b)
 );
 
 always @* begin
@@ -610,13 +641,13 @@ end
 
 //--------- OSD --------------
 
-overlay overlay(
-	.CLK				(clk_bus),
-	.RGB_I			({video_r[7:0], video_g[7:0], video_b[7:0]}),
-	.RGB_O			({osd_r[7:0], osd_g[7:0], osd_b[7:0]}),
-	.HSYNC_I			(video_hsync),
-	.VSYNC_I			(video_vsync),
-	.OSD_COMMAND	(osd_command)
+kg_osd_overlay #(.H_OFFSET(120), .V_OFFSET(72)) overlay(
+	.clk				(clk_bus),
+	.rgb_i			({video_r[7:0], video_g[7:0], video_b[7:0]}),
+	.rgb_o			({osd_r[7:0], osd_g[7:0], osd_b[7:0]}),
+	.hsync_i			(video_hsync),
+	.vsync_i			(video_vsync),
+	.osd_command	(osd_command)
 );
 
 endmodule

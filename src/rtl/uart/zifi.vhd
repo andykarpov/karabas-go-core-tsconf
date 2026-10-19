@@ -144,6 +144,11 @@ signal zifi_fifo_tx_free         : std_logic_vector(7 downto 0) := (others => '1
 signal rs232_fifo_rx_free        : std_logic_vector(7 downto 0) := (others => '1');
 signal rs232_fifo_tx_free         : std_logic_vector(7 downto 0) := (others => '1');
 
+signal zifi_fifo_tx_count        : std_logic_vector(8 downto 0);
+signal zifi_fifo_rx_count        : std_logic_vector(11 downto 0);
+signal rs232_fifo_tx_count       : std_logic_vector(8 downto 0);
+signal rs232_fifo_rx_count       : std_logic_vector(11 downto 0);
+
 signal zifi_tx_begin_req         : std_logic := '0';
 signal zifi_txbusy               : std_logic := '0';
 signal zifi_txdone 				    : std_logic := '0';
@@ -179,75 +184,83 @@ begin
 
 -- zifi
 
-ZIFI_FIFO_IN: entity work.fifo
+ZIFI_FIFO_IN: entity work.kg_fifo
 generic map(
-	ADDR_WIDTH => 8, -- 256 bytes
-	DATA_WIDTH => 8
+	AW => 8, -- 256 bytes
+	DW => 8
 )
 port map(
-    clk => CLK,
-	 reset => zifi_fifo_tx_clr_req,
-	 rd => zifi_fifo_tx_rd_req,
-	 wr => zifi_fifo_tx_wr_req,
-	 din => zifi_fifo_tx_di,
-	 dout => zifi_fifo_tx_do,
-	 full => zifi_fifo_tx_full,
-	 empty => zifi_fifo_tx_empty,
-	 data_count => zifi_fifo_tx_used
+	clk => CLK,
+	reset => zifi_fifo_tx_clr_req,
+	wr => zifi_fifo_tx_wr_req,
+	din => zifi_fifo_tx_di,
+	full => zifi_fifo_tx_full,
+	rd => zifi_fifo_tx_rd_req,
+	dout => zifi_fifo_tx_do,
+	empty => zifi_fifo_tx_empty,
+	count => zifi_fifo_tx_count
 );
+-- the count of fifo.v stopped at 255 (and so the free bytes reported at 0)
+zifi_fifo_tx_used <= (others => '1') when zifi_fifo_tx_count(8) = '1' else zifi_fifo_tx_count(7 downto 0);
 
-ZIFI_FIFO_OUT: entity work.fifo
+ZIFI_FIFO_OUT: entity work.kg_fifo
 generic map(
-	ADDR_WIDTH => 11, -- 2 kbytes
-	DATA_WIDTH => 8
+	AW => 11, -- 2 kbytes
+	DW => 8
 )
 port map(
-    clk => CLK,
-    reset  => zifi_fifo_rx_clr_req,
-    rd => zifi_fifo_rx_rd_req,
-    wr => zifi_fifo_rx_wr_req,
-    din  => zifi_fifo_rx_di,
-    dout     => zifi_fifo_rx_do,
-	 full => zifi_fifo_rx_full,
-	 empty => zifi_fifo_rx_empty,
-    data_count => zifi_fifo_rx_used	 
+	clk => CLK,
+	reset => zifi_fifo_rx_clr_req,
+	wr => zifi_fifo_rx_wr_req,
+	din => zifi_fifo_rx_di,
+	full => zifi_fifo_rx_full,
+	rd => zifi_fifo_rx_rd_req,
+	dout => zifi_fifo_rx_do,
+	empty => zifi_fifo_rx_empty,
+	count => zifi_fifo_rx_count
 );
+-- the count of fifo.v stopped at 2047 (and so the free bytes reported at 0)
+zifi_fifo_rx_used <= (others => '1') when zifi_fifo_rx_count(11) = '1' else zifi_fifo_rx_count(10 downto 0);
 
 -- rs232
 
-RS232_FIFO_IN: entity work.fifo
+RS232_FIFO_IN: entity work.kg_fifo
 generic map(
-	ADDR_WIDTH => 8, -- 256 bytes
-	DATA_WIDTH => 8
+	AW => 8, -- 256 bytes
+	DW => 8
 )
 port map(
-    clk => CLK,
-    reset  => rs232_fifo_tx_clr_req,
-    rd => rs232_fifo_tx_rd_req,
-    wr => rs232_fifo_tx_wr_req,
-    din  => rs232_fifo_tx_di,
-    dout     => rs232_fifo_tx_do,
-	 full => rs232_fifo_tx_full,
-	 empty => rs232_fifo_tx_empty,
-    data_count => rs232_fifo_tx_used	 
+	clk => CLK,
+	reset => rs232_fifo_tx_clr_req,
+	wr => rs232_fifo_tx_wr_req,
+	din => rs232_fifo_tx_di,
+	full => rs232_fifo_tx_full,
+	rd => rs232_fifo_tx_rd_req,
+	dout => rs232_fifo_tx_do,
+	empty => rs232_fifo_tx_empty,
+	count => rs232_fifo_tx_count
 );
+-- the count of fifo.v stopped at 255 (and so the free bytes reported at 0)
+rs232_fifo_tx_used <= (others => '1') when rs232_fifo_tx_count(8) = '1' else rs232_fifo_tx_count(7 downto 0);
 
-RS232_FIFO_OUT: entity work.fifo
+RS232_FIFO_OUT: entity work.kg_fifo
 generic map(
-	ADDR_WIDTH => 11, -- 2 kbytes
-	DATA_WIDTH => 8
+	AW => 11, -- 2 kbytes
+	DW => 8
 )
 port map(
-    clk => CLK,
-    reset  => rs232_fifo_rx_clr_req,
-    rd => rs232_fifo_rx_rd_req,
-    wr => rs232_fifo_rx_wr_req,
-    din  => rs232_fifo_rx_di,
-    dout     => rs232_fifo_rx_do,
-	 full => rs232_fifo_rx_full,
-	 empty => rs232_fifo_rx_empty,
-    data_count => rs232_fifo_rx_used	 
+	clk => CLK,
+	reset => rs232_fifo_rx_clr_req,
+	wr => rs232_fifo_rx_wr_req,
+	din => rs232_fifo_rx_di,
+	full => rs232_fifo_rx_full,
+	rd => rs232_fifo_rx_rd_req,
+	dout => rs232_fifo_rx_do,
+	empty => rs232_fifo_rx_empty,
+	count => rs232_fifo_rx_count
 );
+-- the count of fifo.v stopped at 2047 (and so the free bytes reported at 0)
+rs232_fifo_rx_used <= (others => '1') when rs232_fifo_rx_count(11) = '1' else rs232_fifo_rx_count(10 downto 0);
 
 -- esp8266 uart
 

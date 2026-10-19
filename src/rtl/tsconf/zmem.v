@@ -219,14 +219,16 @@ module zmem
   // wire [14:0] cache_a;
   // wire [7:0] ch_addr = {2'b0, cpu_addr[5:0]};
 
-  dpram #(.DATAWIDTH(16), .ADDRWIDTH(8))cache_data
+  kg_sdpram #(.DW(16), .AW(8)) cache_data
   (
-    .clock (clk),  
-    .wren_a (cpu_strobe),
-    .address_a (ch_addr),
-    .data_a (cpu_rddata),
-    .address_b (ch_addr),
-    .q_b (cache_d)
+    .clka (clk),
+    .wea (cpu_strobe),
+    .addra (ch_addr),
+    .dina (cpu_rddata),
+    .clkb (clk),
+    .enb (1'b1),
+    .addrb (ch_addr),
+    .doutb (cache_d)
   );
 
   /*altdpram cache_data
@@ -265,14 +267,16 @@ module zmem
     cache_data.wrcontrol_aclr = "OFF",
     cache_data.wrcontrol_reg = "INCLOCK";*/
 
-  dpram #(.DATAWIDTH(14), .ADDRWIDTH(8))cache_addr
+  kg_sdpram #(.DW(14), .AW(8)) cache_addr
   (
-    .clock (clk),  
-    .wren_a (cpu_strobe || cache_inv),
-    .address_a (ch_addr),
-    .data_a ({!cache_inv, cpu_hi_addr}),
-    .address_b (ch_addr),
-    .q_b ({cache_v, cache_a})
+    .clka (clk),
+    .wea (cpu_strobe || cache_inv),
+    .addra (ch_addr),
+    .dina ({!cache_inv, cpu_hi_addr}),
+    .clkb (clk),
+    .enb (1'b1),
+    .addrb (ch_addr),
+    .doutb ({cache_v, cache_a})
   );
 
   /*altdpram cache_addr
