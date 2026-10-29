@@ -8,6 +8,9 @@
 // - the audio samples: audio_l counts the clocks of clk_ref, audio_r is its complement, so a
 //   sample must be r = ~l (both halves of one sample) and the step from the sample before must
 //   be CLKRATE / SAMPLERATE clocks; the number of samples per phase gives the rate.
+// - the FT812 back at the frequency of its last mode (after the core) is programmed again;
+// - one DCM_CLKGEN programming at a time: no hdmi_reset while a sequence is shifted out (a second one
+//   sent its first bit twice: LoadM instead of LoadD).
 // Ends with "tb_hdmi_top: N errors".
 
 module tb_hdmi_top;
@@ -140,6 +143,11 @@ always @(posedge pclk) begin
 	end
 end
 
+always @(posedge clk_ref) begin
+	if (dut.hdmi_pll.hdmi_reset && |dut.hdmi_pll.prog_en)
+		fail("hdmi_reset during a DCM_CLKGEN programming", dut.hdmi_pll.prog_en, 0);
+end
+
 integer samples = 0;
 reg have_prev = 1'b0;
 reg [15:0] prev_l = 16'd0;
@@ -199,7 +207,17 @@ initial begin
 	phase("FT 72 MHz", 8'd72, 3500, 1500);
 
 	@(negedge clk_ref) ft_sel = 1'b0;
-	phase("core 28 MHz", 8'd28, 1000, 1000);
+	phase("core 28 MHz", 8'd28, 500, 1500);
+
+	// the FT812 picture again at the frequency it had:
+	// DCM_CLKGEN must still be programmed, or the 5x DCM keeps the 28 MHz
+	// of the core with no reset
+	#1000000;
+	@(negedge clk_ref) ft_sel = 1'b1;
+	phase("FT 72 again", 8'd72, 3500, 1500);
+
+	@(negedge clk_ref) ft_sel = 1'b0;
+	phase("core 28 MHz", 8'd28, 500, 1500);
 
 	$display("tb_hdmi_top: %0d errors", errors);
 	$finish;
