@@ -29,6 +29,7 @@ k# intermediate build files
 *.xst
 *_bitgen.xwbt
 *_envsettings.html
+*_core.log
 *_map.map
 *_map.mrp
 *_map.ngm
