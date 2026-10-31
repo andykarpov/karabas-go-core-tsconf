@@ -1,4 +1,4 @@
-// Thanks to deathsoft for the transistor-level schematic of the chip and to titus for the gate-level RTL.
+// Thanks to deathsoft for the transistor-level schematic of the chip and to dr.Titus for the gate-level RTL.
 //
 // Microword fields and microcommand codes: included by vg93_decoder only, the one place where the microword is
 // interpreted (tools/check_behav_style.py checks it). The encodings of the decoder outputs are in vg93_actions.vh.
@@ -61,3 +61,50 @@ localparam [5:0]
     CMD_CNT1_TST_DEC    = 6'h3C,
     CMD_CNT1_TST        = 6'h3D,
     CMD_CNT1_DEC        = 6'h3E;
+
+// ---- fields whose meaning depends on the encoding ----
+// The decoder takes these from here; a re-encoded program (rtl_epm570/rtl/vg93_ucode.vh, the MAX II build with the
+// microcode in the UFM) replaces this file with its own codes and functions, the decoder stays as it is.
+
+// data path actions of a control field word (mod = 1x1): {cnt2_dec_on_byte, cnt2_dec_on_step, ser_inc,
+// ser_inc_force_up, cmp_en}
+localparam [4:0] CTL_CNT2_BYTE = 5'b10000, CTL_CNT2_STEP = 5'b01000, CTL_INC = 5'b00100, CTL_INC_UP = 5'b00010,
+                 CTL_CMP = 5'b00001;
+function [4:0] ucode_control(input [3:0] imm);
+    case (imm)
+    4'b0100, 4'b0101, 4'b0110, 4'b0111: ucode_control = CTL_CMP;   // compare with 0 / 1 / DATA_SHIFT[7] / RD_DATA
+    4'b1000: ucode_control = CTL_CNT2_BYTE | CTL_INC;                // inc / dec by DIRC
+    4'b1001: ucode_control = CTL_CNT2_STEP;                          // step rate delay
+    4'b1010: ucode_control = CTL_CNT2_BYTE;                          // CNT2 bytes
+    4'b1100: ucode_control = CTL_CNT2_BYTE | CTL_INC | CTL_INC_UP;   // increment up
+    default: ucode_control = 5'b00000;
+    endcase
+endfunction
+
+// what a control field word waits for (STAY_*): it stays on itself while ...
+function [2:0] ucode_stay(input [2:0] hi, input [3:0] imm);
+    case (imm)
+    4'b0000:                   ucode_stay = STAY_PREAMBLE;
+    4'b0010:                   ucode_stay = STAY_UNTIL_INDEX;
+    4'b0011:                   ucode_stay = STAY_CNT1;
+    4'b0110, 4'b0111, 4'b1110: ucode_stay = STAY_UNTIL_BYTE;     // 0110 / 0111: compare until the byte strobe
+    4'b1000, 4'b1010, 4'b1100: ucode_stay = STAY_BYTE_CNT2;      // byte counting words
+    4'b1001, 4'b1011, 4'b1101: ucode_stay = STAY_CNT2;           // 1001: step rate delay; 1011, 1101 unused
+    default:                   ucode_stay = STAY_NONE;           // 0001 (unused), 1111 (empty), the compares
+    endcase
+endfunction
+
+// when a word skips the next one (SKIP_*; a mark found and FORMAT F7h skip in any word: vg93_sequencer)
+function [1:0] ucode_skip(input [5:0] cmd, input [3:0] imm, input control);
+    case (cmd)
+    // the two words of the wait loop between commands (003 / 004): a command written by the host skips the next
+    // word and leaves the loop
+    CMD_CLR_HLD_INT, CMD_CNT1_TST_INT: ucode_skip = SKIP_NEW_CMD;
+    CMD_PREAM_STB_TST:                 ucode_skip = SKIP_PREAMBLE_BYTE;
+    CMD_PREAM_INI_TST:                 ucode_skip = SKIP_PREAMBLE;
+    default:                           ucode_skip = SKIP_NONE;
+    endcase
+endfunction
+
+// OP0 .. OP7 (test bit cmd[2:0] of the command register): their codes as casez items of the decoder's command table
+`define VG93_CMD_OP_ITEMS 6'b100???

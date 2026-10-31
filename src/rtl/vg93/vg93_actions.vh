@@ -1,4 +1,4 @@
-// Thanks to deathsoft for the transistor-level schematic of the chip and to titus for the gate-level RTL.
+// Thanks to deathsoft for the transistor-level schematic of the chip and to dr.Titus for the gate-level RTL.
 //
 // Encodings of the decoder outputs that are more than a flag. The blocks include this file; the microword itself
 // (fields, CMD_* codes: vg93_ucode.vh) is interpreted in vg93_decoder only.

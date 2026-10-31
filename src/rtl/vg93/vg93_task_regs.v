@@ -1,4 +1,4 @@
-// Thanks to deathsoft for the transistor-level schematic of the chip and to titus for the gate-level RTL.
+// Thanks to deathsoft for the transistor-level schematic of the chip and to dr.Titus for the gate-level RTL.
 //
 // The registers of a command (sheets cmd_reg, trk_reg, sect_reg, serial_inc_dec, ser_comp): command register OP,
 // track register TRK, sector register SEC, and the serial ALU that steps TRK and compares numbers.
@@ -74,9 +74,13 @@ module vg93_task_regs (
     wire [7:0] trk_shifted = {track[6:0], fill_bit(trk_fill, inc_out, rd_data)};
     wire [7:0] sec_shifted = {sector[6:0], fill_bit(sec_fill, inc_out, rd_data)};
     wire [7:0] track_next = wired_and(track, wr_trk_en, dal_in, trk_shift, trk_shifted);
-    wire [7:0] sector_next = mr_s ? SEC_AT_RESET : wired_and(sector, wr_sec_en, dal_in, sec_shift, sec_shifted);
+    // SEC in the track form: the two sources AND-ed (sec_src), then one choice per bit: /MR, a source, or hold
+    wire [7:0] sec_src;
+    assign sec_src = (wr_sec_en ? dal_in : 8'hFF) & (sec_shift ? sec_shifted : 8'hFF);
+    wire sec_mr = second_half && mr_s;
+    wire sec_load = second_half && (wr_sec_en || sec_shift);
     assign track_seen = second_half ? track_next : track;
-    assign sector_seen = second_half ? sector_next : sector;
+    assign sector_seen = sec_mr ? SEC_AT_RESET : sec_load ? sec_src : sector;
 
     // ---- OP: /MR (MR_S in the second half) clears bits 7..2 at once; the host write loads it at the word end; bits
     // 1..0 are preset at the word end by the new MR_S and by the old one, which holds for a moment after the end ----

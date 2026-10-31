@@ -1,4 +1,4 @@
-// Thanks to deathsoft for the transistor-level schematic of the chip and to titus for the gate-level RTL.
+// Thanks to deathsoft for the transistor-level schematic of the chip and to dr.Titus for the gate-level RTL.
 //
 // Host bus interface (sheets io_ports, addr_decoder, reg_read_logic, the write captures of cmd_reg, trk_reg,
 // sect_reg, data_reg).
@@ -9,15 +9,23 @@
 // clears the capture), and the register loads REG_DAL_IN in that word: the command register OP (and the wait loop
 // of the microprogram leaves for the command: vg93_sequencer), TRK, SEC, DATA. So a written value appears about
 // one microword later, and a write that ends while the enable of the previous one is active is lost (the capture
-// is set to ~enable).
+// is set to ~enable). VG93_FAST_SYSCLK: REG_DAL_IN loads DAL straight from the pins while /WE & /CS are low at a
+// SYSCLK edge - the same sample as the default (dal_q, wr_q one cycle later), without the copy register, so it holds
+// the host's byte one SYSCLK cycle earlier (vg93_top).
+`include "vg93_config.vh"
 module vg93_host_bus (
     input  wire sysclk,
     input  wire word_ends,
     input  wire cs_pin, re_pin,           // /CS, /RE active, straight from the pins (DAL output enable)
     input  wire [1:0] addr_pin,
-    input  wire cs_q, we_q, re_q,         // sampled: for the chip's logic
+    input  wire wr_q, rd_q,               // /WE & /CS, /RE & /CS sampled: for the chip's logic
     input  wire [1:0] addr_q,
-    input  wire [7:0] dal_q,
+`ifdef VG93_FAST_SYSCLK
+    input  wire wr_pin,                   // /WE & /CS active and DAL straight from the pins (REG_DAL_IN)
+    input  wire [7:0] dal_pin,
+`else
+    input  wire [7:0] dal_q,              // DAL sampled (REG_DAL_IN)
+`endif
     input  wire [7:0] status_byte, track_seen, sector_seen, data_seen,
     output reg  [7:0] dal_in = 8'd0,      // REG_DAL_IN
     output reg  [7:0] dal_out,
@@ -45,7 +53,7 @@ module vg93_host_bus (
         default: dal_out = data_seen;
         endcase
 
-    wire wr = we_q && cs_q, rd = re_q && cs_q;
+    wire wr = wr_q, rd = rd_q;
     assign bus_cmd = (wr || rd) && addr_q == A_CMD;
     assign bus_data = (wr || rd) && addr_q == A_DATA;
     assign bus_data_read = rd && addr_q == A_DATA;
@@ -53,7 +61,11 @@ module vg93_host_bus (
     reg wr_prev = 1'b0;
     always @(posedge sysclk) begin
         wr_prev <= wr;
-        if (wr) dal_in <= dal_q;
+`ifdef VG93_FAST_SYSCLK
+        if (wr_pin) dal_in <= dal_pin;                // the sample wr_q takes at this edge
+`else
+        if (wr) dal_in <= dal_q;                      // wr_q and dal_q: the same edge's sample
+`endif
         if (wr_prev && !wr)                           // the end of /WE
             case (addr_q)
             A_CMD:  cmd_capture <= !wr_cmd_en;

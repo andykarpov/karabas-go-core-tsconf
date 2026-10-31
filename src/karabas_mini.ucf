@@ -228,7 +228,7 @@ NET "FT_CLK" CLOCK_DEDICATED_ROUTE = FALSE;
 #
 # Clocks, all from one PLL on CLK_50MHZ (VCO 925 MHz), phase 0 (rtl/karabas_*_top.v):
 #   pll_clk<0> 84.09 MHz clk_sys: the SRAM controller, the SDRAM of the General Sound; ce_28m (rtl/bus_ce.v)
-#   pll_clk<1>  7.97 MHz clk_8:   the FDC of the Go; the FT812 clock output and DCM_CLKGEN of the Mini / Mini G
+#   pll_clk<1>  7.97 MHz clk_8:   the FT812 clock output and DCM_CLKGEN of the Mini / Mini G
 #   pll_clk<2> 28.03 MHz clk_bus: the machine (T80, video, memory, sound, MCU link, OSD), clk_sys / 3: every edge of
 #                                 clk_bus is an edge of clk_sys. Its BUFG is in the top (clk_bus); on the Mini /
 #                                 Mini G the PLL output also drives the BUFGMUXes of hdmi_pll.

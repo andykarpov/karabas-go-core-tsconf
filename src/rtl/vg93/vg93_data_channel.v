@@ -1,4 +1,4 @@
-// Thanks to deathsoft for the transistor-level schematic of the chip and to titus for the gate-level RTL.
+// Thanks to deathsoft for the transistor-level schematic of the chip and to dr.Titus for the gate-level RTL.
 //
 // The byte channel between the host and the disk (sheets data_reg, sig_driver_logic, the FORMAT part of
 // data_writer): data register DATA, shift register DATA_SHIFT, the handshake DRQ / LOST, the special bytes of
@@ -81,23 +81,17 @@ module vg93_data_channel (
     wire drq_by_write = !write_drq_off && byte_write_stb && !type1 && second_half;
     wire drq_by_read = byte_read_stb && !type1 && second_half;   // unless a read byte is pending
     wire pend_release = !bus_data_read && second_half;           // READ_PEND follows DRQ in the second half ...
-    // One pass of the two latches: DRQ is set unless a read byte is pending, READ_PEND follows DRQ and is released
-    // when DRQ falls (not during a read of DATA). They settle in three passes, as the chip settles (src/vg93.c
-    // async_latches): a host read that cleared DRQ releases READ_PEND, after which the byte strobe sets DRQ again.
-    function [1:0] settle(input d, input p, input reset, input by_write, input by_read, input follow,
-                          input pend_rel);
-        reg d1;
-        begin
-            d1 = rs(d, reset, by_write || (by_read && !p));
-            settle = {d1, rs(p, !d1 && pend_rel, follow && d1)};
-        end
-    endfunction
-    wire [1:0] pass1 = settle(drq_held, read_pend_held, drq_reset, drq_by_write, drq_by_read, second_half,
-                              pend_release);
-    wire [1:0] pass2 = settle(pass1[1], pass1[0], drq_reset, drq_by_write, drq_by_read, second_half, pend_release);
+    // The two latches settled (src/vg93.c async_latches: DRQ is set unless a read byte is pending, READ_PEND follows
+    // DRQ and is released when DRQ falls, not during a read of DATA; a host read that cleared DRQ releases READ_PEND,
+    // after which the byte strobe sets DRQ again), written as the fixed point of the passes: R = S = 1 keeps the
+    // value (no priority). Checked exhaustively against three passes of the RS form (given that the set and release
+    // terms act in the second half only).
     wire drq_live, read_pend_live;                               // RS_DRQ, RS_READ_PEND
-    assign {drq_live, read_pend_live} = settle(pass2[1], pass2[0], drq_reset, drq_by_write, drq_by_read,
-                                               second_half, pend_release);
+    assign drq_live = (drq_by_write && drq_held) ||
+                      (!drq_reset && (drq_by_write || drq_held || (drq_by_read && (pend_release || !read_pend_held))));
+    assign read_pend_live = (read_pend_held && !pend_release) || (drq_by_read && drq_held && !pend_release) ||
+                            (second_half && ((drq_by_write && drq_held) ||
+                                             (!drq_reset && (drq_by_write || drq_held || drq_by_read))));
 
     always @(posedge sysclk) begin
         drq_held <= drq_live;

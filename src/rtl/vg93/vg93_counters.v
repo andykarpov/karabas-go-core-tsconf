@@ -1,4 +1,4 @@
-// Thanks to deathsoft for the transistor-level schematic of the chip and to titus for the gate-level RTL.
+// Thanks to deathsoft for the transistor-level schematic of the chip and to dr.Titus for the gate-level RTL.
 //
 // Counters of the microprogram (sheets counter1, counter2, id_fld_cnt, byte_strobe_gen).
 //
@@ -29,15 +29,20 @@ module vg93_counters (
     output wire byte_stb,
     output wire ser_inc_sync              // first word of a serial increment run (task registers: carry)
 );
-    reg  [7:0] cnt1 = 8'd0;
-    reg  [3:0] cnt2 = 4'd0;
+    wire [7:0] cnt1;
+    wire [3:0] cnt2;
     reg  id_bit0 = 1'b0;                  // U41
     reg  id_bit1 = 1'b0;                  // U42
     reg  [2:0] bit_count = 3'd4;          // microword of the byte, 0..7 (power-on: 4)
     reg  inc_run = 1'b0;                  // the last word was a serial increment word (U632)
 
-    assign cnt1_zero = cnt1 == 8'd0;
-    assign cnt2_zero = cnt2 == 4'd0;
+    // CNT1, CNT2: vg93_dcnt down counters (load, CNT1 also shifts; a carry chain counter in rtl_epm570)
+    wire cnt1_step = cnt1_load || cnt1_shift_len || cnt1_dec || (cnt1_dec_on_index && ip_edge);
+    wire cnt2_step = cnt2_load || (cnt2_dec_on_step && !cnt2_zero && step_tick) || (cnt2_dec_on_byte && byte_stb);
+    vg93_dcnt #(8) cnt1_counter (.clk(sysclk), .ena(word_ends && cnt1_step), .sload(cnt1_load),
+        .shift(cnt1_shift_len), .d({4'd0, cnt_preset}), .q(cnt1), .zero(cnt1_zero));
+    vg93_dcnt #(4) cnt2_counter (.clk(sysclk), .ena(word_ends && cnt2_step), .sload(cnt2_load), .shift(1'b0),
+        .d(cnt_preset), .q(cnt2), .zero(cnt2_zero));
     assign id_nonzero = id_bit0 || id_bit1;
 
     // ---- byte strobe ----
@@ -48,14 +53,6 @@ module vg93_counters (
 
     always @(posedge sysclk)
         if (word_ends) begin
-            if (cnt1_load) cnt1 <= {4'd0, cnt_preset};
-            else if (cnt1_shift_len) cnt1 <= {cnt1[6:0], 1'b0};
-            else if (cnt1_dec || (cnt1_dec_on_index && ip_edge)) cnt1 <= cnt1 - 8'd1;
-
-            if (cnt2_load) cnt2 <= cnt_preset;
-            else if ((cnt2_dec_on_step && !cnt2_zero && step_tick) || (cnt2_dec_on_byte && byte_stb))
-                cnt2 <= cnt2 - 4'd1;
-
             if (id_capture) begin                     // the ID field bits pass through while reading
                 id_bit0 <= rd_data;
                 id_bit1 <= id_bit0;

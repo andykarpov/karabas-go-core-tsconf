@@ -1,4 +1,4 @@
-// Thanks to deathsoft for the transistor-level schematic of the chip and to titus for the gate-level RTL.
+// Thanks to deathsoft for the transistor-level schematic of the chip and to dr.Titus for the gate-level RTL.
 //
 // Helpers shared by the blocks (included inside a module). Functions take every input as an argument: an assign
 // with a function that read a global signal would not be re-evaluated when that signal changes.

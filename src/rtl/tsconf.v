@@ -6,7 +6,7 @@ module tsconf
   // clocks, from the PLL of the top with phase 0: clk_bus is clk / 3, its edges are edges of clk
 	input wire clk,       // 84 MHz: the SRAM controller, the SDRAM of the General Sound
 	input wire clk_bus,   // 28 MHz: the machine
-	input wire clk8,      // 8 MHz: the FDC (Go)
+	input wire clk8,      // 8 MHz: not used (the FDC of the Go runs on clk_bus)
 	input wire ce,        // clk: the clock before each edge of clk_bus
 	input wire resetbtn_n,
 	input wire resetgsbtn_n,
@@ -238,8 +238,10 @@ module tsconf
   wire zmem_dataout;
   wire [7:0] received;
   wire [7:0] tobesent;
-  wire intrq,drq;
+  wire intrq,drq;     // INTRQ, DRQ of the FDC: port #FF
   wire vg_wrFF;
+  wire vg_csff_n;
+  wire fdc_busy;      // WAIT of the FDC (hrdy_fdc)
   wire zclk;// = clkz_out;
 
   // assign nmi_n = gen_nmi ? 1'b0 : 1'bZ;
@@ -485,7 +487,7 @@ wire clk_28mhz = clk_bus;
     .CLK   (clk_28mhz),
     .CEN_p (zpos),
     .CEN_n (zneg),
-    .WAIT_n (1'b1),          //    : in  std_logic := '1';
+    .WAIT_n (~fdc_busy),     //    : in  std_logic := '1';
     .INT_n (cpu_int_n_TS),   //    : in  std_logic := '1';
     .NMI_n (1'b1),           //    : in  std_logic := '1';
     .BUSRQ_n (1'b1),         //    : in  std_logic := '1';
@@ -907,6 +909,7 @@ wire clk_28mhz = clk_bus;
     .vg_drq(drq),
     .vg_cs_n(vg_cs_n),
     .vg_wrFF(vg_wrFF),
+    .vg_csff_n(vg_csff_n),
     .sd_start(cpu_spi_req),
     .sd_dataout(spi_dout),
     .sd_datain(cpu_spi_din),
@@ -1502,13 +1505,17 @@ wire vg_cs_n;
 
 `ifndef HW_ID2
 
+// The FDC of the Go: the VG93 model with the drive glue and port #FF on clk_bus (as in the Profi core), so the host
+// bus, #FF, DRQ and INTRQ need no clock domain crossing. busy holds the CPU (WAIT) after a write to a VG93 register
+// (the model takes the byte within two microwords) and paces the accesses to the ports as the 3.5 MHz CPU (the
+// time out loops of TR-DOS) in turbo; ena_cpu is a T state of the CPU (zpos). The drive select goes through the
+// swap of drive_sel (zports).
 wire fdc_oe, fdc_oe_n;
 wire [7:0] fdc_do_bus;
-//assign fdc_ds = vg_a;
 
-always @(vg_a)
+always @(posedge clk_28mhz)
 begin
-	case ({fdc_motor, vg_a}) 
+	case ({fdc_motor, vg_a})
 		3'b100: fdc_ds <= 2'b01;
 		3'b101: fdc_ds <= 2'b10;
 		default: fdc_ds <= 2'b00;
@@ -1518,23 +1525,25 @@ end
 hrdy_fdc fdc
 (
 	.clk(clk_28mhz),
-	.clk_8(clk8),
+	.ds80(1'b0),
 	.reset(rst),
-	.turbo_fdc(1'b0),
-	
+	.ena_cpu(zpos),
+
 	.a(cpu_a_bus),
 	.d(cpu_do_bus),
-	.m1_n(cpu_m1_n),
 	.wr_n(cpu_wr_n),
 	.rd_n(cpu_rd_n),
 	.iorq_n(cpu_iorq_n),
-	
+
 	.cs_n(vg_cs_n),
-	.csff_n(~vg_wrFF),
+	.csff_n(vg_csff_n),
 
 	.oe_n(fdc_oe_n),
 	.dout(fdc_do_bus),
-	
+	.busy(fdc_busy),
+	.intrq_o(intrq),
+	.drq_o(drq),
+
 	.FDC_SIDE1(fdc_side),
 	.FDC_RDATA(fdc_rdata),
 	.FDC_WPRT(fdc_wprt),
@@ -1549,6 +1558,12 @@ hrdy_fdc fdc
 );
 
 assign fdc_oe = ~fdc_oe_n;
+
+`else
+
+assign fdc_busy = 1'b0;
+assign intrq = 1'b0;
+assign drq = 1'b0;
 
 `endif
 

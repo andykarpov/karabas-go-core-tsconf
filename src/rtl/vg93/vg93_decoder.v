@@ -1,4 +1,4 @@
-// Thanks to deathsoft for the transistor-level schematic of the chip and to titus for the gate-level RTL.
+// Thanks to deathsoft for the transistor-level schematic of the chip and to dr.Titus for the gate-level RTL.
 //
 // Microword decoder: the only place where the bits of the microword are interpreted. A function of the word only;
 // the executing blocks combine these named actions with their state. One table row per microcommand
@@ -22,6 +22,11 @@
 // program to vector 002.
 module vg93_decoder (
     input  wire [18:0] mword,
+    // microcode store (vg93_urom): the word is still being fetched (never with the ROM in block RAM; the MAX II
+    // UFM reader of rtl_epm570 delivers it ~1.2 us into the word), the address of the word, the last word read
+    input  wire fetching,
+    input  wire [7:0] pc,
+    input  wire read_request,
     // -> sequencer: the next address
     output wire [7:0] jump_addr,          // inverted address {mod[0], hi, imm}
     output reg  jump_lo, jump_hi,         // PC nibbles a taken jump loads
@@ -30,7 +35,7 @@ module vg93_decoder (
     output reg  [3:0] test_sel,           // TEST_*: the command's jump condition
     output wire [2:0] test_op_bit,        // OP0..OP7: the tested bit of the command register
     output reg  [2:0] stay_sel,           // STAY_*: what a control field word waits for
-    output reg  [1:0] skip_sel,           // SKIP_*: when the word skips the next one
+    output wire [1:0] skip_sel,           // SKIP_*: when the word skips the next one
     // -> status: command type, status flags, interrupt
     output reg  set_type1, clr_type1,
     output reg  clr_busy, set_crc_error, clr_crc_error, set_rnf, set_write_fault, set_write_prot,
@@ -65,8 +70,8 @@ module vg93_decoder (
     output reg  set_busy,                 // status; data channel (clears LOST, DRQ; WRITE_READY)
     output reg  ser_inc                   // serial increment words (task registers; counters: byte of 7 words)
 );
-`include "vg93_ucode.vh"
 `include "vg93_actions.vh"
+`include "vg93_ucode.vh"
 
     wire [2:0] mw_hi  = mword[18:16];
     wire [5:0] mw_cmd = mword[15:10];
@@ -79,6 +84,8 @@ module vg93_decoder (
     assign test_op_bit = mw_cmd[2:0];
     assign cmp_operand = mw_imm[1:0];
     assign write_src   = mw_rw[1:0];
+    wire control_word  = mw_mod[2] && mw_mod[0];   // imm is a control field
+    assign skip_sel    = ucode_skip(mw_cmd, mw_imm, control_word);
 
     // ---- mod: meaning of the hi / imm fields ----
     always @* begin
@@ -94,27 +101,11 @@ module vg93_decoder (
         endcase
     end
 
-    // ---- imm as a control field (mod = 1x1): "stay while / until" and data path actions ----
+    // ---- imm as a control field (mod = 1x1): "stay while / until" and data path actions (vg93_ucode.vh) ----
     always @* begin
-        stay_sel = STAY_NONE;
-        {cnt2_dec_on_byte, cnt2_dec_on_step, ser_inc, ser_inc_force_up, cmp_en} = 0;
-        if (mw_mod[2] && mw_mod[0])
-            case (mw_imm)
-            4'b0000: stay_sel = STAY_PREAMBLE;
-            4'b0010: stay_sel = STAY_UNTIL_INDEX;
-            4'b0011: stay_sel = STAY_CNT1;
-            4'b0100, 4'b0101: cmp_en = 1'b1;                           // compare with 0 / 1
-            4'b0110, 4'b0111: begin cmp_en = 1'b1; stay_sel = STAY_UNTIL_BYTE; end   // with DATA_SHIFT[7] / RD_DATA
-            4'b1000: begin stay_sel = STAY_BYTE_CNT2; cnt2_dec_on_byte = 1'b1; ser_inc = 1'b1; end  // inc / dec by DIRC
-            4'b1001: begin stay_sel = STAY_CNT2; cnt2_dec_on_step = 1'b1; end   // step rate delay
-            4'b1010: begin stay_sel = STAY_BYTE_CNT2; cnt2_dec_on_byte = 1'b1; end   // CNT2 bytes
-            4'b1011, 4'b1101: stay_sel = STAY_CNT2;                    // not used by the ROM
-            4'b1100: begin
-                stay_sel = STAY_BYTE_CNT2; cnt2_dec_on_byte = 1'b1; ser_inc = 1'b1; ser_inc_force_up = 1'b1;
-            end
-            4'b1110: stay_sel = STAY_UNTIL_BYTE;
-            default: ;                                                 // 0001 (unused), 1111 (empty)
-            endcase
+        stay_sel = control_word ? ucode_stay(mw_hi, mw_imm) : STAY_NONE;
+        {cnt2_dec_on_byte, cnt2_dec_on_step, ser_inc, ser_inc_force_up, cmp_en} =
+            control_word ? ucode_control(mw_imm) : 5'b00000;
     end
 
     // ---- rw: disk access ----
@@ -127,6 +118,9 @@ module vg93_decoder (
         3'b111: ;
         default: write_gate = 1'b1;
         endcase
+        // a word still being fetched: only a read mode cell end can see read_enable (the decoder bit of the cell);
+        // the last word's value is exact there (a wrong one would be masked by later cells)
+        if (fetching) read_enable = read_request;
     end
     assign cnt1_dec_on_index = !write_gate;
 
@@ -134,7 +128,6 @@ module vg93_decoder (
     reg id_calc;
     always @* begin
         test_sel = TEST_NONE;
-        skip_sel = SKIP_NONE;
         trk_fill = FILL_ZERO;
         sec_fill = FILL_INC_OUT;
         {set_type1, clr_type1, set_busy, clr_busy, set_crc_error, clr_crc_error, set_rnf, set_write_fault,
@@ -162,9 +155,9 @@ module vg93_decoder (
         CMD_SET_HLD:         set_hld = 1'b1;
         CMD_CLR_HLD:         clr_hld = 1'b1;
         // the two words of the wait loop between commands (003 / 004): a command written by the host skips the
-        // next word and leaves the loop
-        CMD_CLR_HLD_INT:     begin clr_hld = 1'b1; int_word = 1'b1; skip_sel = SKIP_NEW_CMD; end
-        CMD_CNT1_TST_INT:    begin test_sel = TEST_CNT1_RUNNING; int_word = 1'b1; skip_sel = SKIP_NEW_CMD; end
+        // next word and leaves the loop (the skip: ucode_skip)
+        CMD_CLR_HLD_INT:     begin clr_hld = 1'b1; int_word = 1'b1; end
+        CMD_CNT1_TST_INT:    begin test_sel = TEST_CNT1_RUNNING; int_word = 1'b1; end
         CMD_HLD_HLT_TST:     test_sel = TEST_HEAD_NOT_LOADED;
         CMD_STEP:            step_pulse = 1'b1;
         CMD_UPD_TG43:        tg43_from_cmp = 1'b1;
@@ -175,7 +168,6 @@ module vg93_decoder (
         CMD_READY_TST:       test_sel = TEST_NOT_READY;
         CMD_TR0_TST:         test_sel = TEST_TR00_OFF_OR_IN;
         CMD_DDEN_TST:        test_sel = TEST_FM;
-        6'b100???:           test_sel = TEST_OP_BIT_CLEAR;    // CMD_OP0 .. CMD_OP7
         CMD_ID_CNT_CALC:     begin test_sel = TEST_ID_NONZERO; id_calc = 1'b1; cnt1_shift_len = mw_hi[0]; end
         CMD_CMP_MATCH:       test_sel = TEST_CMP_DIFFER;
         CMD_TRK_ROL:         begin trk_shift = 1'b1; trk_fill = FILL_INC_OUT; end
@@ -203,10 +195,17 @@ module vg93_decoder (
         CMD_TRANS_AM:        begin det_fm_mark_en = 1'b1; det_trans_en = 1'b1; crc_preset_fm_trans = 1'b1; end
         CMD_A1_DET:          det_a1_en = 1'b1;
         CMD_A1_DET_CRC:      begin det_a1_en = 1'b1; crc_preset_a1 = 1'b1; byte_sync_on_mark = 1'b1; end
-        CMD_PREAM_STB_TST:   skip_sel = SKIP_PREAMBLE_BYTE;
-        CMD_PREAM_INI_TST:   begin skip_sel = SKIP_PREAMBLE; byte_sync_on_preamble = 1'b1; end
-        default: ;                                            // NOP 3Fh and the unused codes
+        CMD_PREAM_STB_TST:   ;                                // the skip only (ucode_skip)
+        CMD_PREAM_INI_TST:   byte_sync_on_preamble = 1'b1;    // and the skip
+        `VG93_CMD_OP_ITEMS:  test_sel = TEST_OP_BIT_CLEAR;    // CMD_OP0 .. CMD_OP7 (vg93_ucode.vh)
+        default: ;                                            // NOP and the unused codes
         endcase
+        // a word still being fetched: TYPE1 (the status layout a host read sees at once) follows the address -
+        // SET_BUSY is only at 000, SET_BASE only at 008
+        if (fetching) begin
+            set_type1 = pc == 8'd0;
+            clr_type1 = pc == 8'd8;
+        end
     end
     assign id_count = id_calc && !id_capture;
 endmodule
