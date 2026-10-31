@@ -1,4 +1,4 @@
-// Thanks to deathsoft for the transistor-level schematic of the chip and to titus for the gate-level RTL.
+// Thanks to deathsoft for the transistor-level schematic of the chip and to dr.Titus for the gate-level RTL.
 //
 // CRC-16 CCITT (x^16 + x^12 + x^5 + 1), one bit per microword (sheet crc16_ccitt).
 //

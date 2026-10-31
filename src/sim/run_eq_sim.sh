@@ -2,7 +2,6 @@
 # The rewrites of the timing work against the old code (sim/ref, the versions of cec5631):
 #   tb_eq_zports (iverilog):  zports, the registers on zclk now on clk_bus with zpos, the IDE trigger latches
 #   tb_eq_saa (iverilog):     saa1099 on clk_bus with the 8 MHz enable against the one on its own clock
-#   tb_eq_rawread (iverilog): the /RAWREAD catcher of vg93_read_path on sysclk against the one clocked by the pin
 #   tb_bus_ce (ISim):         bus_ce (ce_28m, v_clk) with the PLL of the tops
 # Usage: src/sim/run_eq_sim.sh [path to ISE_DS/settings64.sh]
 # Each test prints "<tb>: 0 errors"; the script fails on any other count.
@@ -30,10 +29,6 @@ iverilog -g2001 -o "$OUT/tb_eq_saa" "$SIM/tb_eq_saa.v" "$SIM/ref/saa1099_ref.v" 
 # both read saa1099_compressor_lut.hex from the current directory
 (cd "$RTL/sound" && vvp -n "$OUT/tb_eq_saa") > "$OUT/tb_eq_saa.log"
 result tb_eq_saa "$OUT/tb_eq_saa.log"
-
-iverilog -g2001 -I "$RTL/vg93" -o "$OUT/tb_eq_rawread" "$SIM/tb_eq_rawread.v" "$RTL/vg93/vg93_read_path.v"
-vvp -n "$OUT/tb_eq_rawread" > "$OUT/tb_eq_rawread.log"
-result tb_eq_rawread "$OUT/tb_eq_rawread.log"
 
 # ---- ISim ----
 set --

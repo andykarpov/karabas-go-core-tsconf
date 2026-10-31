@@ -1,9 +1,8 @@
-// Thanks to deathsoft for the transistor-level schematic of the chip and to titus for the gate-level RTL.
+// Thanks to deathsoft for the transistor-level schematic of the chip and to dr.Titus for the gate-level RTL.
 //
-// Microprogram sequencer (sheets instruction_logic, shared_logic): microcode ROM, program counter, the jump
-// condition and the skip. The ROM image is docs/microcode/vg93-microcode-rom.hex (the simulation scripts copy it
-// next to the model, Quartus reads it from the project directory); the readable program with the word addresses
-// used below: docs/microcode/vg93-microprogram-v0.2.txt.
+// Microprogram sequencer (sheets instruction_logic, shared_logic): program counter, the jump condition and the
+// skip; the microcode store (vg93_urom: the ROM in block RAM) delivers the word at the new address. The readable
+// program with the word addresses used below: docs/microcode/vg93-microprogram-v0.2.txt.
 //
 // Life of a command: after /MR the program starts at 000; a finished command clears BUSY at 002 (CLR_BUSY, INTRQ)
 // and waits in 003 / 004. A command written by the host (wr_cmd_en) makes the wait word skip into 005 / 006,
@@ -43,15 +42,10 @@ module vg93_sequencer (
     input  wire cnt1_zero, cnt2_zero, preamble, ip_edge, any_mark,
     input  wire format_f7, wr_cmd_en,
     output reg  [7:0] pc = 8'd0,          // address of the current microword
-    output reg  [18:0] mword = 19'd0      // the current microword (REG_MCMD)
+    output wire [18:0] mword,             // the current microword (REG_MCMD)
+    output wire fetching                  // the store is still fetching the word (vg93_decoder)
 );
 `include "vg93_actions.vh"
-
-`ifndef VG93_ROM_FILE
-`define VG93_ROM_FILE "vg93-microcode-rom.hex"
-`endif
-    reg [18:0] rom [0:255];
-    initial $readmemh(`VG93_ROM_FILE, rom);
 
     reg  wf_s = 1'b0;                     // U1083: pin 33 low as the last word ended (write fault vector)
 
@@ -103,22 +97,31 @@ module vg93_sequencer (
     wire skip = skip_word || format_f7 || any_mark;
 
     // ---- next address ----
-    reg  [7:0] pc_seq_held = 8'd0;        // U65: PC + 0 / 1 / 2, holds in the second half of the word
+    // U65 holds PC + 0 / 1 / 2 in the second half of the word; PC does not change within a word, so the increment
+    // (0 / 1 / 2) is held instead of the address
+    reg  [1:0] inc_held = 2'd0;
     wire vec_write_fault = wf_s && write_gate;
     wire vec_int_cmd = int_vector_en && host_int_cmd;
+    wire vector = mr_s || vec_write_fault || vec_int_cmd;
     wire jump = cond && !skip;
-    wire [7:0] pc_seq = pc + (skip ? 8'd2 : cond ? 8'd0 : 8'd1);
-    wire [7:0] pc_seq_used = second_half_held ? pc_seq_held : pc_seq;
-    wire [7:0] pc_next = (mr_s || vec_write_fault || vec_int_cmd) ? {6'd0, vec_int_cmd, vec_write_fault} :
+    wire [1:0] inc = skip ? 2'd2 : cond ? 2'd0 : 2'd1;
+    wire [1:0] inc_used = second_half_held ? inc_held : inc;
+    wire [7:0] pc_seq_used = pc + {6'd0, inc_used};
+    wire [7:0] pc_next = vector ? {6'd0, vec_int_cmd, vec_write_fault} :
                          {(jump && jump_hi) ? jump_addr[7:4] : pc_seq_used[7:4],
                           (jump && jump_lo) ? jump_addr[3:0] : pc_seq_used[3:0]};
     wire [7:0] rom_addr = power_on ? pc : pc_next;   // the power-on edge reloads the word at PC
+    // a word end that surely keeps PC and the word (PC + 0, no vector, no jump): a store that fetches after the word
+    // end need not read again (a jump to the own address does read again)
+    wire keep = !power_on && !vector && !(jump && (jump_hi || jump_lo)) && inc_used == 2'd0;
+
+    vg93_urom urom (.sysclk(sysclk), .word_ends(word_ends), .addr(rom_addr), .pc(pc), .keep(keep),
+                    .mword(mword), .fetching(fetching));
 
     always @(posedge sysclk) begin
-        if (!second_half) pc_seq_held <= pc_seq;
+        if (!second_half) inc_held <= inc;
         if (word_ends) begin
             pc <= rom_addr;
-            mword <= rom[rom_addr];        // block RAM, read with the address of the coming word
             wf_s <= pin33_low;
         end
     end

@@ -136,6 +136,7 @@ module zports
   input  wire        vg_drq,  // from vg93 module - drq + irq read
   output wire        vg_cs_n,
   output wire        vg_wrFF,
+  output wire        vg_csff_n,    // port #FF of the FDC, a level for the whole access (hrdy_fdc holds the CPU)
   output wire [1:0]  drive_sel,    // disk drive selection
 
   // SPI
@@ -645,6 +646,7 @@ module zports
   wire vg_wen = (dos || open_vg) && !vdos && !virt_vg;
   assign vg_cs_n = !(iordwr && vg_port && vg_wen);
   assign vg_wrFF = iowr_s && vgsys_port && vg_wen;
+  assign vg_csff_n = !(iordwr && vgsys_port && vg_wen);
   wire vg_wrDS = iowr_s && vgsys_port && (dos || open_vg);
 
   assign vdos_on  = iordwr_s && (vg_port || vgsys_port) && dos && !vdos && virt_vg;

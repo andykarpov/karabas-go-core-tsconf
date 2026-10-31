@@ -1,4 +1,4 @@
-// Thanks to deathsoft for the transistor-level schematic of the chip and to titus for the gate-level RTL.
+// Thanks to deathsoft for the transistor-level schematic of the chip and to dr.Titus for the gate-level RTL.
 //
 // Command status and the interrupt request (sheets reg_read_logic, int_gen, part of shared_logic).
 // The interrupt conditions come from elsewhere: OP (vg93_task_regs), READY / IP edges (vg93_drive), host accesses

@@ -1,4 +1,4 @@
-// Thanks to deathsoft for the transistor-level schematic of the chip and to titus for the gate-level RTL.
+// Thanks to deathsoft for the transistor-level schematic of the chip and to dr.Titus for the gate-level RTL.
 //
 // Read data path (sheets raw_sampler, am_detector, am_selector, mfm_decoder, part of shared_logic and misc_logic).
 //
@@ -21,23 +21,21 @@
 // the latch of the half RCLK is in: so a pulse that is still low when a cell end resets both latches (U504) sets
 // its latch again. The model takes the sampled level for that, and for pulses shorter than a SYSCLK cycle a
 // catcher flip-flop of the half cell, flipped by the pulse itself (half chosen by RCLK at the pulse); the model sees
-// the flip in the next cycle.
+// the flip in the next cycle. VG93_FAST_SYSCLK (SYSCLK >= 40 MHz): no catcher, the sampled level only (vg93_top).
 //
 // Die defect, kept on purpose: the A1h and C2h detectors do not look at channel bit 13 (the comparator input is
 // not connected on the die), so 4489h / 5224h also match with that bit flipped. Copy protections rely on it.
-module vg93_read_path #(
-    // 1: /RAWREAD comes from flip-flops on sysclk (pulses of whole sysclk periods, as the hrdy_fdc of the Karabas
-    // boards makes it): the catcher runs on sysclk, the transition is in caught*_q in the same cycle as with the
-    // flip-flops clocked by the pin, which on an FPGA are clocked by logic. 0: clocked by the pin, as on the chip.
-    parameter SYNC_RAWREAD = 0
-) (
+// VG93_FD1793_MARKS: the detectors of the WD FD1793 instead, all 16 bits compared (not the default).
+`include "vg93_config.vh"
+module vg93_read_path (
     input  wire sysclk,
     input  wire cell_ends, word_ends, second_half,
     input  wire cell_window,              // the write window, or the zero-length window of a read mode cell end
     input  wire mfm, mr_s, mr_next,
     input  wire rclk_q,                   // RCLK now (sampled); the bit of the cell that ends is in the latch of the
                                           // other half
-    input  wire rawread_pin, rclk_pin,    // /RAWREAD active and RCLK straight from the pins (the catcher)
+    input  wire rawread_pin, rclk_pin,    // /RAWREAD active and RCLK straight from the pins (the catcher; not
+                                          // used with VG93_FAST_SYSCLK)
     input  wire rawread_q,                // /RAWREAD active, sampled
     // decoder
     input  wire read_enable, det_a1_en, det_fm_mark_en, det_trans_en, det_read_am_en, set_rg, clr_rg,
@@ -50,7 +48,11 @@ module vg93_read_path #(
     output wire vfoe_seen                 // VFOE: pin 33 low, from the second half of a read word
 );
 `include "vg93_common.vh"
+`ifdef VG93_FD1793_MARKS
+    localparam [15:0] BIT13 = 16'h0000;   // FD1793: the A1h / C2h detectors compare every channel bit
+`else
     localparam [15:0] BIT13 = 16'h2000;   // channel bit ignored by the A1h / C2h detectors (die defect)
+`endif
     localparam [15:0] RAW_A1 = 16'h4489, RAW_C2 = 16'h5224;               // MFM sync bytes, missing clock
     localparam [15:0] RAW_FM_MARK = 16'hABD5, RAW_FM_READ_AM = 16'hABDD;  // FM marks (det_fm_mark, det_read_am)
     localparam [15:0] RAW_TRANS = 16'h2555;                               // A1h -> mark byte junction
@@ -90,25 +92,18 @@ module vg93_read_path #(
     assign dec_data_cell = cell_ends ? dec_data_next : dec_data;
 
     // ---- bit cell latches: a transition (start of a /RAWREAD pulse) sets the latch of its half cell ----
+`ifdef VG93_FAST_SYSCLK
+    wire transition0 = 1'b0, transition1 = 1'b0;         // no catcher: the sampled level only
+`else
     reg  caught0 = 1'b0, caught1 = 1'b0;                 // flip at every transition of their half cell
-    wire caught0_s, caught1_s;                           // caught0 / caught1 as the sysclk edge samples them
-    generate if (SYNC_RAWREAD) begin : g_sync_catcher
-        reg rawread_prev = 1'b0;
-        wire rawread_rise = rawread_pin && !rawread_prev;
-        assign caught0_s = caught0 ^ (rawread_rise && !rclk_pin);
-        assign caught1_s = caught1 ^ (rawread_rise && rclk_pin);
-        always @(posedge sysclk) begin
-            rawread_prev <= rawread_pin;
-            caught0 <= caught0_s;
-            caught1 <= caught1_s;
-        end
-    end else begin : g_pin_catcher
-        always @(posedge rawread_pin) if (rclk_pin) caught1 <= !caught1; else caught0 <= !caught0;
-        assign caught0_s = caught0;
-        assign caught1_s = caught1;
-    end endgenerate
+    always @(posedge rawread_pin) if (rclk_pin) caught1 <= !caught1; else caught0 <= !caught0;
     reg  [1:0] caught0_q = 2'b00, caught1_q = 2'b00;     // sampled, and the sample before
+    always @(posedge sysclk) begin
+        caught0_q <= {caught0_q[0], caught0};
+        caught1_q <= {caught1_q[0], caught1};
+    end
     wire transition0 = caught0_q[0] != caught0_q[1], transition1 = caught1_q[0] != caught1_q[1];
+`endif
     wire lat0_now = raw_lat0 || transition0 || (rawread_q && !rclk_q);
     wire lat1_now = raw_lat1 || transition1 || (rawread_q && rclk_q);
     wire cell_bit = rclk_q ? lat0_now : lat1_now;       // the half of the cell that just ended
@@ -129,8 +124,6 @@ module vg93_read_path #(
     assign rg_pin = rg_seen && !mr_s;
 
     always @(posedge sysclk) begin
-        caught0_q <= {caught0_q[0], caught0_s};
-        caught1_q <= {caught1_q[0], caught1_s};
         // a pulse still low at the cell end sets its latch again at once (the level wins over the reset)
         raw_lat0 <= (lat0_now && !lat0_clear) || (rawread_q && !rclk_q);
         raw_lat1 <= (lat1_now && !lat1_clear) || (rawread_q && rclk_q);

@@ -1,4 +1,4 @@
-// Thanks to deathsoft for the transistor-level schematic of the chip and to titus for the gate-level RTL.
+// Thanks to deathsoft for the transistor-level schematic of the chip and to dr.Titus for the gate-level RTL.
 //
 // The drive side (sheets misc_logic, tr43, step_prescaler, shared_logic, parts of int_gen and reg_read_logic):
 // drive status inputs, head positioning (step rate, STEP, DIRC, TG43) and head load (HLD with HLT).
@@ -8,11 +8,13 @@
 // Inputs READY, TR00, IP: in the second half of a word the chip's input latches are open (the status shows the pin
 // itself, a READY edge can raise an interrupt): ready_seen = second_half ? pin : ready. HLT is sampled as a word
 // ends.
-// Step rate: a counter 0..249 ticks once per 250 microwords; in MFM (words twice as short) only every second tick
-// counts, so the rate does not depend on the density. /TEST low ticks in every word. (On the chip an 8-bit LFSR
-// that runs from 9Fh to 0 in 250 steps; docs/behav_map.md.)
+// Step rate: a down counter 249..0 (vg93_dcnt) ticks once per 250 microwords, at 0; in MFM (words twice as short)
+// only every second tick counts, so the rate does not depend on the density. /TEST low ticks in every word. (On the
+// chip an 8-bit LFSR that runs from 9Fh to 0 in 250 steps; docs/behav_map.md.) VG93_TURBO_STEP: the step rate as
+// with CLK 2 MHz while the core runs at 1 MHz - MFM: every tick counts (no skip), FM: half the period (125 words).
 // HLD: SET_HLD / CLR_HLD words change the pin from the word's second half on; the microprogram's own view
 // (HLD_HLT_TST, status bit 5) changes when the word ends. /MR holds HLD low.
+`include "vg93_config.vh"
 module vg93_drive (
     input  wire sysclk,
     input  wire word_ends, second_half,
@@ -40,7 +42,7 @@ module vg93_drive (
     reg  ip_sample = 1'b0;                // U1015, U1016: /IP sampled at the word ends
     reg  ip_sample_d = 1'b0;
     reg  hlt = 1'b0;                      // HLT as the last word ended (U639)
-    reg  [7:0] step_count = STEP_PERIOD - 8'd1;   // 0..249, a tick at 249 (power-on: 249)
+    wire [7:0] step_count;                // counts down 249..0, a tick at 0 (power-on: 0)
     reg  step_tick_skip = 1'b0;           // MFM: this period's tick is dropped (U1266)
     reg  tg43_off = 1'b0;                 // ~TG43 as the last word ended (U585)
     reg  hld = 1'b1;                      // HLD as the current microword found it (U55); power-on state 1
@@ -54,8 +56,16 @@ module vg93_drive (
     assign ip_edge = ip_sample && !ip_sample_d;
 
     // ---- step rate ----
-    wire period_end = step_count == STEP_PERIOD - 8'd1;
+    wire period_end;
+`ifdef VG93_TURBO_STEP
+    wire [7:0] step_load = mfm ? STEP_PERIOD - 8'd1 : STEP_PERIOD / 8'd2 - 8'd1;
+    assign step_tick = period_end || test_q;     // twice the chip's rate at CLK 1 MHz (step_tick_skip unused)
+`else
+    wire [7:0] step_load = STEP_PERIOD - 8'd1;
     assign step_tick = (!mfm && period_end) || test_q || (period_end && !step_tick_skip);
+`endif
+    vg93_dcnt #(8) step_counter (.clk(sysclk), .ena(word_ends), .sload(period_end || mr_s), .shift(1'b0),
+        .d(step_load), .q(step_count), .zero(period_end));   // /MR restarts the period
 
     // ---- TG43 ----
     wire tg43_off_next = tg43_from_cmp ? cmp_greater : tg43_off;
@@ -77,7 +87,6 @@ module vg93_drive (
             ip_sample_d <= ip_sample;
             hlt <= hlt_q;
             tg43_off <= tg43_off_seen;
-            step_count <= (period_end || mr_s) ? 8'd0 : step_count + 8'd1;   // /MR restarts the period
             step_tick_skip <= (step_tick_skip != period_end) || !mfm;
             step_out <= step_pulse;
             if (dirc_from_cmp) dirc <= cmp_greater;

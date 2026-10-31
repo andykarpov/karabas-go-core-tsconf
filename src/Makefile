@@ -33,14 +33,14 @@ JSON_minig = core_minig.json
 # map / par options (as the .xise projects had them, the same for the three boards but the cost table)
 # The cost table (map -t, the placement seed) of the Mini is 2: with 1 the placement of the build of 2026-10-19
 # put a shift register of the 5x clock of zhdmi far from its OSERDES (-0.21 ns); 2, 3, 4 met all constraints.
-MAP_T_go = 1
+MAP_T_go = 2
 MAP_T_mini = 2
 MAP_T_minig = 1
 MAP_OPT = -logic_opt off -ol high -xe n -xt 0 -register_duplication off -r 4 -global_opt off -mt 2 -detail -ir off -pr b -lc off -power off
 PAR_OPT = -ol high -xe n -mt 4
 
 # included or read by the sources, not in the prj
-INCLUDES = $(wildcard ../modules/rtl/mcu/*.vh rtl/vg93/*.vh) rtl/tune.v rtl/tsconf/video/video_cram.mif rtl/sound/saa1099_compressor_lut.hex
+INCLUDES = $(wildcard ../modules/rtl/mcu/*.vh rtl/vg93/*.vh) rtl/vg93/vg93-microcode-rom.hex rtl/tune.v rtl/tsconf/video/video_cram.mif rtl/sound/saa1099_compressor_lut.hex
 
 .PHONY: all clean $(BOARDS) $(BOARDS:=-xst) $(BOARDS:=-impl) $(BOARDS:=-core) $(BOARDS:=-report) mini-coremode minig-coremode
 

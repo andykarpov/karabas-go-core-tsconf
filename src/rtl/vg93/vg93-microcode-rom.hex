@@ -1,4 +1,4 @@
-// 1818VG93 microcode ROM, 256 x 19 bit, extracted from Titus listing v0.2 (zx-pk.ru #36656)
+// 1818VG93 microcode ROM, 256 x 19 bit, extracted from dr.Titus listing v0.2 (zx-pk.ru #36656)
 // bit layout: [18:16]=Hi [15:10]=Cmd [9:7]=Mod [6:4]=R/W [3:0]=Imm
 7A368
 7B5ED

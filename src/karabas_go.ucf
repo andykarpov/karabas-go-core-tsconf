@@ -224,7 +224,7 @@ NET "FLASH_HOLD_N"  LOC="P12"  | IOSTANDARD = LVCMOS33; # CONF_IO3
 #
 # Clocks, all from one PLL on CLK_50MHZ (VCO 925 MHz), phase 0 (rtl/karabas_*_top.v):
 #   pll_clk<0> 84.09 MHz clk_sys: the SRAM controller, the SDRAM of the General Sound; ce_28m (rtl/bus_ce.v)
-#   pll_clk<1>  7.97 MHz clk_8:   the FDC of the Go; the FT812 clock output and DCM_CLKGEN of the Mini / Mini G
+#   pll_clk<1>  7.97 MHz clk_8:   no loads on the Go; the FT812 clock output and DCM_CLKGEN of the Mini / Mini G
 #   pll_clk<2> 28.03 MHz clk_bus: the machine (T80, video, memory, sound, MCU link, OSD), clk_sys / 3: every edge of
 #                                 clk_bus is an edge of clk_sys. Its BUFG is in the top (clk_bus); on the Mini /
 #                                 Mini G the PLL output also drives the BUFGMUXes of hdmi_pll.
@@ -233,13 +233,12 @@ NET "FLASH_HOLD_N"  LOC="P12"  | IOSTANDARD = LVCMOS33; # CONF_IO3
 # analysed with their phases. No clock comes from logic and there are no latches: clk_bus was a BUFGCE of clk_sys
 # (a gated clock behind the BUFG of clk_sys); the registers on the Z80 clock (zports.v) run on clk_bus with zpos;
 # the IDE trigger latches are registers; the SAA1099 runs on clk_bus with an 8 MHz enable (it was on clk_8); the
-# /RAWREAD catcher of the FDC runs on clk_8 (it was clocked by an AND of two flip-flops).
+# FDC (hrdy_fdc, the VG93 model and its drive glue) runs on clk_bus (it was on clk_8, /RAWREAD from logic).
 # ------------------------------------------------------------------------------------------------------------
 NET "CLK_50MHZ" TNM_NET = "CLK_50MHZ";
 TIMESPEC "TS_CLK_50MHZ" = PERIOD "CLK_50MHZ" 20 ns HIGH 50%;
 
 NET "clk_bus" TNM_NET = "TG_CLK_BUS";
-NET "pll_clk<1>" TNM_NET = "TG_CLK_8";
 
 # MCU link (kg_mcu): SPI mode 0 from the RP2040 at 16 MHz, bursts up to 32 MHz on the Mini G (BURST_MAX_MHZ).
 NET "MCU_SCK" TNM_NET = "TG_CLK_MCU";
@@ -250,15 +249,8 @@ TIMESPEC "TS_CLK_MCU" = PERIOD "TG_CLK_MCU" 32 MHz;
 TIMESPEC "TS_MCU_TO_BUS" = FROM "TG_CLK_MCU" TO "TG_CLK_BUS" 31.25 ns DATAPATHONLY;
 TIMESPEC "TS_BUS_TO_MCU" = FROM "TG_CLK_BUS" TO "TG_CLK_MCU" 31.25 ns DATAPATHONLY;
 
-# clk_8 <-> clk_bus: the FDC of the Go (hrdy_fdc, vg93), a model of the 1818VG93 on its own clock, asynchronous
-# to the CPU as the chip is: it samples its pins (/CS, /RE, /WE, A, DAL, the bits of port #FF) with flip-flops on
-# clk_8 (vg93_top *_q, mr_n_sync, turbo_fdc_sync), DRQ and INTRQ go to clk_bus through two flip-flops, and a CPU
-# read gets the register the vg93 drives on DAL, which can change during the read as on the chip. The design does
-# not rely on the phase of the two clocks (7.97 against 28.03 MHz): instead of the phase analysis of the PERIODs,
-# which asks for one VCO step (1.1 ns) on some edges, the data paths are bounded by one period of clk_bus. On the
-# Mini and Mini G clk_8 drives the ODDR2 of FT_CLK_OUT and DCM_CLKGEN only.
-TIMESPEC "TS_BUS_TO_CLK8" = FROM "TG_CLK_BUS" TO "TG_CLK_8" 35 ns DATAPATHONLY;
-TIMESPEC "TS_CLK8_TO_BUS" = FROM "TG_CLK_8" TO "TG_CLK_BUS" 35 ns DATAPATHONLY;
+# clk_8 has no loads on the Go (the FDC runs on clk_bus, the FT812 has its own clock): no clk_8 <-> clk_bus bounds
+# here; on the Mini and Mini G clk_8 drives the ODDR2 of FT_CLK_OUT and DCM_CLKGEN.
 
 # SRAM, asynchronous, 10 ns (tAA), on the SRAM controller (rtl/tsconf/dram/sram.v, clk_sys): the address and /OE
 # come from its registers with the clk_sys edge that starts a read and the data is taken into its register three

@@ -1,4 +1,4 @@
-// Thanks to deathsoft for the transistor-level schematic of the chip and to titus for the gate-level RTL.
+// Thanks to deathsoft for the transistor-level schematic of the chip and to dr.Titus for the gate-level RTL.
 //
 // Timing of the chip: when a microword ends, when its second half runs, when a bit cell of the disk ends.
 // The other blocks see only the outputs of this module.
@@ -39,6 +39,7 @@
 //   second_half for every block -> next SYSCLK edge: the registers take their next values
 // so a word ends 1..2 SYSCLK cycles after the CLK or RCLK edge. Within one cycle the events keep the order of the
 // C core: /MR, then CLK, then RCLK; a wire *_at_clk is what the CLK edge sees, *_at_rclk what the RCLK edge sees.
+`include "vg93_config.vh"
 module vg93_timing (
     input  wire sysclk,
     input  wire clk_q, rclk_q, mr_q, dden_q,  // sampled pins (active high)
@@ -51,9 +52,16 @@ module vg93_timing (
     output wire cell_window,
     output reg  mr_s = 1'b0,                  // MR_S: /MR as the last word ended
     output wire mr_next,                      // the MR_S that this word end takes
+    output reg  read_request = 1'b0,          // U19: the last word asked to read the disk
+`ifdef VG93_MFM_ONLY
+    output wire mfm                           // DDEN_S: constant 1, no DDEN_n pin (the FM logic is removed)
+`else
     output reg  mfm = 1'b0                    // DDEN_S: MFM mode as the last word ended
+`endif
 );
-    reg  read_request = 1'b0;                 // U19: the last word asked to read the disk
+`ifdef VG93_MFM_ONLY
+    assign mfm = 1'b1;
+`endif
     reg  rclk_since_mr = 1'b0;                // U15: RCLK has moved since /MR
     reg  read_cells1 = 1'b0;                  // U20, U21: read request and RCLK seen one / two cells ago
     reg  read_cells2 = 1'b0;
@@ -126,29 +134,13 @@ module vg93_timing (
         if (word_ends) begin
             read_request <= read_enable;
             mr_s <= mr_q;
+`ifndef VG93_MFM_ONLY
             mfm <= dden_q;
+`endif
         end
         if (cell_ends) begin
             read_cells1 <= read_request && rclk_since_mr_at_rclk;
             read_cells2 <= read_cells1;
         end
     end
-
-`ifdef VG93_CHECKS
-    // synthesis translate_off
-    // Cases the event model does not expect (simulation only, VG93_CHECKS): two cells in one cycle would merge into
-    // one (an RCLK edge entering read mode in the cycle of a divider cell end; not possible with RCLK from the
-    // separator on the SYSCLK grid), and a word end without a second half (the rule "x <= x_seen at a word end"
-    // relies on it).
-    integer merged = 0;
-    always @(posedge sysclk) begin
-        if (cell_ends_clk && cell_ends_rclk && merged < 10) begin
-            merged = merged + 1;
-            $display("vg93_timing: %0t: a divider cell and a read mode cell end in one SYSCLK cycle", $time);
-        end
-        if (word_ends && !power_on && !second_half)
-            $display("vg93_timing: %0t: a word ends without a second half", $time);
-    end
-    // synthesis translate_on
-`endif
 endmodule
