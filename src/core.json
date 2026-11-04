@@ -11,8 +11,8 @@
     {"filename": "roms/gs105b.rom", "address": 2147483648}
     ],
     "boards": {
-        "go": {"build": "26103120", "bitstream": "karabas_go.bin"},
-        "mini": {"build": "26102901", "bitstream": "karabas_mini.bin"},
+        "go": {"build": "26110401", "bitstream": "karabas_go.bin"},
+        "mini": {"build": "26110401", "bitstream": "karabas_mini.bin"},
         "minig": {"build": "26110401", "bitstream": "karabas_minig.bin"}
     },
     "osd": [
