@@ -13,7 +13,7 @@
     "boards": {
         "go": {"build": "26103120", "bitstream": "karabas_go.bin"},
         "mini": {"build": "26102901", "bitstream": "karabas_mini.bin"},
-        "minig": {"build": "26102901", "bitstream": "karabas_minig.bin"}
+        "minig": {"build": "26110401", "bitstream": "karabas_minig.bin"}
     },
     "osd": [
     {"type": "S", "name": "Covox", "options": ["Off", "On"], "default": 1, "hotkey": "Menu+F6"},
