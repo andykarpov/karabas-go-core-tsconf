@@ -81,3 +81,4 @@ make_core.py
 !src/karabas_go.ut
 !src/karabas_mini.ut
 !src/karabas_minig.ut
+src/kg_*.stamp
