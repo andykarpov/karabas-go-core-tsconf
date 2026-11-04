@@ -88,7 +88,11 @@ architecture rtl of hid_parser is
 	constant SC_BTN_MODE : natural := 12;
 						 
 	type kb_matrix is array(matrix) of std_logic;						 
-	signal kb_data : kb_matrix := (others => '0'); -- 40 keys + 5th bit
+	signal kb_data : kb_matrix := (others => '0'); -- 40 keys + 5th bit: the matrix being built from the slots
+	-- the six key slots are decoded one per clock by one case (as the spec256 / baseconf cores): one decoder instead
+	-- of one per slot (the parallel version was ~2700 LUT); the matrix is taken into kb_data_latch every 6 clocks
+	signal kb_data_latch : kb_matrix := (others => '0');
+	signal usb_idx : unsigned(2 downto 0) := (others => '0');
 	
 	signal data : std_logic_vector(47 downto 0);
 	
@@ -124,54 +128,54 @@ begin
         keybuf_data => keybuf_data
 	);
 
-	process( kb_data, A)
+	process( kb_data_latch, A)
 	begin
-		KB_DO(0) <=	not(( kb_data(ZX_K_CS)  and not( A(8)  ) ) 
-					or    ( kb_data(ZX_K_A)  and not(   A(9)  ) ) 
-					or    ( kb_data(ZX_K_Q) and not(    A(10) ) ) 
-					or    ( kb_data(ZX_K_1) and not(    A(11) ) ) 
-					or    ( kb_data(ZX_K_0) and not(    A(12) ) ) 
-					or    ( kb_data(ZX_K_P) and not(    A(13) ) ) 
-					or    ( kb_data(ZX_K_ENT) and not(  A(14) ) ) 
-					or    ( kb_data(ZX_K_SP) and not(   A(15) ) )  );
+		KB_DO(0) <=	not(( kb_data_latch(ZX_K_CS)  and not( A(8)  ) ) 
+					or    ( kb_data_latch(ZX_K_A)  and not(   A(9)  ) ) 
+					or    ( kb_data_latch(ZX_K_Q) and not(    A(10) ) ) 
+					or    ( kb_data_latch(ZX_K_1) and not(    A(11) ) ) 
+					or    ( kb_data_latch(ZX_K_0) and not(    A(12) ) ) 
+					or    ( kb_data_latch(ZX_K_P) and not(    A(13) ) ) 
+					or    ( kb_data_latch(ZX_K_ENT) and not(  A(14) ) ) 
+					or    ( kb_data_latch(ZX_K_SP) and not(   A(15) ) )  );
 
-		KB_DO(1) <=	not( ( kb_data(ZX_K_Z)  and not(A(8) ) ) 
-					or   ( kb_data(ZX_K_S)  and not(A(9) ) ) 
-					or   ( kb_data(ZX_K_W) and not(A(10)) ) 
-					or   ( kb_data(ZX_K_2) and not(A(11)) ) 
-					or   ( kb_data(ZX_K_9) and not(A(12)) ) 
-					or   ( kb_data(ZX_K_O) and not(A(13)) ) 
-					or   ( kb_data(ZX_K_L) and not(A(14)) ) 
-					or   ( kb_data(ZX_K_SS) and not(A(15)) ) );
+		KB_DO(1) <=	not( ( kb_data_latch(ZX_K_Z)  and not(A(8) ) ) 
+					or   ( kb_data_latch(ZX_K_S)  and not(A(9) ) ) 
+					or   ( kb_data_latch(ZX_K_W) and not(A(10)) ) 
+					or   ( kb_data_latch(ZX_K_2) and not(A(11)) ) 
+					or   ( kb_data_latch(ZX_K_9) and not(A(12)) ) 
+					or   ( kb_data_latch(ZX_K_O) and not(A(13)) ) 
+					or   ( kb_data_latch(ZX_K_L) and not(A(14)) ) 
+					or   ( kb_data_latch(ZX_K_SS) and not(A(15)) ) );
 
-		KB_DO(2) <=		not( ( kb_data(ZX_K_X) and not( A(8)) ) 
-					or   ( kb_data(ZX_K_D) and not( A(9)) ) 
-					or   ( kb_data(ZX_K_E) and not(A(10)) ) 
-					or   ( kb_data(ZX_K_3) and not(A(11)) ) 
-					or   ( kb_data(ZX_K_8) and not(A(12)) ) 
-					or   ( kb_data(ZX_K_I) and not(A(13)) ) 
-					or   ( kb_data(ZX_K_K) and not(A(14)) ) 
-					or   ( kb_data(ZX_K_M) and not(A(15)) ) );
+		KB_DO(2) <=		not( ( kb_data_latch(ZX_K_X) and not( A(8)) ) 
+					or   ( kb_data_latch(ZX_K_D) and not( A(9)) ) 
+					or   ( kb_data_latch(ZX_K_E) and not(A(10)) ) 
+					or   ( kb_data_latch(ZX_K_3) and not(A(11)) ) 
+					or   ( kb_data_latch(ZX_K_8) and not(A(12)) ) 
+					or   ( kb_data_latch(ZX_K_I) and not(A(13)) ) 
+					or   ( kb_data_latch(ZX_K_K) and not(A(14)) ) 
+					or   ( kb_data_latch(ZX_K_M) and not(A(15)) ) );
 
-		KB_DO(3) <=		not( ( kb_data(ZX_K_C) and not( A(8)) ) 
-					or   ( kb_data(ZX_K_F) and not( A(9)) ) 
-					or   ( kb_data(ZX_K_R) and not(A(10)) ) 
-					or   ( kb_data(ZX_K_4) and not(A(11)) ) 
-					or   ( kb_data(ZX_K_7) and not(A(12)) ) 
-					or   ( kb_data(ZX_K_U) and not(A(13)) ) 
-					or   ( kb_data(ZX_K_J) and not(A(14)) ) 
-					or   ( kb_data(ZX_K_N) and not(A(15)) ) );
+		KB_DO(3) <=		not( ( kb_data_latch(ZX_K_C) and not( A(8)) ) 
+					or   ( kb_data_latch(ZX_K_F) and not( A(9)) ) 
+					or   ( kb_data_latch(ZX_K_R) and not(A(10)) ) 
+					or   ( kb_data_latch(ZX_K_4) and not(A(11)) ) 
+					or   ( kb_data_latch(ZX_K_7) and not(A(12)) ) 
+					or   ( kb_data_latch(ZX_K_U) and not(A(13)) ) 
+					or   ( kb_data_latch(ZX_K_J) and not(A(14)) ) 
+					or   ( kb_data_latch(ZX_K_N) and not(A(15)) ) );
 
-		KB_DO(4) <=		not( ( kb_data(ZX_K_V) and not( A(8)) ) 
-					or   ( kb_data(ZX_K_G) and not( A(9)) ) 
-					or   ( kb_data(ZX_K_T) and not(A(10)) ) 
-					or   ( kb_data(ZX_K_5) and not(A(11)) ) 
-					or   ( kb_data(ZX_K_6) and not(A(12)) ) 
-					or   ( kb_data(ZX_K_Y) and not(A(13)) ) 
-					or   ( kb_data(ZX_K_H) and not(A(14)) ) 
-					or   ( kb_data(ZX_K_B) and not(A(15)) ) );
+		KB_DO(4) <=		not( ( kb_data_latch(ZX_K_V) and not( A(8)) ) 
+					or   ( kb_data_latch(ZX_K_G) and not( A(9)) ) 
+					or   ( kb_data_latch(ZX_K_T) and not(A(10)) ) 
+					or   ( kb_data_latch(ZX_K_5) and not(A(11)) ) 
+					or   ( kb_data_latch(ZX_K_6) and not(A(12)) ) 
+					or   ( kb_data_latch(ZX_K_Y) and not(A(13)) ) 
+					or   ( kb_data_latch(ZX_K_H) and not(A(14)) ) 
+					or   ( kb_data_latch(ZX_K_B) and not(A(15)) ) );
 					
-		KB_DO(5) <= not(kb_data(ZX_BIT5));
+		KB_DO(5) <= not(kb_data_latch(ZX_BIT5));
 	end process;
 
 process (RESET, CLK)
@@ -179,10 +183,13 @@ process (RESET, CLK)
 	variable is_shift : std_logic := '0';
 	variable is_cs_used : std_logic := '0';
 	variable is_ss_used : std_logic := '0';
+	variable current_scancode : std_logic_vector(7 downto 0);
 
 	begin
 		if RESET = '1' then
 			kb_data <= (others => '0');
+			kb_data_latch <= (others => '0');
+			usb_idx <= (others => '0');
 			is_shift := '0';
 			is_cs_used := '0';
 			is_ss_used := '0';
@@ -195,18 +202,22 @@ process (RESET, CLK)
 					macro_cnt <= macro_cnt + 1;
 					if (macro_cnt = "1111111111111111111111") then 
 					case macros_state is 
-						when MACRO_START  => kb_data <= (others => '0'); macros_state <= MACRO_CS_ON;
-						when MACRO_CS_ON  => kb_data(ZX_K_CS) <= '1';    macros_state <= MACRO_SS_ON;
-						when MACRO_SS_ON  => kb_data(ZX_K_SS) <= '1';    macros_state <= MACRO_SS_OFF;
-						when MACRO_SS_OFF => kb_data(ZX_K_SS) <= '0';    macros_state <= MACRO_KEY;
-						when MACRO_KEY    => kb_data(macros_key) <= '1'; macros_state <= MACRO_CS_OFF;
-						when MACRO_CS_OFF => kb_data(ZX_K_CS) <= '0'; kb_data(macros_key) <= '0'; macros_state <= MACRO_END;
-						when MACRO_END    => kb_data <= (others => '0'); is_macros <= '0';        macros_state <= MACRO_START;
+						when MACRO_START  => kb_data_latch <= (others => '0'); macros_state <= MACRO_CS_ON;
+						when MACRO_CS_ON  => kb_data_latch(ZX_K_CS) <= '1';    macros_state <= MACRO_SS_ON;
+						when MACRO_SS_ON  => kb_data_latch(ZX_K_SS) <= '1';    macros_state <= MACRO_SS_OFF;
+						when MACRO_SS_OFF => kb_data_latch(ZX_K_SS) <= '0';    macros_state <= MACRO_KEY;
+						when MACRO_KEY    => kb_data_latch(macros_key) <= '1'; macros_state <= MACRO_CS_OFF;
+						when MACRO_CS_OFF => kb_data_latch(ZX_K_CS) <= '0'; kb_data_latch(macros_key) <= '0'; macros_state <= MACRO_END;
+						when MACRO_END    => kb_data_latch <= (others => '0'); is_macros <= '0';        macros_state <= MACRO_START;
 						when others => null;
 					end case;
 					end if;
 			else
+				if usb_idx >= 5 then usb_idx <= (others => '0'); else usb_idx <= usb_idx + 1; end if;
+
+				if usb_idx = 0 then
 				macro_cnt <= (others => '0');
+				kb_data_latch <= kb_data; -- the matrix of the six slots before
 				kb_data <= (others => '0');
 				is_shift := '0';
 				is_cs_used := '0';
@@ -250,9 +261,18 @@ process (RESET, CLK)
 				
 				-- Win
 				--if KB_STATUS(7) = '1' then end if;
+				end if;
 
-				for II in 0 to NUM_KEYS-1 loop		
-				case data((II+1)*8-1 downto II*8) is							
+				case to_integer(usb_idx) is
+					when 0 => current_scancode := KB_DAT0;
+					when 1 => current_scancode := KB_DAT1;
+					when 2 => current_scancode := KB_DAT2;
+					when 3 => current_scancode := KB_DAT3;
+					when 4 => current_scancode := KB_DAT4;
+					when others => current_scancode := KB_DAT5;
+				end case;
+
+				case current_scancode is							
 
 					-- DEL -> SS + C (P + BIT5 for profi)
 					when X"4c" => 
@@ -477,7 +497,6 @@ process (RESET, CLK)
 					
 					when others => null;
 				end case;
-				end loop;
 							
 				-- map joysticks to keyboard
 				-- sega joy:  Mode Z Y X C B A Start R L D U On
