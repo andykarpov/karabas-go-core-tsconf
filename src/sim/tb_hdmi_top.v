@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 
-// hdmi_top (rtl/hdmi/hdmi_top.v), ISim with the unisim models of the DCMs and clock buffers:
+// kg_hdmi_ft (modules rtl/video/hdmi, the HDMI of the tops), ISim with the unisim models of the DCMs and clock buffers:
 // the video of the core (28 MHz), then of the FT812 at 40 and at 72 MHz (hdmi_pll measures the
 // clock and programs DCM_CLKGEN), checked where it enters hdmi_tx (host_vga_*):
 // - every active pixel of a frame in order: the pixel value is its index in the frame (24 bits,
@@ -83,7 +83,7 @@ wire [15:0] audio_r = ~audio_l;
 
 wire [3:0] tmds_p, tmds_n;
 wire [7:0] freq;
-hdmi_top #(.SAMPLERATE(SAMPLERATE)) dut(
+kg_hdmi_ft #(.SAMPLERATE(SAMPLERATE), .CLKRATE(28000000), .REF_MHZ(8'd28)) dut(
 	.clk(ft_clk), .clk_ref(clk_ref), .clk_ref_pll(clk_ref), .clk_8(clk_8), .reset(reset),
 	.vga_rgb(vga_rgb), .vga_hs(vga_hs), .vga_vs(vga_vs), .vga_de(vga_de),
 	.ft_rgb(ft_rgb), .ft_hs(ft_hs), .ft_vs(ft_vs), .ft_de(ft_de),

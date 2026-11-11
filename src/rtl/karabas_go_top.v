@@ -244,6 +244,7 @@ module karabas_go_top (
 	wire kb_reset;
 	wire kb_reset_gs;
 	wire kb_nmi;
+	reg nmi_n = 1'b1;
 	wire mcu_busy;
 	wire f1;
 	wire [1:0] hw_btn;
@@ -254,6 +255,7 @@ module karabas_go_top (
 	  .ce(ce_28m),
 	  .resetbtn_n(btn_reset_n),	
 		.resetgsbtn_n(btn_reset_gs_n),
+		.nmi_n(nmi_n),
 	  .locked(locked),
 	  .clk_bus(clk_bus),
 	  .f1_out(f1),
@@ -486,6 +488,16 @@ kg_mcu #(
 	.DEBUG_DATA(16'd0),
 	.IMG_Q_WR(1'b0),
 	.IMG_Q_DI(24'd0),
+	.PS2_COMMAND	(16'h0000),
+	.PS2_COMMAND_WR(1'b0),
+	.FDD_CHNG_REQ	(1'b0),
+	.FDD_CHNG_DS	(2'd0),
+	.ESP_UART_RX_DATA(8'h00),
+	.ESP_UART_RX_WR(1'b0),
+	.FLASHBOOT_START(1'b0),
+	.FLASHBOOT_COREID(5'd0),
+	.PRN_DATA		(8'h00),
+	.PRN_WR			(1'b0),
 	
 	.BUSY(mcu_busy)
 );
@@ -555,6 +567,10 @@ assign kb_reset = softsw[72];
 
 assign btn_reset_n = ~kb_reset && ~hw_btn[0] && ~mcu_busy;
 assign btn_reset_gs_n = ~kb_reset_gs && ~mcu_busy;
+
+// NMI of the Z80: the OSD item (F11) or BTN2, registered (T80 takes the falling edge: one NMI per press)
+always @(posedge clk_bus)
+	nmi_n <= ~(kb_nmi | hw_btn[1]);
 
 //---------- Mouse / cursor ------------
 

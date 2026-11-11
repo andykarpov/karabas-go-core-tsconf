@@ -10,6 +10,7 @@ module tsconf
 	input wire ce,        // clk: the clock before each edge of clk_bus
 	input wire resetbtn_n,
 	input wire resetgsbtn_n,
+	input wire nmi_n,     // the NMI of the Z80 (edge: one NMI per press), registered on clk_bus in the top
 	input wire locked,
 	output wire f1_out,
 
@@ -489,7 +490,7 @@ wire clk_28mhz = clk_bus;
     .CEN_n (zneg),
     .WAIT_n (~fdc_busy),     //    : in  std_logic := '1';
     .INT_n (cpu_int_n_TS),   //    : in  std_logic := '1';
-    .NMI_n (1'b1),           //    : in  std_logic := '1';
+    .NMI_n (nmi_n),          // F11 / BTN2: a plain NMI to 0066 of the paged memory (no NMI ROM in TS-Conf)
     .BUSRQ_n (1'b1),         //    : in  std_logic := '1';
     .M1_n (cpu_m1_n),        //    : out std_logic;
     .MREQ_n (cpu_mreq_n),    //    : out std_logic;

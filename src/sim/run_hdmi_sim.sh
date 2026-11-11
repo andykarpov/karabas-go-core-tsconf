@@ -1,6 +1,6 @@
 #!/bin/bash
-# tb_hdmi_top (ISim): hdmi_top with zhdmi (karabas-go-modules), the core video at 28 MHz and the FT812
-# at 40 / 72 MHz through hdmi_pll, the pixels and the audio samples where they enter hdmi_tx.
+# tb_hdmi_top (ISim): kg_hdmi_ft with zhdmi (karabas-go-modules), the core video at 28 MHz and the FT812
+# at 40 / 72 MHz through kg_hdmi_ft_pll, the pixels and the audio samples where they enter hdmi_tx.
 # zhdmi runs as a Verilog netlist of ghdl --synth: ISim 14.7 stops with an internal error in
 # zhdmi_island_encoder.vhd, and ghdl needs two runs, dvi.vhd is VHDL-2008 and zhdmi_packet_gen.vhd
 # VHDL-93 (karabas-go-modules sim/lint/ghdl_check.py); for this the copy of zhdmi_tx.vhd takes dvi
@@ -36,7 +36,7 @@ ghdl --synth --std=93c --ieee=synopsys --workdir=w93 -Pw93 --out=verilog -gSAMPL
 	"$H/zhdmi_tmds_encoder.vhd" "$H/zhdmi_tmds_serializer_spartan6.vhd" "$H/zhdmi_audio_packetizer.vhd" \
 	"$H/zhdmi_island_encoder.vhd" "$H/zhdmi_packet_gen.vhd" "$H/zhdmi_signaling.vhd" zhdmi_tx_sim.vhd \
 	-e hdmi_tx > hdmi_tx_vhdl.v 2> ghdl93.log || { cat ghdl93.log; exit 1; }
-# hdmi_top sets SAMPLE_FREQ, built in above
+# kg_hdmi_ft sets SAMPLE_FREQ, built in above
 sed -i '/^module hdmi_tx$/,/);/{/);/a\  parameter SAMPLE_FREQ = 0;
 }' hdmi_tx_vhdl.v
 grep -q "parameter SAMPLE_FREQ = 0;" hdmi_tx_vhdl.v || { echo "no hdmi_tx module in the netlist"; exit 1; }
@@ -47,13 +47,13 @@ ghdl --synth --std=08 --ieee=synopsys --workdir=w08 --out=verilog "$H/dvi_encode
 set --
 source "$SETTINGS" > /dev/null
 cat > tb_hdmi_top.prj <<PRJ
-vhdl work "$SRC/rtl/hdmi/freq_counter.vhd"
 verilog work "hdmi_tx_vhdl.v"
 verilog work "dvi_vhdl.v"
 verilog work "$H/pll_reset.v"
 verilog work "$MOD/rtl/mem/kg_async_fifo.v"
-verilog work "$SRC/rtl/hdmi/hdmi_pll.v"
-verilog work "$SRC/rtl/hdmi/hdmi_top.v"
+verilog work "$H/kg_freq_counter.v"
+verilog work "$H/kg_hdmi_ft_pll.v"
+verilog work "$H/kg_hdmi_ft.v"
 verilog work "$SIM/tb_hdmi_top.v"
 verilog work "$XILINX/verilog/src/glbl.v"
 PRJ
