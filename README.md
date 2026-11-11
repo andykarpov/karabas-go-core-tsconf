@@ -4,7 +4,7 @@ A famous ZX-Evolution TS-Conf core ported to the Karabas Go hardware.
 
 ## What's done:
 
-- Real floppy support (based on Firefly FDC hdl sources)
+- Real floppy support on Go (the VG93 model of the Profi core)
 - Real CF card support (Nemo IDE)
 - VDAC2 (FT812)
 - VDAC32 (FT812 + ESP32-S3 on Mini rev.G)

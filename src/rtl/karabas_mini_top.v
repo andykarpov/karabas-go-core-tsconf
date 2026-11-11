@@ -210,6 +210,7 @@ wire [2:0] kb_joy_type_l, kb_joy_type_r;
 wire kb_vga_60hz;
 wire [7:0] joy_bus;
 wire kb_pause, kb_reset, kb_reset_gs, kb_nmi, mcu_busy;
+reg nmi_n = 1'b1;
 wire f1;
 wire [7:0] hwid;
 wire dvi_only;
@@ -221,6 +222,7 @@ tsconf tsconf (
 	.ce					(ce_28m),
 	.resetbtn_n			(btn_reset_n),
 	.resetgsbtn_n		(btn_reset_gs_n),
+	.nmi_n				(nmi_n),
 	.locked				(locked),
 	.clk_bus				(clk_bus),
 	.f1_out				(f1),
@@ -348,7 +350,7 @@ BUFG bufg_ft_clk(.I(ft_clk_ibufg), .O(ft_clk_int));
 
 // hdmi
 wire [7:0] hdmi_freq;
-hdmi_top #(.SAMPLERATE(44100)) hdmi_top(
+kg_hdmi_ft #(.CLKRATE(28030303), .REF_MHZ(8'd28), .SAMPLERATE(44100)) hdmi_top(
 	.clk				(ft_clk_int),
 	.clk_ref			(clk_bus),
 	.clk_ref_pll	(clk_bus_pll),
@@ -531,6 +533,16 @@ kg_mcu #(
 	.DEBUG_DATA		(16'd0),
 	.IMG_Q_WR		(1'b0),
 	.IMG_Q_DI		(24'd0),
+	.PS2_COMMAND	(16'h0000),
+	.PS2_COMMAND_WR(1'b0),
+	.FDD_CHNG_REQ	(1'b0),
+	.FDD_CHNG_DS	(2'd0),
+	.ESP_UART_RX_DATA(8'h00),
+	.ESP_UART_RX_WR(1'b0),
+	.FLASHBOOT_START(1'b0),
+	.FLASHBOOT_COREID(5'd0),
+	.PRN_DATA		(8'h00),
+	.PRN_WR			(1'b0),
 
 	.BUSY				(mcu_busy)
 );
@@ -599,6 +611,10 @@ assign kb_reset = softsw[72];
 
 assign btn_reset_n = ~kb_reset && ~hw_btn[0] && ~mcu_busy;
 assign btn_reset_gs_n = ~kb_reset_gs && ~mcu_busy;
+
+// NMI of the Z80: the OSD item (F11) or BTN2, registered (T80 takes the falling edge: one NMI per press)
+always @(posedge clk_bus)
+	nmi_n <= ~(kb_nmi | hw_btn[1]);
 
 //---------- Mouse / cursor ------------
 
