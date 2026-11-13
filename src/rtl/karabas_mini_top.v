@@ -109,7 +109,7 @@ module karabas_mini_top (
 	input wire 				MCU_SCK,
 	input wire 				MCU_MOSI,
 	output wire 			MCU_MISO,
-	inout wire [3:0] 		MCU_IO,  // [0] burst cs_n, [1] burst ready, [2] sd2 cs_n, [3] ft cs_n
+	inout wire [3:0] 		MCU_IO,  // [1] INT of link v2, [2] sd2 cs_n, [3] ft cs_n
 
 	//------------------ midi ----------------
 	output wire 			MIDI_TX,
@@ -179,6 +179,7 @@ end
 
 // tsconf core
 wire [7:0] video_r, video_g, video_b, osd_r, osd_g, osd_b;
+wire osd_hs, osd_vs, osd_de;
 wire video_hsync, video_vsync, video_blank;
 wire btn_reset_n, btn_reset_gs_n;
 wire audio_beeper;
@@ -204,8 +205,6 @@ wire loader_act;
 wire [31:0] loader_addr;
 wire [7:0] loader_data;
 wire loader_wr;
-wire [15:0] softsw_command;
-wire [15:0] osd_command;
 wire [2:0] kb_joy_type_l, kb_joy_type_r;
 wire kb_vga_60hz;
 wire [7:0] joy_bus;
@@ -358,9 +357,9 @@ kg_hdmi_ft #(.CLKRATE(28030303), .REF_MHZ(8'd28), .SAMPLERATE(44100)) hdmi_top(
 	.reset			(areset || kb_reset || hw_btn[0]),
 
 	.vga_rgb			({osd_r[7:0], osd_g[7:0], osd_b[7:0]}),
-	.vga_hs			(video_hsync),
-	.vga_vs			(video_vsync),
-	.vga_de			(~video_blank),
+	.vga_hs			(osd_hs),
+	.vga_vs			(osd_vs),
+	.vga_de			(osd_de),
 
 	.ft_rgb			({VGA_R[7:0], VGA_G[7:0], VGA_B[7:0]}),
 	.ft_hs			(VGA_HS),
@@ -430,122 +429,211 @@ assign audio_mix_l = audio_out_l;
 assign audio_mix_r = audio_out_r;
 
 //---------- MCU ------------
-// burst transfers from the mcu (karabas-go-firmware docs/burst_protocol.md)
-wire mcu_burst_ready;
-assign MCU_IO[1] = mcu_burst_ready;
+// MCU link v2 (karabas-go-firmware docs/link_v2.md): kg_mcu2, the interrupt to the mcu on IO1
+wire mcu_int;
+assign MCU_IO[1] = mcu_int;
 assign MCU_IO[0] = 1'bz;
 assign MCU_IO[3:2] = 2'bzz;
 
-// the tsconf configuration of kg_mcu: RTC (all registers below F0 sent, D too), USB UART with the
-// EVO RS232 registers, FT812 chip select passed through; no debug, file loader, image mounter
-kg_mcu #(
-	.BURST_MAX_MHZ(0),
+wire [7:0] ms_x, ms_y, cursor_x, cursor_y;
+wire [3:0] ms_z, cursor_z;
+wire [2:0] ms_b, cursor_b;
+wire ms_upd;
+wire [55:0] mcu_kbd;
+wire [7:0] mcu_ps2_code;
+wire mcu_ps2_kind, mcu_ps2_wr;
+wire [7:0] mcu_ms_z, mcu_ms_b;
+wire mcu_ms_wr;
+wire [15:0] mcu_joy_l, mcu_joy_r;
+wire [5:0] mcu_btns;
+wire [1:0] ld_kind;
+wire ld_active, ld_wr;
+wire [31:0] ld_addr;
+wire [7:0] ld_data;
+wire [31:0] port_out_data;
+wire [3:0] port_out_wr;
+wire osd_wr, osd_en, osd_zoom;
+wire [11:0] osd_waddr;
+wire [7:0] osd_wdata;
+wire [23:0] osd_fg, osd_bg;
+wire [1:0] osd_alpha, osd_place;
+wire [4:0] osd_px, osd_ph;
+wire [3:0] osd_py;
+wire [5:0] osd_pw;
+wire [10*8-1:0] softsw;
+
+// the EVO RS232 divisor of the core (tx_mode 1) to the mcu in the config of port 0 (0 = 115200)
+wire [127:0] port_cfg = { 96'd0, 16'd0, uart_tx_mode ? { uart_dlm, uart_dll } : 16'd0 };
+
+kg_mcu2 #(
+	.CAPS(16'h0000),
+	.SW_N(10),
 	.CS_FILTER(3),
+	.ENABLE_OSD(1),
+	.ENABLE_IMG(0),
+	.ENABLE_PORTS(4'b0001),
 	.ENABLE_RTC(1),
 	.RTC_SKIP_0D(0),
 	.RTC_SEND_LIMIT(8'hF0),
-	.ENABLE_UART(1),
-	.ENABLE_MATRIX(0),
-	.ENABLE_DEBUG(0),
-	.ENABLE_IMG(0),
-	.ENABLE_FILE(0),
+	.ENABLE_AUX(1),
 	.ENABLE_FT(1),
 	.ENABLE_SD2(0)
 ) mcu(
 	.CLK				(clk_bus),
 	.N_RESET			(~areset),
 
+	.MCU_SCK			(MCU_SCK),   // not on a clock pin before rev.G
 	.MCU_MOSI		(MCU_MOSI),
 	.MCU_MISO		(MCU_MISO),
-	.MCU_SCK			(MCU_SCK),
 	.MCU_SS			(MCU_CS_N),
-
+	.MCU_INT			(mcu_int),
 	.MCU_SPI_FT_SS	(MCU_IO[3]),
-	.MCU_SPI_SD2_SS(MCU_IO[2]),
-	.MCU_BURST_CS_N(MCU_IO[0]),
-	.MCU_BURST_READY(mcu_burst_ready),
+	.MCU_SPI_SD2_SS(1'b1),
 
+	.SW				(softsw),
+	.SW_WR			(),
+	.SW_INDEX		(),
+	.SW_VALUE		(),
+	.HW_ID			(hwid),
+	.DVI_ONLY		(dvi_only),
+	.CORE_BUILD		(),
+	.FW_BUILD		(),
+	.BUSY				(mcu_busy),
+	.BTNS				(mcu_btns),
+	.RELOAD_REQ		(1'b0),
+	.RELOAD_CORE	(8'd0),
+
+	.KBD				(mcu_kbd),
+	.KBD_WR			(),
+	.PS2_CODE		(mcu_ps2_code),
+	.PS2_KIND		(mcu_ps2_kind),
+	.PS2_WR			(mcu_ps2_wr),
 	.MS_X				(ms_x),
 	.MS_Y				(ms_y),
-	.MS_Z				(ms_z),
-	.MS_B				(ms_b),
-	.MS_UPD			(ms_upd),
+	.MS_Z				(mcu_ms_z),
+	.MS_B				(mcu_ms_b),
+	.MS_WR			(mcu_ms_wr),
+	.JOY_L			(mcu_joy_l),
+	.JOY_R			(mcu_joy_r),
+	.JOY_WR			(),
+	.PS2_CMD			(16'h0000),
+	.PS2_CMD_WR		(1'b0),
 
-	.KB_STATUS		(hid_kb_status),
-	.KB_DAT0			(hid_kb_dat0),
-	.KB_DAT1			(hid_kb_dat1),
-	.KB_DAT2			(hid_kb_dat2),
-	.KB_DAT3			(hid_kb_dat3),
-	.KB_DAT4			(hid_kb_dat4),
-	.KB_DAT5			(hid_kb_dat5),
+	.LD_KIND			(ld_kind),
+	.LD_SLOT			(),
+	.LD_SIZE			(),
+	.LD_START		(),
+	.LD_ACTIVE		(ld_active),
+	.LD_END			(),
+	.LD_ADDR			(ld_addr),
+	.LD_DATA			(ld_data),
+	.LD_WR			(ld_wr),
+	.LD_READY		(1'b1),
 
-	.KB_SCANCODE	(ps2_scancode),
-	.KB_SCANCODE_UPD(ps2_scancode_upd),
+	.OSD_WR			(osd_wr),
+	.OSD_WADDR		(osd_waddr),
+	.OSD_WDATA		(osd_wdata),
+	.OSD_EN			(osd_en),
+	.OSD_FG			(osd_fg),
+	.OSD_BG			(osd_bg),
+	.OSD_ALPHA		(osd_alpha),
+	.OSD_PX			(osd_px),
+	.OSD_PY			(osd_py),
+	.OSD_PW			(osd_pw),
+	.OSD_PH			(osd_ph),
+	.OSD_PLACE		(osd_place),
+	.OSD_ZOOM		(osd_zoom),
 
-	.XT_SCANCODE	(),
-	.XT_SCANCODE_UPD(),
+	.SDC_IMG_MOUNTED(),
+	.SDC_IMG_SIZE	(),
+	.SDC_RD			(8'd0),
+	.SDC_WR			(8'd0),
+	.SDC_SECTOR		(32'd0),
+	.SDC_BUSY		(),
+	.SDC_DONE		(),
+	.SDC_ERROR		(),
+	.SDC_SLOT		(),
+	.SDC_BYTE_IN_STROBE(),
+	.SDC_BYTE_ADDR	(),
+	.SDC_BYTE_IN_DATA(),
+	.SDC_BYTE_OUT_DATA(8'd0),
+	.IMG_WP			(),
+	.IMG_PHYS_WR	(),
+	.IMG_PHYS		(),
+	.IMG_FLUSH		(),
+	.FDD_CHNG_WR	(),
+	.FDD_CHNG		(),
+	.FDD_CHNG_REQ	(1'b0),
+	.FDD_CHNG_DS	(2'd0),
+	.IMG_ACTIVE		(),
 
-	.JOY_L			(joy_l),
-	.JOY_R			(joy_r),
-	
-	.BTNS				(hw_btn),
+	.PORT_OUT_DATA	(port_out_data),
+	.PORT_OUT_WR	(port_out_wr),
+	.PORT_OUT_READY(4'b1111),
+	.PORT_IN_DATA	({ 24'd0, uart_tx_data }),
+	.PORT_IN_WR		({ 3'b000, uart_tx_wr }),
+	.PORT_CFG		(port_cfg),
+	.PORT_IN_FULL	(),
+	.PORT_STAT		(),
+	.PORT_STAT_WR	(),
 
 	.RTC_A			(rtc_addr),
 	.RTC_DI			(rtc_di),
-	.RTC_DO			(rtc_do),
 	.RTC_CS			(1'b1),
 	.RTC_WR_N		(~rtc_wr),
-
-	.UART_RX_DATA	(uart_rx_data),
-	.UART_RX_IDX	(uart_rx_idx),	 
-	.UART_TX_DATA	(uart_tx_data),
-	.UART_TX_WR		(uart_tx_wr),
-
-	.UART_TX_MODE	(uart_tx_mode),
-	.UART_DLL		(uart_dll),
-	.UART_DLM		(uart_dlm),
-	.UART_DLL_WR	(uart_dll_wr),
-	.UART_DLM_WR	(uart_dlm_wr),
-
-	.ROMLOADER_ACTIVE(loader_act),
-	.ROMLOAD_ADDR	(loader_addr),
-	.ROMLOAD_DATA	(loader_data),
-	.ROMLOAD_WR		(loader_wr),
-
-	.SOFTSW_COMMAND(softsw_command),	
-	.OSD_COMMAND	(osd_command),
-
-	.FT_SPI_ON		(mcu_ft_spi_on),
-	.FT_VGA_ON		(mcu_ft_vga_on),
-	.FT_SCK			(mcu_ft_sck),
-	.FT_MISO			(FT_SPI_MISO),
-	.FT_MOSI			(mcu_ft_mosi),
-	.FT_CS_N			(mcu_ft_cs_n),
-	.FT_RESET		(mcu_ft_reset),
-	
-	.HWID				(hwid),
-	.DVI_ONLY		(dvi_only),
-
-	.SD2_MISO		(1'b1),
-	.MATRIX_CMD		(24'd0),
+	.MATRIX_CMD		(24'd0),   // no dot matrix on the Mini
 	.MATRIX_CMD_WR	(1'b0),
 	.DEBUG_ADDR		(16'd0),
 	.DEBUG_DATA		(16'd0),
-	.IMG_Q_WR		(1'b0),
-	.IMG_Q_DI		(24'd0),
-	.PS2_COMMAND	(16'h0000),
-	.PS2_COMMAND_WR(1'b0),
-	.FDD_CHNG_REQ	(1'b0),
-	.FDD_CHNG_DS	(2'd0),
-	.ESP_UART_RX_DATA(8'h00),
-	.ESP_UART_RX_WR(1'b0),
-	.FLASHBOOT_START(1'b0),
-	.FLASHBOOT_COREID(5'd0),
-	.PRN_DATA		(8'h00),
-	.PRN_WR			(1'b0),
+	.RTC_DO			(rtc_do),
 
-	.BUSY				(mcu_busy)
+	.FT_SPI_ON		(mcu_ft_spi_on),
+	.FT_VGA_ON		(mcu_ft_vga_on),
+	.FT_RESET		(mcu_ft_reset),
+	.FT_SCK			(mcu_ft_sck),
+	.FT_MOSI			(mcu_ft_mosi),
+	.FT_MISO			(FT_SPI_MISO),
+	.FT_CS_N			(mcu_ft_cs_n),
+	.SD2_SCK			(),
+	.SD2_MOSI		(),
+	.SD2_MISO		(1'b1),
+	.SD2_CS_N		()
 );
+
+assign { hid_kb_dat5, hid_kb_dat4, hid_kb_dat3, hid_kb_dat2, hid_kb_dat1, hid_kb_dat0, hid_kb_status } = mcu_kbd;
+assign joy_l = mcu_joy_l[12:0];
+assign joy_r = mcu_joy_r[12:0];
+assign hw_btn = mcu_btns[1:0];
+assign ms_z = mcu_ms_z[3:0];
+assign ms_b = mcu_ms_b[2:0];
+
+// the ROMs of the core file (LD kind 0)
+assign loader_act = ld_active && ld_kind == 2'd0;
+assign loader_wr = ld_wr && ld_kind == 2'd0;
+assign loader_addr = ld_addr;
+assign loader_data = ld_data;
+
+// the toggles of v1 for the PS/2 scancode (set 2) and the mouse; the USB serial port of v1: a byte and
+// a counter that changes with it
+reg ps2_upd_t = 1'b0, ms_upd_t = 1'b0;
+reg [7:0] ps2_code_r = 8'd0, uart_rx_data_r = 8'd0, uart_rx_idx_r = 8'd0;
+always @(posedge clk_bus) begin
+	if (mcu_ps2_wr && !mcu_ps2_kind) begin
+		ps2_code_r <= mcu_ps2_code;
+		ps2_upd_t <= ~ps2_upd_t;
+	end
+	if (mcu_ms_wr)
+		ms_upd_t <= ~ms_upd_t;
+	if (port_out_wr[0]) begin
+		uart_rx_data_r <= port_out_data[7:0];
+		uart_rx_idx_r <= uart_rx_idx_r + 1'b1;
+	end
+end
+assign ps2_scancode = ps2_code_r;
+assign ps2_scancode_upd = ps2_upd_t;
+assign ms_upd = ms_upd_t;
+assign uart_rx_data = uart_rx_data_r;
+assign uart_rx_idx = uart_rx_idx_r;
 
 //---------- Keyboard parser ------------
 
@@ -588,15 +676,7 @@ hid_parser hid_parser(
 wire covox_en, psg_type;
 wire [1:0] psg_mix;
 
-// OSD switches (core_mini.json "osd", in this order): register n = regs[n*8 +: 8]
-wire [10*8-1:0] softsw;
-
-kg_soft_switches #(.N(10)) soft_switches(
-	.clk				(clk_bus),
-	.command			(softsw_command),
-	.regs				(softsw),
-	.upd				()
-);
+// OSD switches (core.json "osd", in this order): switch n = SW[n*8 +: 8] of kg_mcu2
 
 assign covox_en = softsw[0];
 assign psg_mix = softsw[9:8];
@@ -618,10 +698,6 @@ always @(posedge clk_bus)
 
 //---------- Mouse / cursor ------------
 
-wire [7:0] ms_x, ms_y, cursor_x, cursor_y;
-wire [3:0] ms_z, cursor_z;
-wire [2:0] ms_b, cursor_b;
-wire ms_upd;
 
 kg_cursor #(.Z_W(4), .Z_NEG(1), .Z_ACC(1)) cursor(
 	.clk				(clk_bus),
@@ -647,13 +723,33 @@ end
 
 //--------- OSD --------------
 
-kg_osd_overlay #(.H_OFFSET(120), .V_OFFSET(72)) overlay(
+kg_l2_osd_overlay overlay(
+	.wclk				(clk_bus),
+	.osd_wr			(osd_wr),
+	.osd_waddr		(osd_waddr),
+	.osd_wdata		(osd_wdata),
+	.osd_en			(osd_en),
+	.osd_fg			(osd_fg),
+	.osd_bg			(osd_bg),
+	.osd_alpha		(osd_alpha),
+	.osd_px			(osd_px),
+	.osd_py			(osd_py),
+	.osd_pw			(osd_pw),
+	.osd_ph			(osd_ph),
+	.osd_place		(osd_place),
+	.osd_zoom		(osd_zoom),
+	.icon_on			(8'd0),
+	.icon_act		(8'd0),
+
 	.clk				(clk_bus),
 	.rgb_i			({video_r[7:0], video_g[7:0], video_b[7:0]}),
+	.hs_i				(video_hsync),
+	.vs_i				(video_vsync),
+	.de_i				(~video_blank),
 	.rgb_o			({osd_r[7:0], osd_g[7:0], osd_b[7:0]}),
-	.hsync_i			(video_hsync),
-	.vsync_i			(video_vsync),
-	.osd_command	(osd_command)
+	.hs_o				(osd_hs),
+	.vs_o				(osd_vs),
+	.de_o				(osd_de)
 );
 
 endmodule
