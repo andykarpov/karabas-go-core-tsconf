@@ -273,6 +273,18 @@ TIMEGRP "TG_SRAM_OUT" = "TG_SRAM_IN" PADS("MA<*>") PADS("MRD_N<*>") PADS("MWR_N<
 TIMESPEC "TS_SRAM_OUT" = FROM FFS TO "TG_SRAM_OUT" 12 ns DATAPATHONLY;
 TIMESPEC "TS_SRAM_IN" = FROM "TG_SRAM_IN" TO FFS 12 ns DATAPATHONLY;
 
+# The request of the arbiter into the SRAM controller: sram.v takes it (rq, rd, bsel_r, Areg) in its idle state
+# only with cyc = ce & c3, and ce is high in the clk_sys period that ends with an edge of clk_bus (rtl/bus_ce.v):
+# what the arbiter and zmem give out after one edge of clk_bus (the CPU address -> page -> cache compare ->
+# ramreq -> next_cycle -> drnw, 12 levels) is taken at the next edge of clk_bus, three clk_sys later. At the other
+# edges of clk_sys rd / rq take 0 and Areg is written again at the edge of cyc. A multicycle of 3 clk_sys (35.6 ns,
+# with the clock skew; the paths from clk_sys keep their period).
+INST "tsconf/sram/rd" TNM = "TG_SRAM_CYC";
+INST "tsconf/sram/rq" TNM = "TG_SRAM_CYC";
+INST "tsconf/sram/bsel_r*" TNM = "TG_SRAM_CYC";
+INST "tsconf/sram/Areg*" TNM = "TG_SRAM_CYC";
+TIMESPEC "TS_BUS_TO_SRAM_CYC" = FROM "TG_CLK_BUS" TO "TG_SRAM_CYC" 35.6 ns;
+
 # ---- Mini, Mini G: FT812 and HDMI -------------------------------------------------------------------------------
 # FT_CLK: the pixel clock of the FT812 (its video goes to HDMI with ft_sel = vdac2_sel), up to 80 MHz. The FT812
 # makes it from FT_CLK_OUT (clk_8) with its own PLL: the phase is not known.

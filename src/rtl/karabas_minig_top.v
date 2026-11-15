@@ -199,6 +199,8 @@ wire [7:0] hid_kb_status, hid_kb_dat0, hid_kb_dat1, hid_kb_dat2, hid_kb_dat3, hi
 wire [7:0] ps2_scancode;
 wire ps2_scancode_upd;
 wire loader_act;
+wire fl_act, fl_wr;
+wire [1:0] opl4_filter;
 wire [31:0] loader_addr;
 wire [7:0] loader_data;
 wire loader_wr;
@@ -304,12 +306,18 @@ tsconf tsconf (
 	.covox_en			(covox_en),
 	.psg_mix				(psg_mix),
 	.psg_type			(psg_type),
+	.opl4_filter		(opl4_filter),
 	.vga_60hz			(kb_vga_60hz),
 
 	.loader_act			(loader_act),
 	.loader_a			(loader_addr),
 	.loader_d			(loader_data),
 	.loader_wr			(loader_wr),
+
+	.fl_act				(fl_act),
+	.fl_wr				(fl_wr),
+	.fl_a					(loader_addr),
+	.fl_d					(loader_data),
 
 	.usb_uart_rx_data	(uart_rx_data),
 	.usb_uart_rx_idx	(uart_rx_idx),
@@ -368,7 +376,9 @@ BUFG bufg_ft_clk(.I(ft_clk_ibufg), .O(ft_clk_int));
 
 // hdmi
 wire [7:0] hdmi_freq;
-kg_hdmi_ft #(.CLKRATE(28030303), .REF_MHZ(8'd28), .SAMPLERATE(48000)) hdmi_top(
+// OUTPUT_REG: the TMDS words registered before the serializers (the encoder -> serializer route missed
+// the 64 MHz FT pixel clock near 99 % slices, modules #46)
+kg_hdmi_ft #(.CLKRATE(28030303), .REF_MHZ(8'd28), .SAMPLERATE(48000), .OUTPUT_REG(1)) hdmi_top(
 	.clk				(ft_clk_int),
 	.clk_ref			(clk_bus),
 	.clk_ref_pll	(clk_bus_pll),
@@ -463,6 +473,7 @@ wire mcu_ms_wr;
 wire [15:0] mcu_joy_l, mcu_joy_r;
 wire [5:0] mcu_btns;
 wire [1:0] ld_kind;
+wire [7:0] ld_slot;
 wire ld_active, ld_wr;
 wire [31:0] ld_addr;
 wire [7:0] ld_data;
@@ -476,14 +487,14 @@ wire [1:0] osd_alpha, osd_place;
 wire [4:0] osd_px, osd_ph;
 wire [3:0] osd_py;
 wire [5:0] osd_pw;
-wire [10*8-1:0] softsw;
+wire [15*8-1:0] softsw;
 
 // the EVO RS232 divisor of the core (tx_mode 1) to the mcu in the config of port 0 (0 = 115200)
 wire [127:0] port_cfg = { 96'd0, 16'd0, uart_tx_mode ? { uart_dlm, uart_dll } : 16'd0 };
 
 kg_mcu2 #(
 	.CAPS(16'h0000),
-	.SW_N(10),
+	.SW_N(15),
 	.CS_FILTER(3),
 	.ENABLE_OSD(1),
 	.ENABLE_IMG(0),
@@ -518,6 +529,13 @@ kg_mcu2 #(
 	.BTNS				(mcu_btns),
 	.RELOAD_REQ		(1'b0),
 	.RELOAD_CORE	(8'd0),
+	// no kg_bk_ram (ENABLE_IMG 0): its events tied off
+	.BK_MOUNT		(1'b0),
+	.BK_FLUSHED		(1'b0),
+	.BK_SLOT			(3'd0),
+	.BK_SIZE			(32'd0),
+	.BK_KIND			(8'd0),
+	.BK_RESULT		(8'd0),
 
 	.KBD				(mcu_kbd),
 	.KBD_WR			(),
@@ -536,7 +554,7 @@ kg_mcu2 #(
 	.PS2_CMD_WR		(1'b0),
 
 	.LD_KIND			(ld_kind),
-	.LD_SLOT			(),
+	.LD_SLOT			(ld_slot),
 	.LD_SIZE			(),
 	.LD_START		(),
 	.LD_ACTIVE		(ld_active),
@@ -626,6 +644,10 @@ assign ms_b = mcu_ms_b[2:0];
 // the ROMs of the core file (LD kind 0)
 assign loader_act = ld_active && ld_kind == 2'd0;
 assign loader_wr = ld_wr && ld_kind == 2'd0;
+
+// the YRW801 ROM of the OPL4: the FL item of slot 1 (core.json "OPL4 ROM")
+assign fl_act = ld_active && ld_kind == 2'd2 && ld_slot == 8'd1;
+assign fl_wr = ld_wr && fl_act;
 assign loader_addr = ld_addr;
 assign loader_data = ld_data;
 
@@ -704,6 +726,8 @@ assign kb_pause = softsw[48];
 assign kb_reset_gs = softsw[56];
 assign kb_nmi = softsw[64];
 assign kb_reset = softsw[72];
+// 10 "-", 11 / 12 the pages, 13 the FL item "OPL4 ROM"
+assign opl4_filter = softsw[113:112];
 
 assign btn_reset_n = ~kb_reset && ~hw_btn[0] && ~mcu_busy;
 assign btn_reset_gs_n = ~kb_reset_gs & ~mcu_busy;
