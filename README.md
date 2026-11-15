@@ -12,10 +12,11 @@ A famous ZX-Evolution TS-Conf core ported to the Karabas Go hardware.
 - USB Keyboard (with zx-evo ps/2 keybuffer emulation) 
 - USB mouse
 - 2x Joysticks support (selectable via OSD)
-- Turbosound + FM
-- OPL2 (YM3812)
+- Turbosound (2x AY / YM; the FM part of TS-FM is removed)
+- OPL4 (ZXM-MoonSound: FM + wavetable, ports #C4..#C7 / #7E / #7F, 2 MB sample RAM); the YRW801 ROM is loaded from the SD card: put it as `/tsconf/yrw801.rom`
 - General Sound (2 MB)
-- SAA
+- SAA1099 and OPL2 (YM3812) are removed to fit the OPL4
+- GS / OPL4 output filter in the OSD (off / linear / linear + low-pass)
 - MIDI (Dream SAM2695)
 - Soundrive (4x covox)
 - ZiFi (ESP8266)
