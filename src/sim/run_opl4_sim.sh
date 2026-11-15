@@ -17,7 +17,8 @@ cd "$OUT"
 "$SJASM" --nologo "$SIM/opl4/opl4_z80.asm" > sjasm.log || { cat sjasm.log; exit 1; }
 xxd -p -c 1 opl4_z80.bin > opl4_z80.hex
 iverilog -g2012 -o tb_opl4 "$SIM/opl4/tb_opl4.v" "$SIM/opl4/t80s_stub.v" "$SIM/opl4/opl3_fm_stub.v" "$SIM"/opl4/tv80/*.v \
-	"$SIM/sdram_model.v" "$SIM/lib/ODDR2.v" "$R/ram/sdram2p.v" "$R/sound/gs.v" "$R/sound/gs_top.v" \
+	"$SIM/sdram_model.v" "$SIM/lib/ODDR2.v" "$R/ram/sdram2p.v" "$R/z80-silicon/z80_silicon_cen.v" "$R/z80-silicon/z80s_t80pa.v" \
+	"$R/sound/gs.v" "$R/sound/gs_top.v" \
 	"$R/sound/opl4/opl4_kg.v" "$R/sound/opl4/opl4.v" "$R/sound/opl4/opl4_powtab.v" "$R/sound/opl4/opl4_inctab.v"
 vvp -n tb_opl4 | tee tb_opl4.log | grep "tb_opl4: "
 grep -q "tb_opl4: 0 errors" tb_opl4.log || { echo "tb_opl4 FAILED"; exit 1; }

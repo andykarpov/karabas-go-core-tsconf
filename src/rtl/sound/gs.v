@@ -1,9 +1,16 @@
 //`default_nettype none
 
-module gs(
+// SILICON = 1: the Z80 is z80-silicon (rtl/z80-silicon, the NMOS Z80 from its transistor netlist, the bus
+// of the chip: MREQ / RD at the fall of T1, WAIT sampled at the fall of T2, the data of a write with MREQ,
+// WR at the fall of T2); CE / CE_N its rising / falling edge (CE every other clk_bus: 14 MHz, CE_N = ~CE).
+// SILICON = 0: T80s on CE (everything at its rising edge), CE_N unused.
+module gs #(
+	parameter SILICON = 1
+) (
 	input wire 				CLK,
 	input wire				RESET,
 	input wire				CE,
+	input wire				CE_N,
 	
 	input wire [15:0]		A,
 	input wire [7:0]		DI,
@@ -42,6 +49,29 @@ wire cpu_m1_n, cpu_mreq_n, cpu_iorq_n, cpu_rd_n, cpu_wr_n, cpu_rfsh_n;
 wire [15:0] cpu_a_bus;
 wire [7:0] cpu_di_bus, cpu_do_bus;
 reg int_n;
+generate if (SILICON) begin : cpu_silicon
+z80s_t80pa z80_unit (
+	.RESET_n					(~RESET),
+	.CLK						(CLK),
+	.CEN_p					(CE),
+	.CEN_n					(CE_N),
+	.WAIT_n					(~MEM_WAIT),
+	.INT_n					(int_n),
+	.NMI_n					(1'b1),
+	.BUSRQ_n					(1'b1),
+	.M1_n						(cpu_m1_n),
+	.MREQ_n					(cpu_mreq_n),
+	.IORQ_n					(cpu_iorq_n),
+	.RD_n						(cpu_rd_n),
+	.WR_n						(cpu_wr_n),
+	.RFSH_n					(cpu_rfsh_n),
+	.HALT_n					(),
+	.BUSAK_n					(),
+	.A							(cpu_a_bus),
+	.DI						(cpu_di_bus),
+	.DO						(cpu_do_bus)
+);
+end else begin : cpu_t80s
 t80s #(.Mode(0), .T2Write(1), .IOWait(1)) z80_unit (
 	.RESET_n					(~RESET),
 	.CLK						(CLK),
@@ -62,6 +92,7 @@ t80s #(.Mode(0), .T2Write(1), .IOWait(1)) z80_unit (
 	.DI						(cpu_di_bus),
 	.DO						(cpu_do_bus)
 );
+end endgenerate
 
 // int generator
 reg [9:0] cnt;
@@ -165,9 +196,16 @@ assign cpu_di_bus =
 	(~cpu_iorq_n && ~cpu_rd_n && cpu_a_bus[3:0] == 4'h1) ? port_xxbb_reg : 
 	(~cpu_iorq_n && ~cpu_rd_n && cpu_a_bus[3:0] == 4'h2) ? port_xxb3_reg : 8'hFF;
 
-assign MA = {mem, cpu_a_bus[13:0]};
+// the page: with z80-silicon from the address at once (the cache must see the final address before the
+// fall of T2, where WAIT is sampled; the register mem follows a CE later, as T80s wants it); a memory
+// write is MREQ without RD and RFSH (its data is out with MREQ, WR comes only at the fall of T2)
+wire [6:0] mem_c = (cpu_a_bus[15:14] == 2'b00) ? 7'b0000000 :
+                   (cpu_a_bus[15:14] == 2'b01) ? 7'b0000010 : {port_xx00_reg[5:0], cpu_a_bus[14]};
+wire [6:0] mem_a = SILICON ? mem_c : mem;
+wire       mem_wr_n = SILICON ? (cpu_mreq_n || ~cpu_rd_n || ~cpu_rfsh_n) : (cpu_wr_n || cpu_mreq_n);
+assign MA = {mem_a, cpu_a_bus[13:0]};
 assign MDO = cpu_do_bus;
-assign MWE_n = cpu_wr_n || cpu_mreq_n || ~(mem[6] || mem[5] || mem[4] || mem[3] || mem[2] || mem[1]);
+assign MWE_n = mem_wr_n || ~(mem_a[6] || mem_a[5] || mem_a[4] || mem_a[3] || mem_a[2] || mem_a[1]);
 assign MRD_n = cpu_rd_n || cpu_mreq_n;
 assign MRFSH_n = cpu_rfsh_n;
 assign OE = (~IORQ_n && ~RD_n && A[7:4] == 4'b1011 && A[2:0] == 3'b011) ? 1'b1 : 1'b0;

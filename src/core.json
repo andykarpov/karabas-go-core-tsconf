@@ -11,9 +11,9 @@
     {"filename": "roms/gs105b.rom", "address": 2147483648}
     ],
     "boards": {
-        "go": {"link": 2, "build": "26111504", "bitstream": "karabas_go.bin"},
-        "mini": {"link": 2, "build": "26111504", "bitstream": "karabas_mini.bin"},
-        "minig": {"link": 2, "build": "26111503", "bitstream": "karabas_minig.bin"}
+        "go": {"link": 2, "build": "26111506", "bitstream": "karabas_go.bin"},
+        "mini": {"link": 2, "build": "26111506", "bitstream": "karabas_mini.bin"},
+        "minig": {"link": 2, "build": "26111506", "bitstream": "karabas_minig.bin"}
     },
     "osd": [
     {"type": "S", "name": "Covox", "options": ["Off", "On"], "default": 1, "hotkey": "Menu+F6", "page": 1},
@@ -30,6 +30,7 @@
     {"type": "M", "name": "Sound", "open": 1},
     {"type": "M", "name": "Input", "open": 2},
     {"type": "FL", "name": "OPL4 ROM", "slot": 1, "exts": ["rom", "bin"], "dir": "/tsconf", "file": ["yrw801.rom", "YRW801.ROM"], "autoload": true, "page": 1},
-    {"type": "S", "name": "GS/OPL4 Filter", "options": ["Off", "Linear", "Linear+LPF"], "default": 2, "hotkey": "Menu+F5", "page": 1}
+    {"type": "S", "name": "GS/OPL4 Filter", "options": ["Off", "Linear", "Linear+LPF"], "default": 2, "hotkey": "Menu+F5", "page": 1},
+    {"type": "S", "name": "Tape monitor", "options": ["Off", "In", "Out", "Both"], "default": 0, "hotkey": "Menu+T", "page": 1}
     ]
 }

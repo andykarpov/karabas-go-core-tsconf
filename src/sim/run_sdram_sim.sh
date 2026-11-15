@@ -28,7 +28,8 @@ set --
 source "$SETTINGS" > /dev/null
 vhpcomp -work work "$R/T80/T80_Pack.vhd" "$R/T80/T80_ALU.vhd" "$R/T80/T80_Reg.vhd" "$R/T80/T80_MCode.vhd" \
 	"$R/T80/T80.vhd" "$R/T80/T80s.vhd" > vhpcomp.log || { grep ERROR vhpcomp.log; exit 1; }
-vlogcomp -work work "$SIM/lib/ODDR2.v" "$SIM/sdram_model.v" "$R/ram/sdram2p.v" "$R/sound/gs.v" \
+vlogcomp -work work "$SIM/lib/ODDR2.v" "$SIM/sdram_model.v" "$R/ram/sdram2p.v" "$R/z80-silicon/z80_silicon_cen.v" \
+	"$R/z80-silicon/z80s_t80pa.v" "$R/sound/gs.v" \
 	"$R/sound/gs_top.v" "$SIM/tb_gs_top.v" > vlogcomp.log || { grep ERROR vlogcomp.log; exit 1; }
 fuse -top work.tb_gs_top -o tb_gs_top.exe > fuse.log || { grep ERROR fuse.log; exit 1; }
 echo "run 10 ms; quit" > run.tcl

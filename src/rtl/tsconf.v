@@ -105,6 +105,7 @@ module tsconf
 	input wire [1:0] psg_mix,
 	input wire psg_type,
 	input wire [1:0] opl4_filter,   // the output filter of the GS and the OPL4 (audio_lpf): 0 off, 1 linear, 2 linear + low-pass
+	input wire [1:0] tape_mon,      // Tape monitor: the tape in / out heard in the mix (kg_tape_monitor): 0 off, 1 in, 2 out, 3 both
 	input wire vga_60hz,
 	
 	// fdc
@@ -497,6 +498,31 @@ wire vg_cs_n;
 wire [14:0] gs_out_l, gs_out_r;
 wire gs_sample_t;
 
+`ifdef Z80_SILICON
+  // z80-silicon with the ports of T80pa (rtl/z80-silicon/z80s_t80pa.v): NMOS, OUT (C),0
+  z80s_t80pa cpu
+  (
+    .RESET_n (rst_n),
+    .CLK     (clk_28mhz),
+    .CEN_p   (zpos),
+    .CEN_n   (zneg),
+    .WAIT_n  (~fdc_busy),
+    .INT_n   (cpu_int_n_TS),
+    .NMI_n   (nmi_n),
+    .BUSRQ_n (1'b1),
+    .M1_n    (cpu_m1_n),
+    .MREQ_n  (cpu_mreq_n),
+    .IORQ_n  (cpu_iorq_n),
+    .RD_n    (cpu_rd_n),
+    .WR_n    (cpu_wr_n),
+    .RFSH_n  (cpu_rfsh_n),
+    .HALT_n  (),
+    .BUSAK_n (),
+    .A       (cpu_a_bus),
+    .DI      (cpu_di_bus),
+    .DO      (cpu_do_bus)
+  );
+`else
   t80pa t80pa
   (
     .RESET_n (rst_n),        //    : in  std_logic;
@@ -523,6 +549,7 @@ wire gs_sample_t;
     .DIRSet (1'b0) //      : in  std_logic := '0';
 //    .DIR         : in  std_logic_vector(211 downto 0) := (others => '0') -- IFF2, IFF1, IM, IY, HL', DE', BC', IX, HL, DE, BC, PC, SP, R, I, F', A', F, A
     );
+`endif
 	 
   clock clock
   (
@@ -1331,6 +1358,20 @@ end
 
 assign tape_out = port_xxfe_reg[3];
 
+// the tape monitor (modules rtl/audio/kg_tape_monitor.v): tape_in and MIC (#FE bit 3) into the mix, a 1
+// held longer than 37 ms relaxes to 0 (an open input with its pullup, MIC left at 1 by the ROM)
+wire signed [15:0] tape_mon_sample;
+kg_tape_monitor #(.CLK_HZ(28000000), .HOLD_US(37000), .LEVEL_IN(4096), .LEVEL_OUT(2048)) tape_monitor
+(
+	.clk(clk_28mhz),
+	.mode(tape_mon),
+	.tape_in(tape_in),
+	.tape_out(port_xxfe_reg[3]),
+	.in_on(),
+	.out_on(),
+	.sample(tape_mon_sample)
+);
+
 // covox
 
 wire [7:0] covox_a, covox_b, covox_c, covox_d, covox_fb;
@@ -1445,6 +1486,7 @@ audio_mixer audio_mixer
 	
 	.speaker(port_xxfe_reg[4]),
 	.tape_in(tape_in), 
+	.tape_mon(tape_mon_sample),
 	
 	.ssg0_a(ts_ssg0_a),
 	.ssg0_b(ts_ssg0_b),

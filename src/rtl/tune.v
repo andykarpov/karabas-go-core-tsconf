@@ -7,6 +7,7 @@
 //`define DRAMMEM_VERBOSE
 //`define FETCH_VERBOSE
 
+`define Z80_SILICON     // the CPU: z80-silicon (rtl/z80-silicon, the NMOS Z80 from its transistor netlist); off: T80pa
 `define KEMPSTON_8BIT  // 8-bit enhanced Kempston Joystick interface
 `define IDE_VDAC2      // for VideoDAC2 instead of IDE
 `define ESP32_SPI      // ESP32-S3 SPI (VDAC3), requires IDE_VDAC2
