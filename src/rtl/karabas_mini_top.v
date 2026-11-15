@@ -204,6 +204,7 @@ wire ps2_scancode_upd;
 wire loader_act;
 wire fl_act, fl_wr;
 wire [1:0] opl4_filter;
+wire [1:0] tape_mon;
 wire [31:0] loader_addr;
 wire [7:0] loader_data;
 wire loader_wr;
@@ -300,6 +301,7 @@ tsconf tsconf (
 	.psg_mix				(psg_mix),
 	.psg_type			(psg_type),
 	.opl4_filter		(opl4_filter),
+	.tape_mon		(tape_mon),
 	.vga_60hz			(kb_vga_60hz),
 
 	.loader_act			(loader_act),
@@ -471,14 +473,14 @@ wire [1:0] osd_alpha, osd_place;
 wire [4:0] osd_px, osd_ph;
 wire [3:0] osd_py;
 wire [5:0] osd_pw;
-wire [15*8-1:0] softsw;
+wire [16*8-1:0] softsw;
 
 // the EVO RS232 divisor of the core (tx_mode 1) to the mcu in the config of port 0 (0 = 115200)
 wire [127:0] port_cfg = { 96'd0, 16'd0, uart_tx_mode ? { uart_dlm, uart_dll } : 16'd0 };
 
 kg_mcu2 #(
 	.CAPS(16'h0000),
-	.SW_N(15),
+	.SW_N(16),
 	.CS_FILTER(3),
 	.ENABLE_OSD(1),
 	.ENABLE_IMG(0),
@@ -712,6 +714,7 @@ assign kb_nmi = softsw[64];
 assign kb_reset = softsw[72];
 // 10 "-", 11 / 12 the pages, 13 the FL item "OPL4 ROM"
 assign opl4_filter = softsw[113:112];
+assign tape_mon = softsw[121:120];   // Tape monitor (index 15): 0 off, 1 in, 2 out, 3 both
 
 assign btn_reset_n = ~kb_reset && ~hw_btn[0] && ~mcu_busy;
 assign btn_reset_gs_n = ~kb_reset_gs && ~mcu_busy;

@@ -6,6 +6,7 @@ module audio_mixer (
 	
 	input wire speaker,
 	input wire tape_in,
+	input wire signed [15:0] tape_mon,	// the tape monitor (kg_tape_monitor): 0, 2048, 4096 or 6144
 	
 	input wire [7:0] ssg0_a,
 	input wire [7:0] ssg0_b,
@@ -64,6 +65,7 @@ wire signed [17:0] mix_l = 	$signed({{2{psg_l[11]}}, psg_l[11:0], 4'b0000}) +
 										$signed({{2{esp_l[15]}}, esp_l[15:0]}) +
 `endif
 										$signed({{2{covox_l[11]}}, covox_l[11:0], 4'b0000}) +
+										$signed({{2{tape_mon[15]}}, tape_mon}) +
 										$signed({4'b0000, speaker, 7'b0000000, 6'b000000});
 
 wire signed [17:0] mix_r = 	$signed({{2{psg_r[11]}}, psg_r[11:0], 4'b0000}) +
@@ -75,6 +77,7 @@ wire signed [17:0] mix_r = 	$signed({{2{psg_r[11]}}, psg_r[11:0], 4'b0000}) +
 										$signed({{2{esp_r[15]}}, esp_r[15:0]}) +
 `endif
 										$signed({{2{covox_r[11]}}, covox_r[11:0], 4'b0000}) +
+										$signed({{2{tape_mon[15]}}, tape_mon}) +
 										$signed({4'b0000, speaker, 7'b0000000, 6'b000000});
 
 function signed [15:0] sat16;

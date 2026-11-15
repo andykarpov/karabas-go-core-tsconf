@@ -15,9 +15,12 @@
   port takes it at E2 and the Z80 waits only while the port is still busy; a write to a cached
   line updates its byte. The ROM loader writes through the same port while the GS is held.
 
-  Timing of a GS memory cycle (CE edges E0 T1, E1 RD / WR / MA valid, E2 WAIT and the data sampled):
-  the cache is read with MA at the clk_bus edge after E1, its word compared before E2; a miss or a
-  write is sent at E2.
+  Timing of a GS memory cycle, z80-silicon (gs.v SILICON = 1; the clk_bus edges: T1 rise = ce, T1 fall
+  = ~ce, ...): MA at T1 rise (the page from the address at once), MREQ / RD at T1 fall, the write data
+  with MREQ (a write = MREQ without RD / RFSH; WR itself only at T2 fall); the cache is read with MA at
+  T1 fall, its word compared before T2 rise; a miss or a write is sent at T2 rise, WAIT is sampled at
+  T2 fall (a hit or a posted write: none), the data at T3 rise (M1) / T3 fall. With T80s (SILICON = 0)
+  all of it at the CE edges, the miss / write sent at the second CE.
 */
 module gs_top (
     // clocks
@@ -90,6 +93,7 @@ gs gs
     .RESET(reset),
     .CLK(clk_bus),
     .CE(ce),
+    .CE_N(~ce),          // ce toggles each clk_bus (14 MHz): ~ce is the falling edge of the GS Z80 clock
 
     .A(a),
     .DI(di),

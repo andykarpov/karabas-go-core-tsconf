@@ -4,6 +4,7 @@ A famous ZX-Evolution TS-Conf core ported to the Karabas Go hardware.
 
 ## What's done:
 
+- Z80 CPU: [z80-silicon](https://github.com/dr-Titus/z80-silicon-rtl) (the NMOS Z80 reconstructed from its transistor netlist: exact INT timing, undocumented flags and MEMPTR, OUT (C),0), in the machine and in the General Sound
 - Real floppy support on Go (the VG93 model of the Profi core)
 - Real CF card support (Nemo IDE)
 - VDAC2 (FT812)
@@ -17,6 +18,7 @@ A famous ZX-Evolution TS-Conf core ported to the Karabas Go hardware.
 - General Sound (2 MB)
 - SAA1099 and OPL2 (YM3812) are removed to fit the OPL4
 - GS / OPL4 output filter in the OSD (off / linear / linear + low-pass)
+- Tape monitor in the OSD (off / in / out / both): the tape input and the tape output (MIC) heard in the mix
 - MIDI (Dream SAM2695)
 - Soundrive (4x covox)
 - ZiFi (ESP8266)

@@ -488,7 +488,8 @@ localparam E_INIT = 5'd0, E_IDLE = 5'd1, E_START = 5'd2, E_RD = 5'd3,
            E_MULR = 5'd12, E_WB = 5'd13, E_MIX = 5'd14, E_MIX2 = 5'd15,
            E_CLK1B = 5'd16, E_MIX3 = 5'd17,
            E_CLK1C = 5'd18, E_MULR2 = 5'd19, E_GAP = 5'd20,
-           E_MIXA = 5'd21, E_MIXB = 5'd22;
+           E_MIXA = 5'd21, E_MIXB = 5'd22,
+           E_MIX0 = 5'd23, E_MIXW1 = 5'd24, E_MIXW2 = 5'd25, E_MIXW3 = 5'd26;
 reg  [4:0]  estate;
 reg  [3:0]  ecnt;
 reg  [14:0] env_cnt;
@@ -636,6 +637,10 @@ wire signed [31:0] mul_sh  = prod_r >>> 15;
 reg  signed [31:0] mix_in;
 reg  [10:0] mix_k;
 wire signed [43:0] mix_p   = mix_in * $signed({1'b0, mix_k});
+// karabas: the product through a register (the DSP -> mix_r path missed clk_sys by 0.06 ns on the
+// Mini G); E_MIX0 / E_MIXW1..3 wait for it, 4 clocks more per sample (of about 1900), same output
+reg  signed [43:0] mix_pr;
+always @(posedge clk) mix_pr <= mix_p;
 wire signed [43:0] mix_sh  = mix_r >>> 11;
 
 function [10:0] mixscale;
@@ -927,27 +932,36 @@ always @(posedge clk) begin
 		end
 
 		// DO2 = (FM * mix_fm + PCM * mix_pcm) >> 11, as ymfm
-		E_MIX: begin
-			mix_r <= mix_p;
+		// (each product a clock later in mix_pr: a wait state after each new mix_in / mix_k)
+		E_MIX: estate <= E_MIX0;
+
+		E_MIX0: begin
+			mix_r <= mix_pr;
 			mix_in <= {{11{fm_hl[20]}}, fm_hl}; mix_k <= mixscale(fsc_l);
-			estate <= E_MIXA;
+			estate <= E_MIXW1;
 		end
 
+		E_MIXW1: estate <= E_MIXA;
+
 		E_MIXA: begin
-			mix_r <= mix_r + mix_p;
+			mix_r <= mix_r + mix_pr;
 			mix_in <= acc1; mix_k <= mixscale(sc_r);
-			estate <= E_MIX2;
+			estate <= E_MIXW2;
 		end
+
+		E_MIXW2: estate <= E_MIX2;
 
 		E_MIX2: begin
 			do2_l <= clamp16(mix_sh);
-			mix_r <= mix_p;
+			mix_r <= mix_pr;
 			mix_in <= {{11{fm_hr[20]}}, fm_hr}; mix_k <= mixscale(fsc_r);
-			estate <= E_MIXB;
+			estate <= E_MIXW3;
 		end
 
+		E_MIXW3: estate <= E_MIXB;
+
 		E_MIXB: begin
-			mix_r <= mix_r + mix_p;
+			mix_r <= mix_r + mix_pr;
 			estate <= E_MIX3;
 		end
 
