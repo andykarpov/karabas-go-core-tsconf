@@ -36,8 +36,9 @@ ghdl --synth --std=93c --ieee=synopsys --workdir=w93 -Pw93 --out=verilog -gSAMPL
 	"$H/zhdmi_tmds_encoder.vhd" "$H/zhdmi_tmds_serializer_spartan6.vhd" "$H/zhdmi_audio_packetizer.vhd" \
 	"$H/zhdmi_island_encoder.vhd" "$H/zhdmi_packet_gen.vhd" "$H/zhdmi_signaling.vhd" zhdmi_tx_sim.vhd \
 	-e hdmi_tx > hdmi_tx_vhdl.v 2> ghdl93.log || { cat ghdl93.log; exit 1; }
-# kg_hdmi_ft sets SAMPLE_FREQ, built in above
-sed -i '/^module hdmi_tx$/,/);/{/);/a\  parameter SAMPLE_FREQ = 0;
+# kg_hdmi_ft sets SAMPLE_FREQ (built in above) and INPUT_REG / OUTPUT_REG (0 in tb_hdmi_top, the netlist
+# has none: the generics are 0)
+sed -i '/^module hdmi_tx$/,/);/{/);/a\  parameter SAMPLE_FREQ = 0;\n  parameter INPUT_REG = 0;\n  parameter OUTPUT_REG = 0;
 }' hdmi_tx_vhdl.v
 grep -q "parameter SAMPLE_FREQ = 0;" hdmi_tx_vhdl.v || { echo "no hdmi_tx module in the netlist"; exit 1; }
 ghdl --synth --std=08 --ieee=synopsys --workdir=w08 --out=verilog "$H/dvi_encoder.vhd" "$H/dvi.vhd" -e dvi \

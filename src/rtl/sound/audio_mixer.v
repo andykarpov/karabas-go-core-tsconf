@@ -21,15 +21,10 @@ module audio_mixer (
 	input wire [7:0] covox_d,
 	input wire [7:0] covox_fb,	
 	
-	input wire [7:0] saa_l,
-	input wire [7:0] saa_r,
+	// the GS + the OPL4 at half, interpolated and filtered (audio_lpf.v), signed
+	input wire [16:0] gs_opl4_l,
+	input wire [16:0] gs_opl4_r,
 	
-	input wire [14:0] gs_l,
-	input wire [14:0] gs_r,
-	
-	input wire [15:0] fm_l,
-	input wire [15:0] fm_r,
-
 `ifdef HW_ID2
 	input wire [15:0] adc_l,
 	input wire [15:0] adc_r,
@@ -40,17 +35,11 @@ module audio_mixer (
 	 input wire [15:0] esp_r,
 `endif
 	
-	input wire fm_ena,
-	
-	input wire [15:0] opl3_l,
-	input wire [15:0] opl3_r,
-	
-	output wire signed [15:0] audio_l,
-	output wire signed [15:0] audio_r
+	output reg signed [15:0] audio_l = 16'sd0,
+	output reg signed [15:0] audio_r = 16'sd0
 );
 
-reg signed [11:0] psg_l, psg_r, opn_s;
-reg signed [11:0] tsfm_l, tsfm_r;
+reg signed [11:0] psg_l, psg_r;
 reg signed [11:0] covox_l, covox_r;
 
 always @(posedge clk) begin
@@ -61,42 +50,46 @@ always @(posedge clk) begin
 	psg_r <= (mode == 2'b00 || mode== 2'b10) ? 
 		$signed({3'b000, ssg0_c, 1'd0}) + $signed({3'b000, ssg1_c, 1'd0}) + $signed({4'b0000, ssg0_b}) + $signed({4'b0000, ssg1_b}) : 
 		$signed({3'b000, ssg0_b, 1'd0}) + $signed({3'b000, ssg1_b, 1'd0}) + $signed({4'b0000, ssg0_c}) + $signed({4'b0000, ssg1_c});	
-	opn_s <= {{2{fm_l[15]}}, fm_l[15:6]} + {{2{fm_r[15]}}, fm_r[15:6]};
-
-	tsfm_l <= fm_ena ? $signed(opn_s) + $signed(psg_l) : $signed(psg_l);
-	tsfm_r <= fm_ena ? $signed(opn_s) + $signed(psg_r) : $signed(psg_r);
-
 	covox_l <= $signed({2'b00, covox_a, 2'b00}) + $signed({2'b00, covox_b, 2'b00}) + $signed({3'b000, covox_fb, 1'b0});
 	covox_r <= $signed({2'b00, covox_c, 2'b00}) + $signed({2'b00, covox_d, 2'b00}) + $signed({3'b000, covox_fb, 1'b0});
 end
 
-wire signed [15:0] mix_l = 	$signed({tsfm_l[11:0], 4'b0000}) + 
-										$signed({gs_l[14],gs_l[14:0]}) + 
+// the sum in 18 bits, saturated to 16 (it wrapped around before: a click on the loud parts)
+wire signed [17:0] mix_l = 	$signed({{2{psg_l[11]}}, psg_l[11:0], 4'b0000}) +
+										$signed({gs_opl4_l[16], gs_opl4_l}) +
 `ifdef HW_ID2
-										$signed(adc_l[15:0]) +
+										$signed({{2{adc_l[15]}}, adc_l[15:0]}) +
 `endif
 `ifdef HW_ID3
-										$signed(esp_l[15:0]) +
+										$signed({{2{esp_l[15]}}, esp_l[15:0]}) +
 `endif
-										$signed(opl3_l[15:0]) + 
-										$signed({2'b00, saa_l, 6'b000000}) +
-										$signed({covox_l[11:0], 4'b0000}) + 
-										$signed({2'b00, speaker, 7'b0000000, 6'b0000});
+										$signed({{2{covox_l[11]}}, covox_l[11:0], 4'b0000}) +
+										$signed({4'b0000, speaker, 7'b0000000, 6'b000000});
 
-wire signed [15:0] mix_r = 	$signed({tsfm_r[11:0], 4'b0000}) + 
-										$signed({gs_r[14], gs_r[14:0]}) + 
+wire signed [17:0] mix_r = 	$signed({{2{psg_r[11]}}, psg_r[11:0], 4'b0000}) +
+										$signed({gs_opl4_r[16], gs_opl4_r}) +
 `ifdef HW_ID2
-										$signed(adc_r[15:0]) +
-`endif							
+										$signed({{2{adc_r[15]}}, adc_r[15:0]}) +
+`endif
 `ifdef HW_ID3
-										$signed(esp_r[15:0]) +
-`endif							
-										$signed(opl3_r[15:0]) + 
-										$signed({2'b00, saa_r, 6'b000000}) +										
-										$signed({covox_r[11:0], 4'b0000}) + 
-										$signed({2'b00, speaker, 7'b0000000, 6'b000000});
+										$signed({{2{esp_r[15]}}, esp_r[15:0]}) +
+`endif
+										$signed({{2{covox_r[11]}}, covox_r[11:0], 4'b0000}) +
+										$signed({4'b0000, speaker, 7'b0000000, 6'b000000});
 
-assign audio_l = mix_l;
-assign audio_r = mix_r;
+function signed [15:0] sat16;
+	input signed [17:0] v;
+	begin
+		if (v > 18'sd32767)       sat16 = 16'sh7fff;
+		else if (v < -18'sd32768) sat16 = 16'sh8000;
+		else                      sat16 = v[15:0];
+	end
+endfunction
+
+// registered: the DACs and the HDMI audio take it on the falling clk
+always @(posedge clk) begin
+	audio_l <= sat16(mix_l);
+	audio_r <= sat16(mix_r);
+end
 
 endmodule

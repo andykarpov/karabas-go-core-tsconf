@@ -104,6 +104,7 @@ module tsconf
 	input wire covox_en,
 	input wire [1:0] psg_mix,
 	input wire psg_type,
+	input wire [1:0] opl4_filter,   // the output filter of the GS and the OPL4 (audio_lpf): 0 off, 1 linear, 2 linear + low-pass
 	input wire vga_60hz,
 	
 	// fdc
@@ -126,6 +127,13 @@ module tsconf
 	input wire [31:0] loader_a,
 	input wire [7:0] loader_d,
 	input wire loader_wr,
+
+	// the YRW801 ROM of the OPL4 (the FL item of core.json): ld_wr of that item, the byte offset
+	// in the file; the OPL4 is held while fl_act
+	input wire fl_act,
+	input wire fl_wr,
+	input wire [31:0] fl_a,
+	input wire [7:0] fl_d,
 
     // sdram
 	output wire        sdram_clk,
@@ -481,6 +489,13 @@ assign midi_reset_n = rst_n;
 
 // clock: a PLL output (it was a BUFGCE of clk with ce, a gated clock of 1/3 duty behind the BUFG of clk)
 wire clk_28mhz = clk_bus;
+
+// used before their blocks below
+wire int_start_ft;          // the FT812 interrupt (video)
+wire [1:0] vg_a;            // the FDC
+wire vg_cs_n;
+wire [14:0] gs_out_l, gs_out_r;
+wire gs_sample_t;
 
   t80pa t80pa
   (
@@ -1183,7 +1198,7 @@ wire clk_28mhz = clk_bus;
 //  wire esp_ft_spi_dis;
 //`endif
  wire ft_int = ftint;
- wire int_start_ft = ftint_r[1] && !ftint_r[0];
+ assign int_start_ft = ftint_r[1] && !ftint_r[0];
  
  always @(posedge clk_28mhz)
     ftint_r <= {ftint_r[0], ft_int}; // FT812 INT_n
@@ -1276,8 +1291,6 @@ wire ts_enable = ~cpu_iorq_n & cpu_a_bus[15] & (cpu_a_bus[3:0] == 4'b1101);
 wire ts_we     = ts_enable & ~cpu_wr_n;
 wire  [7:0] ts_do;
 wire [7:0] ts_ssg0_a, ts_ssg0_b, ts_ssg0_c, ts_ssg1_a, ts_ssg1_b, ts_ssg1_c;
-wire [15:0] ts_ssg0_fm, ts_ssg1_fm;
-wire ts_fm_ena;
 
 reg ce_ym;
 reg [2:0] div;
@@ -1304,43 +1317,9 @@ turbosound turbosound
 	.SSG1_AUDIO_A(ts_ssg1_a),
 	.SSG1_AUDIO_B(ts_ssg1_b),
 	.SSG1_AUDIO_C(ts_ssg1_c),
-	
-	.SSG0_AUDIO_FM(ts_ssg0_fm),
-	.SSG1_AUDIO_FM(ts_ssg1_fm),
-	
-	.SSG_FM_ENA(ts_fm_ena),
+
 	.MIDI_TX(midi_tx)
 );
-
-// SAA1099
-
-wire saa_wr_n;
-wire [7:0] saa_out_l;
-wire [7:0] saa_out_r;
-
-// 8 MHz clock enable for the SAA1099 (its clock in the SAM Coupe): a phase accumulator,
-// 8 / 28.0303 * 2^16 = 18704 (8.0002 MHz on average, one clk_bus of jitter). It ran on clk8 before,
-// with the CPU writes and its output crossing to clk_bus unsynchronised.
-reg [16:0] acc8 = 17'd0;
-always @(posedge clk_bus)
-	acc8 <= {1'b0, acc8[15:0]} + 17'd18704;
-wire ce_8 = acc8[16];
-
-saa1099 saa1099
-(
-	.clk(clk_bus),
-	.ena(ce_8),
-	.rst_n(~rst),
-	.cs_n(1'b0),
-	.a0(cpu_a_bus[8]),
-	.wr_n(saa_wr_n),
-	.din(cpu_do_bus),
-	.out_l(saa_out_l),
-	.out_r(saa_out_r)
-);
-
-assign saa_wr_n = cpu_iorq_n || cpu_wr_n || ~(cpu_a_bus[7:0] == 8'hFF);
-
 
 // beeper / tape out
 
@@ -1375,22 +1354,84 @@ covox covox
 	.O_FB(covox_fb)
 );
 
-// opl3
-wire [15:0] opl3_l, opl3_r;
-wire opl3_port_cs = cpu_a_bus[7:1] == 7'b1100010; // #C4 + #C5
-wire opl3_cs_n = ~(cpu_m1_n & ~cpu_iorq_n & opl3_port_cs);
-wire [7:0] opl3_do_bus;
+// OPL4 (ZXM-MoonSound: #C4..#C7 FM, #7E / #7F wave), its sample memory in the SDRAM (gs_top port 2)
+wire [15:0] opl4_l, opl4_r;
+wire opl4_sample_t;
+wire opl4_sel;
+wire [7:0] opl4_do_bus;
+wire [21:0] opl4_mem_addr;
+wire opl4_mem_req, opl4_mem_we, opl4_mem_ack;
+wire [7:0] opl4_mem_wdata;
+wire [15:0] opl4_mem_rdata;
 
-opl2_top opl2_isnt(
-	.clk(clk_28mhz), 
-	.reset(rst),
-	.din(cpu_do_bus),
-	.a(cpu_a_bus[0]),
-	.dout(opl3_do_bus),
-	.wr_n(cpu_wr_n),
-	.cs_n(opl3_cs_n),
-	.out_l(opl3_l),
-	.out_r(opl3_r)
+// the read data of the OPL4 (clk, combinational from its registers) into clk_bus: straight into the
+// data bus of the CPU it had one clk_sys to the instruction register of the T80 (+0.03 ns); a read of
+// a port lasts some T-states, one clk_bus more does not matter
+reg [7:0] opl4_do_r = 8'hFF;
+always @(posedge clk_bus) opl4_do_r <= opl4_do_bus;
+
+// the reset into clk (the OPL4 runs on it): the machine reset or the load of its ROM
+reg [1:0] opl4_rst_s = 2'b11;
+always @(posedge clk) opl4_rst_s <= {opl4_rst_s[0], rst | fl_act};
+
+opl4_kg opl4
+(
+	.CLK(clk),
+	.CLK28(clk_bus),
+	.RESET(opl4_rst_s[1]),
+	.A(cpu_a_bus[7:0]),
+	.DI(cpu_do_bus),
+	.DO(opl4_do_bus),
+	.IORQ_n(cpu_iorq_n),
+	.M1_n(cpu_m1_n),
+	.RD_n(cpu_rd_n),
+	.WR_n(cpu_wr_n),
+	.DOS(dos),
+	.SEL(opl4_sel),
+	.IRQ(),
+	.MEM_ADDR(opl4_mem_addr),
+	.MEM_REQ(opl4_mem_req),
+	.MEM_WE(opl4_mem_we),
+	.MEM_WDATA(opl4_mem_wdata),
+	.MEM_ACK(opl4_mem_ack),
+	.MEM_RDATA(opl4_mem_rdata),
+	.OUT_L(opl4_l),
+	.OUT_R(opl4_r),
+	.SAMPLE_T(opl4_sample_t)
+);
+
+// the OPL4 (clk, 44.1 kHz) and the GS (clk_bus, a sample of its players each INT: 748 clk_bus)
+// interpolated, then their sum (the OPL4 at half) through one low-pass (see audio_lpf.v)
+wire [15:0] opl4_li, opl4_ri, gs_li, gs_ri;
+audio_interp #(.STEP(1648), .STEPS(636)) opl4_interp
+(
+	.clk(clk_bus),
+	.lin(opl4_filter != 2'd0),
+	.sample_t(opl4_sample_t),
+	.in_l(opl4_l),
+	.in_r(opl4_r),
+	.out_l(opl4_li),
+	.out_r(opl4_ri)
+);
+audio_interp #(.STEP(1401), .STEPS(748)) gs_interp
+(
+	.clk(clk_bus),
+	.lin(opl4_filter != 2'd0),
+	.sample_t(gs_sample_t),
+	.in_l({gs_out_l[14], gs_out_l}),
+	.in_r({gs_out_r[14], gs_out_r}),
+	.out_l(gs_li),
+	.out_r(gs_ri)
+);
+wire [16:0] gs_opl4_l, gs_opl4_r;
+audio_lpf audio_lpf
+(
+	.clk(clk_bus),
+	.en(opl4_filter[1]),
+	.in_l($signed({gs_li[15], gs_li}) + $signed({{2{opl4_li[15]}}, opl4_li[15:1]})),
+	.in_r($signed({gs_ri[15], gs_ri}) + $signed({{2{opl4_ri[15]}}, opl4_ri[15:1]})),
+	.out_l(gs_opl4_l),
+	.out_r(gs_opl4_r)
 );
 
 // audio mixer
@@ -1418,16 +1459,9 @@ audio_mixer audio_mixer
 	.covox_d(covox_d),
 	.covox_fb(covox_fb),
 	
-	.saa_l(saa_out_l),
-	.saa_r(saa_out_r),
+	.gs_opl4_l(gs_opl4_l),
+	.gs_opl4_r(gs_opl4_r),
 	
-	.gs_l(gs_out_l),
-	.gs_r(gs_out_r),
-	
-	.fm_l(ts_ssg0_fm),
-	.fm_r(ts_ssg1_fm),
-	
-	.fm_ena(ts_fm_ena),
 
 `ifdef HW_ID2
 	.adc_l(adc_in_l),
@@ -1439,8 +1473,7 @@ audio_mixer audio_mixer
 	.esp_r(esp_in_r),
 `endif
 
-	.opl3_l(opl3_l),
-	.opl3_r(opl3_r),
+
 	
 	.audio_l(audio_out_l),
 	.audio_r(audio_out_r)
@@ -1456,7 +1489,7 @@ assign cpu_di_bus =
 		(ts_enable && ~cpu_rd_n)										?	ts_do					:	// TurboSound
 		(~zifi_oe_n)														?  zifi_do_bus       :  // zifi
       (gs_oe)																?  gs_do_bus 			:  // gs
-		(opl3_port_cs && ~cpu_rd_n)									? opl3_do_bus			:  // opl3
+		(opl4_sel && ~cpu_rd_n)											? opl4_do_r				:  // opl4
 `ifndef HW_ID2
 		(fdc_oe & ~vdos)													?  fdc_do_bus 			:  // floppy
 `endif
@@ -1500,9 +1533,7 @@ zifi zifi(
 	.UART_CTS(uart_cts)
 );
 
-// fdc
-wire [1:0] vg_a;
-wire vg_cs_n;
+// fdc (vg_a, vg_cs_n declared above)
 
 `ifndef HW_ID2
 
@@ -1580,7 +1611,6 @@ end
 
 wire gs_oe;
 wire [7:0] gs_do_bus;
-wire [14:0] gs_out_l, gs_out_r;
 
 gs_top gs_top
 (
@@ -1615,6 +1645,18 @@ gs_top gs_top
     .loader_d(loader_d),
     .loader_wr(loader_wr),
 
+    .fl_wr(fl_wr),
+    .fl_a(fl_a),
+    .fl_d(fl_d),
+
+    .opl_addr(opl4_mem_addr),
+    .opl_req(opl4_mem_req),
+    .opl_we(opl4_mem_we),
+    .opl_wdata(opl4_mem_wdata),
+    .opl_ack(opl4_mem_ack),
+    .opl_rdata(opl4_mem_rdata),
+
+    .sample_t(gs_sample_t),
     .out_l(gs_out_l),
     .out_r(gs_out_r)    
 );

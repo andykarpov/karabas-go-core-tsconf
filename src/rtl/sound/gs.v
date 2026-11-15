@@ -20,9 +20,11 @@ module gs(
 	output wire				MRFSH_n,
 	output wire 			MWE_n,
 	output wire				MRD_n,
+	input wire				MEM_WAIT,	// the memory access is not done: WAIT of the Z80 (gs_top)
 	
 	output wire signed [14:0]	OUT_L,
-	output wire signed [14:0]	OUT_R
+	output wire signed [14:0]	OUT_R,
+	output reg					SAMPLE_T = 1'b0	// toggles with each INT (37.47 kHz): the sample period of the players
 );
 
 localparam INT = 373; // -- 14MHz / 373 = 0.0375MHz = 37.5kHz samplerate
@@ -44,7 +46,7 @@ t80s #(.Mode(0), .T2Write(1), .IOWait(1)) z80_unit (
 	.RESET_n					(~RESET),
 	.CLK						(CLK),
 	.CEN						(CE),
-	.WAIT_n					(1'b1),
+	.WAIT_n					(~MEM_WAIT),
 	.INT_n					(int_n),
 	.NMI_n					(1'b1),
 	.BUSRQ_n					(1'b1),
@@ -72,6 +74,7 @@ always @(posedge CLK) begin
 		if (cnt == INT) begin
 			cnt <= 0;
 			int_n <= 0;
+			SAMPLE_T <= ~SAMPLE_T;
 		end
 	end
 	
@@ -138,7 +141,7 @@ begin
 			endcase
 		end
 		
-		if (~cpu_mreq_n && ~cpu_rd_n && cpu_a_bus[15:13] == 3) begin
+		if (~cpu_mreq_n && ~cpu_rd_n && ~MEM_WAIT && cpu_a_bus[15:13] == 3) begin
 			case(cpu_a_bus[9:8])
 				0: ch_a_reg <= {~MDI[7], MDI[6:0]};
 				1: ch_b_reg <= {~MDI[7], MDI[6:0]};
