@@ -3,7 +3,8 @@
 ; a demo-style upload of 512 bytes with busy polling and its verify; here also a read of the first
 ; 256 bytes of the ROM (loaded by the FL loader before: byte n = n xor #A5). Results at #8000:
 ; +0 ID before NEW2 (06), +1 after (02), +2 reg 2 (30), +3 / +4 RAM test (AA 55), +5 upload errors,
-; +8 ROM read errors, +7 = #EE at the end.
+; +8 ROM read errors, +10 status with the FM timer 1 run out (C0), +11 after its reset (00), +12..14 FM registers read back
+; (5A, A5, 00), +7 = #EE at the end.
 	DEVICE ZXSPECTRUM48
 MOON_STAT equ 0C4h
 MOON_WREG equ 7Eh
@@ -137,9 +138,65 @@ romok:	inc l
 	ld (res+8),ix
 	ld de,0210h
 	call wave_out
+; the FM timer 1: 2 steps (FEh) started, its flag in the status (IRQ + FT1 = C0), reset by reg 4 bit 7
+	ld de,02FEh
+	call fm1_out
+	ld de,0401h
+	call fm1_out
+	ld bc,0
+tmr:	in a,(MOON_STAT)
+	bit 7,a
+	jr nz,tmrok
+	dec bc
+	ld a,b
+	or c
+	jr nz,tmr
+tmrok:	in a,(MOON_STAT)
+	and 0E0h
+	ld (res+10),a
+	ld de,0480h
+	call fm1_out
+	in a,(MOON_STAT)
+	and 0E0h
+	ld (res+11),a
+	ld de,0400h
+	call fm1_out
+; the FM registers read back (the MFM player keys off by IN / AND / OUT of B0+ch): A3 of bank 0 = 5A,
+; A4 of bank 1 = A5, then A4 of bank 0 (never written: 00)
+	ld de,0A35Ah
+	call fm1_out
+	ld de,0A4A5h
+	call fm2_out
+	ld a,0A3h
+	out (0C4h),a
+	push bc
+	pop bc
+	in a,(0C5h)
+	ld (res+12),a
+	ld a,0A4h
+	out (0C6h),a
+	push bc
+	pop bc
+	in a,(0C7h)
+	ld (res+13),a
+	ld a,0A4h
+	out (0C4h),a
+	push bc
+	pop bc
+	in a,(0C5h)
+	ld (res+14),a
 	ld a,0EEh
 	ld (res+7),a
 	halt
+
+fm1_out:
+	ld a,d
+	out (0C4h),a
+	push bc
+	pop bc
+	ld a,e
+	out (0C5h),a
+	ret
 
 wave_out:
 	ld a,d

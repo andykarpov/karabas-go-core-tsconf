@@ -18,6 +18,7 @@ A famous ZX-Evolution TS-Conf core ported to the Karabas Go hardware.
 - General Sound (2 MB)
 - SAA1099 and OPL2 (YM3812) are removed to fit the OPL4
 - GS / OPL4 output filter in the OSD (off / linear / linear + low-pass)
+- OPL4 interpolation in the OSD (on by default): the samples and the FM output interpolated linearly, as in openMSX
 - Tape monitor in the OSD (off / in / out / both): the tape input and the tape output (MIC) heard in the mix
 - MIDI (Dream SAM2695)
 - Soundrive (4x covox)
