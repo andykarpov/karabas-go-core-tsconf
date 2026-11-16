@@ -34,6 +34,7 @@ module opl4_kg (
 	input  wire        RD_n,
 	input  wire        WR_n,
 	input  wire        DOS,
+	input  wire        INTERP,     // linear interpolation of the samples (OSD; openMSX does it, ymfm not)
 	output wire        SEL,        // port selected (for the read data mux)
 	output reg         IRQ,        // FM timer interrupt, active high (not connected in the core)
 
@@ -75,6 +76,9 @@ always @(posedge CLK) begin
 	rd_done_p <= !rd_s[1] && rd_s[2];
 end
 
+reg [1:0] INTERP_s = 2'b00;
+always @(posedge CLK) INTERP_s <= {INTERP_s[0], INTERP};
+
 // 44.1 kHz sample clock: 84.09 MHz (50 MHz * 37 / 22) * 2252420 / 2^32
 reg [31:0] ph = 32'd0;
 reg        tick = 1'b0;
@@ -85,39 +89,56 @@ end
 
 // ---------------------------------------------------------------------------
 // FM part: opl3_fm in the 28 MHz domain. The FM engine of the YMF278B runs
-// at clock/684 = 49.5 kHz against 44.1 kHz output (ratio 192/171), so as in
-// ymfm an output period gets one FM sample, and every 171/21-th one a
-// second, issued 640 clocks (7.6 us) after the first (a sample takes 5.7 us).
-// The FM output used in an output period is the one finished in the
-// previous period; it is stable here for at least 9 us around the tick.
+// at clock/684 = 49.5 kHz against 44.1 kHz output (ratio 192/171). Its
+// samples are issued evenly by a phase accumulator (44.1 kHz * 192/171,
+// 2529032 / 2^32 of CLK; a sample takes 5.7 us of the 20.2 us), and the
+// value at an output tick is interpolated linearly between the last two
+// finished FM samples, by the phase since the last FM tick (fm_ph[31:16]):
+// the FM timeline delayed by one FM period, sampled at 44.1 kHz. Taking the
+// last finished sample instead (as before, and with INTERP = 0) drops one
+// FM sample in 8.14 and moves the others by up to a period: broadband noise
+// at 10..25 dB under bright FM tones (sim/opl3ref noise.py, build 26111602:
+// the "sand" of the MoonBlaster FM songs).
 // ---------------------------------------------------------------------------
 wire        fm_w;
 wire [16:0] fm_wword;
 reg  [16:0] fm_word_r = 17'd0;
 reg         fm_wtgl = 1'b0, fm_ttgl = 1'b0;
-reg  [7:0]  fm_acc = 8'd0;
-reg  [9:0]  fm_dly = 10'd0;
-reg         fm_extra = 1'b0;
+reg  [31:0] fm_ph = 32'd0;
+wire [32:0] fm_ph_n = {1'b0, fm_ph} + 33'd2529032;
 wire signed [19:0] fm_out_l, fm_out_r;
+reg  signed [19:0] fm_ya_l = 20'sd0, fm_ya_r = 20'sd0, fm_yb_l = 20'sd0, fm_yb_r = 20'sd0;
 reg  signed [19:0] fm_hold_l = 20'sd0, fm_hold_r = 20'sd0;
+// the interpolation, three stages from one snapshot of ya, yb and the phase
+reg  signed [19:0] fi_a_l = 20'sd0, fi_a_r = 20'sd0, fi_a2_l = 20'sd0, fi_a2_r = 20'sd0;
+reg  signed [20:0] fi_d_l = 21'sd0, fi_d_r = 21'sd0;
+reg         [15:0] fi_f = 16'd0;
+reg  signed [37:0] fi_p_l = 38'sd0, fi_p_r = 38'sd0;
+reg  signed [19:0] fi_v_l = 20'sd0, fi_v_r = 20'sd0;
+always @(posedge CLK) begin
+	fi_a_l <= fm_ya_l; fi_d_l <= fm_yb_l - fm_ya_l;
+	fi_a_r <= fm_ya_r; fi_d_r <= fm_yb_r - fm_ya_r;
+	fi_f   <= fm_ph[31:16];
+	fi_a2_l <= fi_a_l; fi_p_l <= fi_d_l * $signed({1'b0, fi_f});
+	fi_a2_r <= fi_a_r; fi_p_r <= fi_d_r * $signed({1'b0, fi_f});
+	fi_v_l <= fi_a2_l + fi_p_l[35:16];   // |d * f| < 2^36: ya + (yb - ya) * f lies between ya and yb
+	fi_v_r <= fi_a2_r + fi_p_r[35:16];
+end
 always @(posedge CLK) begin
 	if (RESET) begin
-		fm_wtgl <= 1'b0; fm_ttgl <= 1'b0; fm_acc <= 8'd0; fm_extra <= 1'b0;
+		fm_wtgl <= 1'b0; fm_ttgl <= 1'b0; fm_ph <= 32'd0;
 	end else begin
 		if (fm_w) begin fm_word_r <= fm_wword; fm_wtgl <= ~fm_wtgl; end
-		if (tick) begin
+		fm_ph <= fm_ph_n[31:0];
+		if (fm_ph_n[32]) begin
+			// an FM tick: the sample of the last one is finished (it took 5.7 us of 20.2)
 			fm_ttgl <= ~fm_ttgl;
-			fm_hold_l <= fm_out_l;
-			fm_hold_r <= fm_out_r;
-			if (fm_acc + 8'd21 >= 8'd171) begin
-				fm_acc <= fm_acc + 8'd21 - 8'd171;
-				fm_extra <= 1'b1;
-				fm_dly <= 10'd0;
-			end else
-				fm_acc <= fm_acc + 8'd21;
-		end else if (fm_extra) begin
-			fm_dly <= fm_dly + 1'd1;
-			if (fm_dly == 10'd639) begin fm_extra <= 1'b0; fm_ttgl <= ~fm_ttgl; end
+			fm_ya_l <= fm_yb_l; fm_ya_r <= fm_yb_r;
+			fm_yb_l <= fm_out_l; fm_yb_r <= fm_out_r;
+		end
+		if (tick) begin
+			fm_hold_l <= INTERP_s[1] ? fi_v_l : fm_yb_l;
+			fm_hold_r <= INTERP_s[1] ? fi_v_r : fm_yb_r;
 		end
 	end
 end
@@ -146,6 +167,7 @@ opl4 core (
 	.rd_data    (DO),
 	.rd_done    (rd_done_p),
 	.sample_tick(tick),
+	.interp     (INTERP_s[1]),
 	.do1_l      (do1_l),
 	.do1_r      (do1_r),
 	.do2_l      (do2_l),

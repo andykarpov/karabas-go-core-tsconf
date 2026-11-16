@@ -23,7 +23,9 @@
 // writes. mem_req is held until mem_ack (one clock).
 // Writes to addresses below 0x200000 (sample ROM) are dropped.
 // ============================================================================
-module opl4 (
+module opl4 #(
+	parameter integer DEADLINE = 1800   // karabas: interp off for a voice that would end the frame later (clk)
+) (
 	input             clk,
 	input             reset,
 
@@ -35,6 +37,7 @@ module opl4 (
 	input             rd_done,
 
 	input             sample_tick,
+	input             interp,     // karabas: 1 = linear interpolation between two samples (openMSX; ymfm has none)
 	output reg signed [15:0] do1_l,
 	output reg signed [15:0] do1_r,
 	output reg signed [15:0] do2_l,
@@ -257,6 +260,20 @@ end
 assign irq = ft1 | ft2;
 wire [7:0] fm_status = {ft1 | ft2, ft1, ft2, 5'd0};
 
+// FM register read back (karabas): the FM registers of the YMF278B are readable through the data
+// ports #C5 / #C7 (openMSX YMF278B::readIO: ymf262.readReg(opl3latch)); ymfm returns FF. The MFM player
+// (MoonBlaster FM + Wave, Mick 2015) keys an FM note off by IN / AND DFh / OUT of B0+ch: with FF read
+// it wrote DF, block 7 and F-number 3xx, and the release of every FM note went up to a whistle / hiss.
+// A copy of the 512 registers as written (block RAM; fm_addr holds a read long before the IN).
+reg  [7:0]  fmreg [0:511];
+reg  [7:0]  fmreg_q;
+integer     fmreg_i;
+initial for (fmreg_i = 0; fmreg_i < 512; fmreg_i = fmreg_i + 1) fmreg[fmreg_i] = 8'd0;   // as after a reset of the chip
+always @(posedge clk) begin
+	if (fm_w) fmreg[fm_wword[16:8]] <= fm_wword[7:0];
+	fmreg_q <= fmreg[fm_addr];
+end
+
 // read data
 assign busy = (fifo_cnt >= 6'd16) | pref_dirty;
 always @* begin
@@ -266,6 +283,8 @@ always @* begin
 			if (status_id)  rd_data = new2 ? 8'h02 : (new1 ? 8'h00 : 8'h06);
 			else if (new2)  rd_data = fm_status | {6'd0, ld_cnt != 4'd0, busy};
 			else            rd_data = fm_status;
+		3'd1, 3'd3:
+			rd_data = fmreg_q;
 		3'd5:
 			case (pcm_addr)
 				8'h02: rd_data = r2 | 8'h20;
@@ -329,6 +348,7 @@ wire [15:0] hdr_end  = {hbuf[5], hbuf[6]};
 always @(posedge clk) begin
 	reg_we  <= 1'b0;
 	hdr_we  <= 1'b0;
+	cinv    <= 24'd0;
 	key_set <= 24'd0; key_on_set <= 24'd0; env_set <= 24'd0;
 	if (reset) begin
 		hstate <= H_INIT;
@@ -345,6 +365,7 @@ always @(posedge clk) begin
 			reg_waddr <= hcnt;
 			reg_wdata <= (hcnt == 8'hf8) ? 8'h1b : 8'h00;
 			hdr_we    <= hcnt < 8'd24;
+			cinv      <= 24'hffffff;
 			hdr_waddr <= hcnt[4:0];
 			hdr_wdata <= 56'd0;
 			hcnt <= hcnt + 1'd1;
@@ -373,6 +394,7 @@ always @(posedge clk) begin
 				r3 <= {2'b00, memaddr_inc[21:16]}; r4 <= memaddr_inc[15:8]; r5 <= memaddr_inc[7:0];
 				pref_dirty <= 1'b1;
 				if (memaddr[21]) begin
+					cinv <= 24'hffffff;   // the RAM changes: no cached sample is sure
 					h_req <= 1'b1; h_we <= 1'b1;
 					h_addr <= memaddr; h_wdata <= f_data;
 					hstate <= H_MEMW;
@@ -433,6 +455,7 @@ always @(posedge clk) begin
 			if (hcnt == 8'd4) begin
 				hdr_we    <= 1'b1;
 				hdr_waddr <= hch;
+				cinv[hch] <= 1'b1;
 				hdr_wdata <= {hbuf[0], hbuf[1], hbuf[2], hbuf[3], hbuf[4], 16'd0 - hdr_end};
 				env_set[hch] <= 1'b1;
 				hstate <= H_IDLE;
@@ -489,7 +512,8 @@ localparam E_INIT = 5'd0, E_IDLE = 5'd1, E_START = 5'd2, E_RD = 5'd3,
            E_CLK1B = 5'd16, E_MIX3 = 5'd17,
            E_CLK1C = 5'd18, E_MULR2 = 5'd19, E_GAP = 5'd20,
            E_MIXA = 5'd21, E_MIXB = 5'd22,
-           E_MIX0 = 5'd23, E_MIXW1 = 5'd24, E_MIXW2 = 5'd25, E_MIXW3 = 5'd26;
+           E_MIX0 = 5'd23, E_MIXW1 = 5'd24, E_MIXW2 = 5'd25, E_MIXW3 = 5'd26,
+           E_INT1 = 5'd27, E_INT2 = 5'd28, E_INT3 = 5'd29;
 reg  [4:0]  estate;
 reg  [3:0]  ecnt;
 reg  [14:0] env_cnt;
@@ -541,6 +565,22 @@ reg  signed [15:0] sample;
 reg  [12:0] vol_l, vol_r;
 reg  [3:0]  sh_l, sh_r;
 reg         second;
+// karabas: the interpolation (interp): s0 the sample at pos, s1 the one at the next position (after the
+// end the loop start), sample = s0 + ((s1 - s0) * frac) >> 16 = (s0 * (65536 - frac) + s1 * frac) >> 16 as
+// openMSX (YMF278.cc) does; frac = cur[15:0]. nexts: the fetch of s1.
+reg         nexts;
+reg  signed [15:0] s0, s1;
+reg  signed [16:0] idif;
+reg  signed [33:0] iprod;
+// the cache of the interpolation, per channel: {pos, s0, s1} of the last fetch (s1 = the sample at the
+// position after pos); valid until the header of the channel is loaded or the RAM is written (cinv).
+// The same pos again: no fetch; pos one further: s0 = the old s1, one fetch.
+reg  [47:0] cram [0:23];
+reg  [23:0] cvalid = 24'd0;
+reg  [23:0] cinv;
+reg  [23:0] cset;
+reg         vi;                // the interpolation for this voice (interp, and the frame not late)
+reg  [11:0] fcnt;              // clocks since E_START
 reg  [21:0] e_addr;
 reg         e_req;
 reg  [21:0] a_hi, a_lo;
@@ -626,9 +666,19 @@ assign pow_a_r = {renv[5:0], 2'b00};
 
 // sample fetch addresses (from new current position)
 wire [15:0] pos     = cur[31:16];
-wire [21:0] a8      = base + pos;
-wire [21:0] a16     = base + {pos, 1'b0};
-wire [21:0] a12     = base + pos[15:1] * 2'd3;
+wire [15:0] pos1    = pos + 1'd1;
+wire [15:0] pos1w   = (pos1 >= endn16) ? (pos1 + c_lme[31:16]) : pos1;   // as nxt_b: past the end, the loop
+reg  [15:0] posf;    // the position fetched: pos, then pos1w with nexts (a register: the compare and the loop
+                     // add of pos1w before the multiply of a12 were 13.9 ns at 84 MHz, build 26111601)
+wire [47:0] cq      = cram[e_ch];
+wire [15:0] cpos1   = cq[47:32] + 1'd1;
+wire [15:0] cpos1w  = (cpos1 >= endn16) ? (cpos1 + c_lme[31:16]) : cpos1;
+wire        c_hit0  = cvalid[e_ch] && (cq[47:32] == pos);
+wire        c_hit1  = cvalid[e_ch] && (cpos1w == pos);
+wire        late    = ({1'b0, fcnt} + ({7'd0, 5'd25 - e_ch} << 6)) > DEADLINE;
+wire [21:0] a8      = base + posf;
+wire [21:0] a16     = base + {posf, 1'b0};
+wire [21:0] a12     = base + posf[15:1] * 2'd3;
 
 // multiplier
 reg  [12:0] mul_v;
@@ -664,6 +714,9 @@ always @(posedge clk) begin
 	env_clr <= 24'd0;
 	ld_dec  <= 1'b0;
 	if (sample_tick) tick_pend <= 1'b1;
+	cset    <= 24'd0;
+	cvalid  <= (cvalid & ~cinv) | cset;
+	fcnt    <= (estate == E_START) ? 12'd0 : (fcnt == 12'hfff ? fcnt : fcnt + 1'd1);
 	if (reset) begin
 		estate <= E_INIT;
 		e_ch   <= 5'd0;
@@ -832,6 +885,7 @@ always @(posedge clk) begin
 				env <= env_n;
 			end
 			cur <= nxt;
+			posf <= nxt[31:16];
 			nxt <= nxt_b;
 			if (tl != c_tl) begin
 				if (tl < c_tl) tl <= (tl + 17'd19 > c_tl) ? c_tl : tl + 17'd19;
@@ -839,19 +893,32 @@ always @(posedge clk) begin
 			end
 			estate <= E_FETCH;
 			second <= 1'b0;
+			nexts  <= 1'b0;
+			vi     <= interp && !late;
 		end
 
-		E_FETCH: begin
+		E_FETCH: begin : fetch
+			reg        f_done;
+			reg signed [15:0] f_v;
+			f_done = 1'b0;
+			f_v = 16'sd0;
 			envl0_r <= envl0;    // env/tl/lfo are stable here; used in E_VOL
 			// first cycle: compute addresses and issue request
 			if (!e_req && !second) begin
-				if (env > 10'h200) estate <= E_WB;
-				else begin
+				if (env > 10'h200 && !nexts) estate <= E_WB;
+				else if (vi && !nexts && c_hit0) begin
+					s0 <= cq[31:16]; s1 <= cq[15:0];      // both cached
+					estate <= E_INT1;
+				end else if (vi && !nexts && c_hit1) begin
+					s0 <= cq[15:0];                       // the old s1; fetch the next one
+					nexts <= 1'b1;
+					posf <= pos1w;
+				end else begin
 					case (fmt)
 						2'd0: begin a_hi <= a8;  a_lo <= a8;  lo_kind <= 2'd0; e_addr <= a8;  end
 						2'd2: begin a_hi <= a16; a_lo <= a16 + 1'd1; lo_kind <= 2'd1; e_addr <= a16; end
 						default:
-							if (!pos[0]) begin a_hi <= a12; a_lo <= a12 + 1'd1; lo_kind <= 2'd2; e_addr <= a12; end
+							if (!posf[0]) begin a_hi <= a12; a_lo <= a12 + 1'd1; lo_kind <= 2'd2; e_addr <= a12; end
 							else begin a_hi <= a12 + 2'd2; a_lo <= a12 + 1'd1; lo_kind <= 2'd3; e_addr <= a12 + 2'd2; end
 					endcase
 					e_req <= 1'b1;
@@ -861,23 +928,54 @@ always @(posedge clk) begin
 					b_hi <= a_hi[0] ? mem_rdata[15:8] : mem_rdata[7:0];
 					if (lo_kind == 2'd0) begin
 						e_req <= 1'b0;
-						sample <= {a_hi[0] ? mem_rdata[15:8] : mem_rdata[7:0], 8'd0};
-						estate <= E_VOL;
+						f_v = {a_hi[0] ? mem_rdata[15:8] : mem_rdata[7:0], 8'd0};
+						f_done = 1'b1;
 					end else if (a_hi[21:1] == a_lo[21:1]) begin
 						e_req <= 1'b0;
-						sample <= lo_sample(a_hi[0] ? mem_rdata[15:8] : mem_rdata[7:0],
-						                    a_lo[0] ? mem_rdata[15:8] : mem_rdata[7:0], lo_kind);
-						estate <= E_VOL;
+						f_v = lo_sample(a_hi[0] ? mem_rdata[15:8] : mem_rdata[7:0],
+						                a_lo[0] ? mem_rdata[15:8] : mem_rdata[7:0], lo_kind);
+						f_done = 1'b1;
 					end else begin
 						second <= 1'b1;
 						e_addr <= a_lo;
 					end
 				end else begin
 					e_req <= 1'b0;
-					sample <= lo_sample(b_hi, a_lo[0] ? mem_rdata[15:8] : mem_rdata[7:0], lo_kind);
+					f_v = lo_sample(b_hi, a_lo[0] ? mem_rdata[15:8] : mem_rdata[7:0], lo_kind);
+					f_done = 1'b1;
+				end
+			end
+			if (f_done) begin
+				if (vi && !nexts) begin
+					s0 <= f_v;           // then the fetch of the next position
+					nexts <= 1'b1;
+					posf <= pos1w;
+					second <= 1'b0;
+				end else if (vi) begin
+					s1 <= f_v;
+					estate <= E_INT1;
+				end else begin
+					sample <= f_v;
 					estate <= E_VOL;
 				end
 			end
+		end
+
+		E_INT1: begin
+			idif <= s1 - s0;
+			cram[e_ch] <= {pos, s0, s1};
+			cset[e_ch] <= 1'b1;
+			estate <= E_INT2;
+		end
+
+		E_INT2: begin
+			iprod <= idif * $signed({1'b0, cur[15:0]});
+			estate <= E_INT3;
+		end
+
+		E_INT3: begin
+			sample <= s0 + iprod[31:16];   // iprod >>> 16; the sum lies between s0 and s1
+			estate <= E_VOL;
 		end
 
 		E_VOL: begin

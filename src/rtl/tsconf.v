@@ -106,6 +106,7 @@ module tsconf
 	input wire psg_type,
 	input wire [1:0] opl4_filter,   // the output filter of the GS and the OPL4 (audio_lpf): 0 off, 1 linear, 2 linear + low-pass
 	input wire [1:0] tape_mon,      // Tape monitor: the tape in / out heard in the mix (kg_tape_monitor): 0 off, 1 in, 2 out, 3 both
+	input wire opl4_interp,         // OPL4 Interp: the linear interpolation of the samples in opl4.v (openMSX; ymfm has none)
 	input wire vga_60hz,
 	
 	// fdc
@@ -196,6 +197,13 @@ module tsconf
   wire dos;
   wire vdos;
   wire pre_vdos;
+  // ZXM-MoonSound: the FM timer IRQ of the OPL4 drives /INT too (a wired OR on the bus there; the vector
+  // in IM 2 comes from zint, #FF when none of its sources); not in the DOS, as u16_tsconf. The MWM players of
+  // Mick Labs play from it (their interrupt handler checks bit 7 of the status #C4).
+  wire        opl4_irq;
+  reg         opl4_irq_r = 1'b0;
+  wire        cpu_int_n = cpu_int_n_TS & ~(opl4_irq_r & ~vdos);
+  always @(posedge clk_bus) opl4_irq_r <= opl4_irq;     // a register of clk_sys in opl4_kg (clk_28mhz = clk_bus)
   wire zpos, zneg;
   wire [7:0] zports_dout;
   wire zports_dataout;
@@ -507,7 +515,7 @@ wire gs_sample_t;
     .CEN_p   (zpos),
     .CEN_n   (zneg),
     .WAIT_n  (~fdc_busy),
-    .INT_n   (cpu_int_n_TS),
+    .INT_n   (cpu_int_n),
     .NMI_n   (nmi_n),
     .BUSRQ_n (1'b1),
     .M1_n    (cpu_m1_n),
@@ -530,7 +538,7 @@ wire gs_sample_t;
     .CEN_p (zpos),
     .CEN_n (zneg),
     .WAIT_n (~fdc_busy),     //    : in  std_logic := '1';
-    .INT_n (cpu_int_n_TS),   //    : in  std_logic := '1';
+    .INT_n (cpu_int_n),   //    : in  std_logic := '1';
     .NMI_n (nmi_n),          // F11 / BTN2: a plain NMI to 0066 of the paged memory (no NMI ROM in TS-Conf)
     .BUSRQ_n (1'b1),         //    : in  std_logic := '1';
     .M1_n (cpu_m1_n),        //    : out std_logic;
@@ -1428,8 +1436,9 @@ opl4_kg opl4
 	.RD_n(cpu_rd_n),
 	.WR_n(cpu_wr_n),
 	.DOS(dos),
+	.INTERP(opl4_interp),
 	.SEL(opl4_sel),
-	.IRQ(),
+	.IRQ(opl4_irq),
 	.MEM_ADDR(opl4_mem_addr),
 	.MEM_REQ(opl4_mem_req),
 	.MEM_WE(opl4_mem_we),
@@ -1444,7 +1453,7 @@ opl4_kg opl4
 // the OPL4 (clk, 44.1 kHz) and the GS (clk_bus, a sample of its players each INT: 748 clk_bus)
 // interpolated, then their sum (the OPL4 at half) through one low-pass (see audio_lpf.v)
 wire [15:0] opl4_li, opl4_ri, gs_li, gs_ri;
-audio_interp #(.STEP(1648), .STEPS(636)) opl4_interp
+audio_interp #(.STEP(1648), .STEPS(636)) opl4_out_interp
 (
 	.clk(clk_bus),
 	.lin(opl4_filter != 2'd0),
