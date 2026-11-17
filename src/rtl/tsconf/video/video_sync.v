@@ -79,7 +79,7 @@ module video_sync
   localparam HBLNK_BEG     = 9'd00;
   localparam HBLNK_END     = 9'd88;
   localparam HSYNCV_BEG    = 9'd5;
-  localparam HSYNCV_END    = 9'd31;
+  localparam HSYNCV_END    = 9'd21;   // 64 px at 28 MHz as 576p (was 31: 104 px); the start and HBLNKV_END stay
   localparam HBLNKV_END    = 9'd42;
   localparam HPERIOD       = 9'd448;
 

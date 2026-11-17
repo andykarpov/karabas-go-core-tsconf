@@ -213,7 +213,7 @@ wire [31:0] loader_addr;
 wire [7:0] loader_data;
 wire loader_wr;
 wire [2:0] kb_joy_type_l, kb_joy_type_r;
-wire kb_vga_60hz;
+wire [1:0] vga_sync_pos;  // OSD VGA Sync: bit 0 +H, bit 1 +V (0 = -H -V, as 576p)
 wire [7:0] joy_bus;
 wire kb_pause, kb_reset, kb_reset_gs, kb_nmi, mcu_busy;
 reg nmi_n = 1'b1;
@@ -317,7 +317,7 @@ tsconf tsconf (
 	.opl4_filter		(opl4_filter),
 	.tape_mon		(tape_mon),
 	.opl4_interp		(opl4_interp),
-	.vga_60hz			(kb_vga_60hz),
+	.vga_60hz			(1'b0),        // 60 Hz is off in tune.v (no ENABLE_60HZ), the OSD item is gone
 
 	// the floppy connector of the Go (the physical drive of the FDC of tsconf)
 	.fdc_side			(FDC_SIDE_N),
@@ -396,8 +396,8 @@ wire ft_video_active = vdac2_sel | mcu_ft_vga_on;
 assign VGA_R[7:0] = ft_video_active ? 8'bZZZZZZZZ : osd_r[7:0];
 assign VGA_G[7:0] = ft_video_active ? 8'bZZZZZZZZ : osd_g[7:0];
 assign VGA_B[7:0] = ft_video_active ? 8'bZZZZZZZZ : osd_b[7:0];
-assign VGA_HS = ft_video_active ? 1'bZ : osd_hs;   // the syncs of the overlay: in step with osd_rgb
-assign VGA_VS = ft_video_active ? 1'bZ : osd_vs;
+assign VGA_HS = ft_video_active ? 1'bZ : osd_hs ^ ~vga_sync_pos[0];  // the syncs of the overlay: in step with osd_rgb
+assign VGA_VS = ft_video_active ? 1'bZ : osd_vs ^ ~vga_sync_pos[1];
 assign V_CLK = ft_video_active ? FT_CLK : v_clk;
 
 // ------- i2s DAC --------------
@@ -682,7 +682,7 @@ assign psg_mix = softsw[9:8];
 assign psg_type = softsw[16];
 assign kb_joy_type_l = softsw[26:24];
 assign kb_joy_type_r = softsw[34:32];
-assign kb_vga_60hz = softsw[40];
+assign vga_sync_pos = softsw[41:40];  // VGA Sync (index 5, Go only)
 assign kb_pause = softsw[48];
 assign kb_reset_gs = softsw[56];
 assign kb_nmi = softsw[64];

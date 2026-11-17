@@ -11,7 +11,7 @@
     {"filename": "roms/gs105b.rom", "address": 2147483648}
     ],
     "boards": {
-        "go": {"link": 2, "build": "26111604", "bitstream": "karabas_go.bin"},
+        "go": {"link": 2, "build": "26111701", "bitstream": "karabas_go.bin"},
         "mini": {"link": 2, "build": "26111604", "bitstream": "karabas_mini.bin"},
         "minig": {"link": 2, "build": "26111604", "bitstream": "karabas_minig.bin"}
     },
@@ -21,17 +21,17 @@
     {"type": "S", "name": "PSG Type", "options": ["AY3-8912", "YM2149F"], "default": 0, "hotkey": "Menu+F8", "page": 1},
     {"type": "S", "name": "Joystick L", "options": ["Kempston", "Sinclair1", "Sinclair2", "Cursor", "QAOPM", "QAOPS"], "default": 0, "hotkey": "Menu+J", "page": 2},
     {"type": "S", "name": "Joystick R", "options": ["Kempston", "Sinclair1", "Sinclair2", "Cursor", "QAOPM", "QAOPS"], "default": 1, "hotkey": "Menu+R", "page": 2},
-    {"type": "S", "name": "VGA Hsync", "options": ["50 Hz", "60 Hz"], "default": 0, "hotkey": "Menu+F9"},
-    {"type": "N", "name": "Pause", "options": ["Off", "On"], "default": 0, "hotkey": "Menu+P"},
-    {"type": "T", "name": "GS Reset", "options": null, "default": 0, "hotkey": "Menu+G", "page": 1},
-    {"type": "T", "name": "NMI", "options": null, "default": 0, "hotkey": "F11"},
-    {"type": "T", "name": "Reset", "options": null, "default": 0, "hotkey": "F12"},
+    {"type": "S", "name": "VGA Sync", "key": "vga_sync", "index": 5, "options": [{"name": "-H -V", "key": "hn_vn"}, {"name": "+H -V", "key": "hp_vn"}, {"name": "-H +V", "key": "hn_vp"}, {"name": "+H +V", "key": "hp_vp"}], "default": 0, "hotkey": "Menu+F9", "boards": ["go"]},
+    {"type": "N", "name": "Pause", "index": 6, "options": ["Off", "On"], "default": 0, "hotkey": "Menu+P"},
+    {"type": "T", "name": "GS Reset", "index": 7, "options": null, "default": 0, "hotkey": "Menu+G", "page": 1},
+    {"type": "T", "name": "NMI", "index": 8, "options": null, "default": 0, "hotkey": "F11"},
+    {"type": "T", "name": "Reset", "index": 9, "options": null, "default": 0, "hotkey": "F12"},
     {"type": "-"},
     {"type": "M", "name": "Sound", "open": 1},
     {"type": "M", "name": "Input", "open": 2},
     {"type": "FL", "name": "OPL4 ROM", "slot": 1, "exts": ["rom", "bin"], "dir": "/tsconf", "file": ["yrw801.rom", "YRW801.ROM"], "autoload": true, "page": 1},
-    {"type": "S", "name": "GS/OPL4 Filter", "options": ["Off", "Linear", "Linear+LPF"], "default": 2, "hotkey": "Menu+F5", "page": 1},
-    {"type": "S", "name": "Tape monitor", "options": ["Off", "In", "Out", "Both"], "default": 0, "hotkey": "Menu+T", "page": 1},
-    {"type": "S", "name": "OPL4 Interp", "options": ["Off", "On"], "default": 1, "hotkey": "Menu+I", "page": 1}
+    {"type": "S", "name": "GS/OPL4 Filter", "index": 14, "options": ["Off", "Linear", "Linear+LPF"], "default": 2, "hotkey": "Menu+F5", "page": 1},
+    {"type": "S", "name": "Tape monitor", "index": 15, "options": ["Off", "In", "Out", "Both"], "default": 0, "hotkey": "Menu+T", "page": 1},
+    {"type": "S", "name": "OPL4 Interp", "index": 16, "options": ["Off", "On"], "default": 1, "hotkey": "Menu+I", "page": 1}
     ]
 }
