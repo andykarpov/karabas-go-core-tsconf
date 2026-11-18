@@ -11,9 +11,9 @@
     {"filename": "roms/gs105b.rom", "address": 2147483648}
     ],
     "boards": {
-        "go": {"link": 2, "build": "26111701", "bitstream": "karabas_go.bin"},
-        "mini": {"link": 2, "build": "26111604", "bitstream": "karabas_mini.bin"},
-        "minig": {"link": 2, "build": "26111604", "bitstream": "karabas_minig.bin"}
+        "go": {"link": 2, "build": "26111812", "bitstream": "karabas_go.bin"},
+        "mini": {"link": 2, "build": "26111812", "bitstream": "karabas_mini.bin"},
+        "minig": {"link": 2, "build": "26111812", "bitstream": "karabas_minig.bin"}
     },
     "osd": [
     {"type": "S", "name": "Covox", "options": ["Off", "On"], "default": 1, "hotkey": "Menu+F6", "page": 1},

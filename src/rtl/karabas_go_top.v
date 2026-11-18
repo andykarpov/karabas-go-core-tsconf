@@ -757,9 +757,18 @@ kg_l2_osd_overlay overlay(
 
 // --------- Dot Matrix --------
 
-// no dot matrix on the Go: MATRIX_CMD of kg_mcu2 stays 0
-assign matrix_cmd = 24'd0;
-assign matrix_cmd_wr = 1'b0;
+// on the I2C of the RP2040: the Go can have the matrix too
+dot_matrix dot_matrix(
+    .clk            (clk_bus),
+    .reset          (areset),
+    .audio_l        (audio_mix_l),
+    .audio_r        (audio_mix_r),
+    .iowr           (iowr),
+    .ioa            (ioa),
+    .iod            (iod),
+    .cmd_wr         (matrix_cmd_wr),
+    .cmd            (matrix_cmd)
+);
 
 
 endmodule
