@@ -130,9 +130,9 @@ module dot_matrix_writer(
 
 // zxuno ports
 // #FC3B - adr
-// -- F0 - matrix ctl
-// -- F1 - matrix xy
-// -- F2 - matrix color
+// -- E0 - matrix ctl (F0 before 2026-11-18: F0..F3 are the PZX player of ZX-Uno)
+// -- E1 - matrix xy
+// -- E2 - matrix color
 // #FD3B - data
 wire zxuno_reg_port = iowr & ioa[15:0] == 16'hFC3B;
 wire zxuno_data_port = iowr & ioa[15:0] == 16'hFD3B;
@@ -145,9 +145,9 @@ always @(posedge clk or posedge reset) begin
 end
 
 // dot matrix regs & control signals
-wire matrix_ctl_port = zxuno_data_port & zxuno_reg == 8'hF0;
-wire matrix_xy_port = zxuno_data_port & zxuno_reg == 8'hF1;
-wire matrix_color_port = zxuno_data_port & zxuno_reg == 8'hF2;
+wire matrix_ctl_port = zxuno_data_port & zxuno_reg == 8'hE0;
+wire matrix_xy_port = zxuno_data_port & zxuno_reg == 8'hE1;
+wire matrix_color_port = zxuno_data_port & zxuno_reg == 8'hE2;
 reg [7:0] matrix_xy;
 reg matrix_ctl_prev, matrix_xy_prev, matrix_color_prev;
 always @(posedge clk or posedge reset) begin

@@ -185,6 +185,11 @@ wire btn_reset_n, btn_reset_gs_n;
 wire audio_beeper;
 wire [15:0] audio_out_l, audio_out_r;
 wire [15:0] audio_mix_l, audio_mix_r;
+wire [23:0] matrix_cmd;   // dot matrix (on the I2C of the RP2040)
+wire matrix_cmd_wr;
+wire iowr;
+wire [15:0] ioa;
+wire [7:0] iod;
 wire [12:0] joy_l, joy_r;
 wire [2:0] mouse_addr;
 reg [7:0] mouse_data;
@@ -335,7 +340,11 @@ tsconf tsconf (
 	.sdram_dq			(SDR_DQ),
 
 	.midi_reset_n		(MIDI_RESET_N),
-	.midi_tx				(MIDI_TX)
+	.midi_tx				(MIDI_TX),
+
+    .iowr               (iowr),
+    .ioa                (ioa),
+    .iod                (iod)
  );
 
 wire [7:0] rtc_do_mapped;
@@ -602,8 +611,8 @@ kg_mcu2 #(
 	.RTC_DI			(rtc_di),
 	.RTC_CS			(1'b1),
 	.RTC_WR_N		(~rtc_wr),
-	.MATRIX_CMD		(24'd0),   // no dot matrix on the Mini
-	.MATRIX_CMD_WR	(1'b0),
+	.MATRIX_CMD		(matrix_cmd),
+	.MATRIX_CMD_WR	(matrix_cmd_wr),
 	.DEBUG_ADDR		(16'd0),
 	.DEBUG_DATA		(16'd0),
 	.RTC_DO			(rtc_do),
@@ -778,6 +787,20 @@ kg_l2_osd_overlay overlay(
 	.hs_o				(osd_hs),
 	.vs_o				(osd_vs),
 	.de_o				(osd_de)
+);
+
+// --------- Dot Matrix --------
+
+dot_matrix dot_matrix(
+    .clk            (clk_bus),
+    .reset          (areset),
+    .audio_l        (audio_mix_l),
+    .audio_r        (audio_mix_r),
+    .iowr           (iowr),
+    .ioa            (ioa),
+    .iod            (iod),
+    .cmd_wr         (matrix_cmd_wr),
+    .cmd            (matrix_cmd)
 );
 
 endmodule
