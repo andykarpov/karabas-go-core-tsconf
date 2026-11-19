@@ -23,7 +23,7 @@ A famous ZX-Evolution TS-Conf core ported to the Karabas Go hardware.
 - MIDI (Dream SAM2695)
 - Soundrive (4x covox)
 - ZiFi (ESP8266)
-- RS232 over USB (ZXEvo + ZiFi standards supported)
+- RS232 over USB (ZXEvo + ZiFi standards supported), on the core serial port of the board (the second USB serial port, `/dev/serial/by-id/usb-Karabas_Go_<serial>-if02` on Linux)
 - RTC (with read/write support)
 - OSD Menu by Win+ESC to change some settings
 
