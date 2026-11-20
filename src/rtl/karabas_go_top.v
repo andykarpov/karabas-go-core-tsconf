@@ -726,6 +726,27 @@ always @* begin
 	endcase
 end
 
+//--------- the start of the picture --------------
+// black and no syncs until the PLL is locked and the firmware ends the INIT of the core, then 32
+// frames more, the picture from the start of a vsync pulse (a clean 576p after boot.kg, backlog
+// 2026-11-17: a TV shifted the picture after every core start); before the overlay, the IOB
+// registers of the pins stay as they are
+wire [23:0] start_rgb;
+wire start_hs, start_vs, start_de;
+vga_start_hold #(.FRAMES(32)) vga_start_hold(
+	.clk				(clk_bus),
+	.hold				(areset | mcu_busy),
+	.rgb_i			({video_r[7:0], video_g[7:0], video_b[7:0]}),
+	.hs_i				(video_hsync),
+	.vs_i				(video_vsync),
+	.de_i				(~video_blank),
+	.rgb_o			(start_rgb),
+	.hs_o				(start_hs),
+	.vs_o				(start_vs),
+	.de_o				(start_de),
+	.run				()
+);
+
 //--------- OSD --------------
 
 kg_l2_osd_overlay overlay(
@@ -747,10 +768,10 @@ kg_l2_osd_overlay overlay(
 	.icon_act		(8'd0),
 
 	.clk				(clk_bus),
-	.rgb_i			({video_r[7:0], video_g[7:0], video_b[7:0]}),
-	.hs_i				(video_hsync),
-	.vs_i				(video_vsync),
-	.de_i				(~video_blank),
+	.rgb_i			(start_rgb),
+	.hs_i				(start_hs),
+	.vs_i				(start_vs),
+	.de_i				(start_de),
 	.rgb_o			({osd_r[7:0], osd_g[7:0], osd_b[7:0]}),
 	.hs_o				(osd_hs),
 	.vs_o				(osd_vs),
