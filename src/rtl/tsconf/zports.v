@@ -487,6 +487,14 @@ module zports
   end
 
   wire portfe_wr = (loa==PORTFE) && iowr_s;
+  // the border on any even port (A0 = 0) as on the Spectrum / Pentagon (NMI 3 writes it by OUT (C) with C = #06),
+  // except the even ports of the OPL4 (#C4, #C6, #7E) and of the IDE; the beeper / MIC stay on #FE
+  wire opl4_even = (loa==8'hC4) || (loa==8'hC6) || (loa==8'h7E);
+`ifdef IDE_HDD
+  wire zborder_port = !loa[0] && !ide_all && !opl4_even;
+`else
+  wire zborder_port = !loa[0] && !opl4_even;
+`endif
   assign beeper_wr = portfe_wr;
   assign covox_wr = (loa==COVOX) && iowr_s;
 `ifdef COPPER
@@ -517,7 +525,7 @@ module zports
   assign dmaport_wr[9] = portxt_wr && (hoa == DMANUMH);
 `endif
 
-  assign zborder_wr    = portfe_wr;
+  assign zborder_wr    = zborder_port && iowr_s;
   assign border_wr     = (portxt_wr && (hoa == XBORDER));
   assign zvpage_wr     = p7ffd_wr;
   assign vpage_wr      = (portxt_wr && (hoa == VPAGE ));
