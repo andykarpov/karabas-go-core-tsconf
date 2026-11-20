@@ -139,6 +139,7 @@ module tsconf
 
     // sdram
 	output wire        sdram_clk,
+	output wire        sdram_ready, // LD_READY of kg_mcu2: the SDRAM of the GS / OPL4 initialised
 	inout wire [15:0]  sdram_dq,
 	output wire [12:0] sdram_a,
 	output wire [1:0]  sdram_dqm,
@@ -1683,6 +1684,7 @@ gs_top gs_top
     .do_bus(gs_do_bus),
 
 	 .sdram_clk(sdram_clk),
+	 .sdram_ready(sdram_ready),
     .sdram_dq(sdram_dq),
     .sdram_a(sdram_a),
     .sdram_dqm(sdram_dqm),

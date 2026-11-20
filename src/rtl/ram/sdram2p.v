@@ -21,15 +21,21 @@
 // Changes for the Karabas Go:
 // - SDR_CLK is clk inverted (ODDR2, as in the former sdram.vhd): the SDRAM takes the commands on the
 //   falling edge of clk, half a period after they leave the registers; the read data is taken on the
-//   falling edge of clk (an IOB flip-flop, the edge where the SDRAM holds it for tOH) and once more on
-//   the rising edge.
+//   rising edge of clk after the CL edge (an IOB flip-flop). SDR_CLK reaches the chip 2..4.3 ns after
+//   the falling edge of clk, the word comes back 1.5..3.7 ns later: on the falling edge (as up to
+//   build 26111801) the word of a slow corner was not there yet (setup -2 ns, a ROM of garbage on some
+//   Go boards); on the rising edge setup is ~4 ns, hold ~1 ns (tOH 3 ns), as baseconf_sdram had it.
 // - a fixed cycle of 8 clocks (95 ns at 84 MHz): port 1 RAS at t0, CAS at t3, port 2 RAS at t2,
 //   CAS at t5, CL 3, single words with auto precharge; port 1 has banks 0 / 1, port 2 banks 2 / 3,
 //   so each port gets one access in every cycle; only a port 2 write waits for a cycle without a
 //   port 1 read (its data on DQ would meet the read data of port 1).
 // - a refresh every 7.4 us at most (624 clocks), in the port 2 slot when port 2 has no request and
 //   port 1 has no access in this cycle; when it is urgent the ports skip a cycle for it.
-// - no clkref; init_n from the PLL lock.
+// - no clkref; init_n from the PLL lock; the initialisation after ~390 us (the SDRAM is not powered
+//   off between two cores: it may be in any state the core before left it in): PRECHARGE all, 8 AUTO
+//   REFRESH (some chips ask for 8), LOAD MODE.
+// - the output ready (= the SDRAM initialised): LD_READY of the link (caps bit 4). BaseConf leaves
+//   SDRAM_CLK open (its tops drive SDR_CLK with their own ODDR2, the same inverted clk).
 //
 // Ports: a request is a toggle of portN_req (the address, ds, we, d held until the ack); portN_ack
 // follows portN_req when it is done. A read: portN_q valid from the clock where portN_ack follows,
@@ -49,6 +55,7 @@ module sdram2p (
 
 	input  wire        init_n,     // 0: (re)initialise the SDRAM (PLL not locked)
 	input  wire        clk,        // sdram clock, 84 MHz
+	output wire        ready,      // the SDRAM initialised (LD_READY: the loaders wait for it)
 
 	input  wire        port1_req,
 	output wire        port1_ack,
@@ -93,9 +100,9 @@ localparam RFRSH_URGENT = 11'd624;
  t2 RAS1   port 2 ACTIVE      (3.5) or REFRESH
  t3 CAS0   port 1 READ/WRITE  (4.5), write data on DQ in t4
  t5 CAS1   port 2 READ/WRITE  (6.5), write data on DQ in t6
-           port 1 read data taken at 7.5 (falling edge), in sd_din in t0
+           port 1 read data (SDRAM edge 7.5) taken at the rising edge 8 = t0, in sd_din in t0
  t0 READ0  port1_q, port1_ack
-           port 2 read data taken at 9.5 = 1.5, in sd_din in t2
+           port 2 read data (9.5 = 1.5) taken at the rising edge 2, in sd_din in t2
  t2 READ1  port2_q, port2_ack
 */
 
@@ -120,16 +127,16 @@ end
 // --------------------------- startup/reset ---------------------------
 // ---------------------------------------------------------------------
 
-// after init_n: 31 cycles of 8 clocks, the SDRAM initialised in the last 16 (the FPGA configuration
-// takes far longer than the 100 us the SDRAM needs after power-up)
-reg [4:0]  reset = 5'h1f;
+// after init_n: 4095 cycles of 8 clocks (390 us; at least 100 us of NOP after power-up, and a chip left
+// in an access or a burst by the core before is idle by then), the SDRAM initialised in the last 16
+reg [11:0] reset = 12'hfff;
 reg        init = 1'b1;
 always @(posedge clk, negedge init_n) begin
 	if(!init_n) begin
-		reset <= 5'h1f;
+		reset <= 12'hfff;
 		init <= 1'b1;
 	end else begin
-		if((t == STATE_LAST) && (reset != 0)) reset <= reset - 5'd1;
+		if((t == STATE_LAST) && (reset != 0)) reset <= reset - 12'd1;
 		init <= !(reset == 0);
 	end
 end
@@ -150,8 +157,7 @@ localparam CMD_AUTO_REFRESH    = 4'b0001;
 localparam CMD_LOAD_MODE       = 4'b0000;
 
 reg  [3:0] sd_cmd = CMD_NOP;   // current command sent to sd ram
-reg [15:0] sd_din_n = 16'd0;   // DQ on the falling edge (IOB)
-reg [15:0] sd_din = 16'd0;     // and on the rising edge
+reg [15:0] sd_din = 16'd0;     // DQ on the rising edge (IOB)
 // drive control signals according to current command
 assign SDRAM_nRAS = sd_cmd[2];
 assign SDRAM_nCAS = sd_cmd[1];
@@ -210,12 +216,11 @@ reg dir = 1'b1;
 reg [15:0] dq = 16'd0;
 assign SDRAM_DQ = (dir) ? 16'bZZZZZZZZZZZZZZZZ : dq;
 
-always @(negedge clk)
-	sd_din_n <= SDRAM_DQ;
+always @(posedge clk)
+	sd_din <= SDRAM_DQ;
 
 always @(posedge clk) begin
 
-	sd_din <= sd_din_n;
 	dir <= 1'b1;
 	{ SDRAM_DQMH, SDRAM_DQML } <= 2'b11;
 	sd_cmd <= CMD_NOP;  // default: idle
@@ -231,7 +236,8 @@ always @(posedge clk) begin
 				SDRAM_A[10] <= 1'b1;      // precharge all banks
 			end
 
-			if(reset == 10 || reset == 8) begin
+			// 8 AUTO REFRESH, one every 8 clocks (95 ns > tRFC)
+			if(reset >= 5 && reset <= 12) begin
 				sd_cmd <= CMD_AUTO_REFRESH;
 			end
 
@@ -325,6 +331,8 @@ always @(posedge clk) begin
 		end
 	end
 end
+
+assign ready = !init;
 
 assign port1_q   = (t == STATE_READ0 && oe_latch[0]) ? sd_din : port1_q_reg;
 assign port1_ack = (t == STATE_READ0 && oe_latch[0]) ? port1_req : port1_ack_reg;

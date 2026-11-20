@@ -88,7 +88,7 @@ gs_top gs_top (
 );
 
 // 12 row bits: the RAM of the OPL4 (byte 200000 = row 800) apart from its ROM (row 0)
-sdram_model #(.CLK_NS(T), .CL(3), .ROW_BITS(12)) sdr (
+sdram_model #(.CLK_NS(T), .CL(3), .ROW_BITS(12), .SKEW(6.0), .TAC(5.4), .TOH(3.0)) sdr (
 	.clk(clk), .ba(ba), .a(sa), .dqm(dqm), .ras_n(nras), .cas_n(ncas), .we_n(nwe), .dq(dq)
 );
 

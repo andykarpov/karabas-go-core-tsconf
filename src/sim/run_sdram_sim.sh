@@ -15,9 +15,13 @@ SJASM=${SJASM:-$(command -v sjasmplus || echo /opt/sjasmplus/sjasmplus)}
 OUT="$SIM/build/sdram"
 mkdir -p "$OUT"
 cd "$OUT"
-iverilog -g2012 -o tb_sdram2p "$SIM/tb_sdram2p.v" "$SIM/sdram_model.v" "$SIM/lib/ODDR2.v" "$R/ram/sdram2p.v"
-vvp -n tb_sdram2p | tee tb_sdram2p.log | grep "tb_sdram2p: "
-grep -q "tb_sdram2p: 0 errors" tb_sdram2p.log || { echo "tb_sdram2p FAILED"; exit 1; }
+# the read window at the DQ flip-flops: typical (6 ns), fast and slow corners of the Go (karabas_go.twr)
+for SK in 6.0 4.0 8.5; do
+	iverilog -g2012 -DSKEW=$SK -DTAC=5.4 -DTOH=3.0 -o tb_sdram2p "$SIM/tb_sdram2p.v" "$SIM/sdram_model.v" \
+		"$SIM/lib/ODDR2.v" "$R/ram/sdram2p.v"
+	echo -n "SKEW $SK ns: "; vvp -n tb_sdram2p | tee tb_sdram2p.log | grep "tb_sdram2p: "
+	grep -q "tb_sdram2p: 0 errors" tb_sdram2p.log || { echo "tb_sdram2p (SKEW $SK) FAILED"; exit 1; }
+done
 
 OUT="$SIM/build/gs"
 mkdir -p "$OUT"
