@@ -31,8 +31,9 @@ JSON = core.json
 # The cost table (map -t, the placement seed) of the Mini is 2: with 1 the placement of the build of 2026-10-19
 # put a shift register of the 5x clock of zhdmi far from its OSERDES (-0.21 ns); 2, 3, 4 met all constraints.
 # Mini G 4 since 26112001: with 2 an OPL4 path of clk_sys (e_ch -> e_addr, 9 levels) missed by 0.39 ns, 3 far worse.
+# Mini 4 since 26112002: with 2 the OPL4 path e_ch -> nexts (8 levels) missed by 2.55 ns.
 MAP_T_go = 2
-MAP_T_mini = 2
+MAP_T_mini = 4
 MAP_T_minig = 4
 MAP_OPT = -logic_opt off -ol high -xe n -xt 0 -register_duplication off -r 4 -global_opt off -mt 2 -detail -ir off -pr b -lc off -power off
 PAR_OPT = -ol high -xe n -mt 4
