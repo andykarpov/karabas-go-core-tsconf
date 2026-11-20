@@ -12,11 +12,19 @@
  ACTIVE), tWR, tRFC, a READ / WRITE to a closed bank, an ACTIVE to an open bank, the mode register
  (CL 2, burst 1) before the first ACTIVE, the refresh rate (the longest gap between two refreshes in
  a window of 8192). errors counts them; the first ones are printed.
+ The read window as the FPGA flip-flop sees it (iverilog): SKEW = the SDR_CLK pin delay + the trace
+ delays + the DQ pad-to-flip-flop delay (its setup / hold folded in), TAC / TOH of the chip; the word
+ driven between the SDRAM edges n + CL - 1 and n + CL reaches the flip-flop from edge n + CL - 1 +
+ SKEW + TAC until edge n + CL + SKEW + TOH, X between the two words. All 0 = the words change on the
+ SDRAM edge (the former model).
 */
 module sdram_model #(
 	parameter real CLK_NS = 11.905,
 	parameter integer CL = 2,
-	parameter integer ROW_BITS = 13      // rows kept (low bits of the row): fewer for ISim
+	parameter integer ROW_BITS = 13,     // rows kept (low bits of the row): fewer for ISim
+	parameter real SKEW = 0.0,
+	parameter real TAC = 0.0,
+	parameter real TOH = 0.0
 ) (
 	input wire clk,
 	input wire [1:0] ba,
@@ -58,7 +66,18 @@ localparam integer C_RCD = 2, C_RP = 2, C_RC = 6, C_WR = 2, C_RFC = 6, C_RAS = 4
 reg [15:0] q1 = 16'd0, qm = 16'd0, q2 = 16'd0;
 reg v1 = 1'b0, vm = 1'b0, v2 = 1'b0;
 reg [1:0] dqm_d1 = 2'b11;
-assign dq = v2 ? q2 : 16'bz;
+// the words with SKEW + TAC (transport), X from SKEW + TOH after each edge until then
+reg [15:0] qa = 16'd0;
+reg va = 1'b0, gap = 1'b0;
+always @(v2 or q2) begin
+	va <= #(SKEW + TAC) v2;
+	qa <= #(SKEW + TAC) q2;
+end
+always @(negedge clk) if (TAC > TOH) begin
+	gap <= #(SKEW + TOH) 1'b1;
+	gap <= #(SKEW + TAC) 1'b0;
+end
+assign dq = va ? (gap ? 16'hxxxx : qa) : 16'bz;
 
 task err(input [8*48-1:0] what);
 	begin

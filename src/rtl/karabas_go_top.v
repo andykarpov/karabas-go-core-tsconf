@@ -212,6 +212,7 @@ wire opl4_interp;
 wire [31:0] loader_addr;
 wire [7:0] loader_data;
 wire loader_wr;
+wire sdram_ready;
 wire [2:0] kb_joy_type_l, kb_joy_type_r;
 wire [1:0] vga_sync_pos;  // OSD VGA Sync: bit 0 +H, bit 1 +V (0 = -H -V, as 576p)
 wire [7:0] joy_bus;
@@ -353,6 +354,7 @@ tsconf tsconf (
 	.usb_uart_dlm_wr	(uart_dlm_wr),
 
 	.sdram_clk			(SDR_CLK),
+	.sdram_ready		(sdram_ready),
 	.sdram_ba			(SDR_BA),
 	.sdram_a				(SDR_A),
 	.sdram_dqm			(SDR_DQM),
@@ -454,7 +456,7 @@ wire [17*8-1:0] softsw;
 wire [127:0] port_cfg = { 96'd0, 16'd0, uart_tx_mode ? { uart_dlm, uart_dll } : 16'd0 };
 
 kg_mcu2 #(
-	.CAPS(16'h0000),
+	.CAPS(16'h0010),	// bit 4: LD_READY driven (the SDRAM of the GS / OPL4 initialised)
 	.SW_N(17),
 	.CS_FILTER(3),
 	.ENABLE_OSD(1),
@@ -523,7 +525,7 @@ kg_mcu2 #(
 	.LD_ADDR			(ld_addr),
 	.LD_DATA			(ld_data),
 	.LD_WR			(ld_wr),
-	.LD_READY		(1'b1),
+	.LD_READY		(sdram_ready),
 
 	.OSD_WR			(osd_wr),
 	.OSD_WADDR		(osd_waddr),
@@ -724,6 +726,27 @@ always @* begin
 	endcase
 end
 
+//--------- the start of the picture --------------
+// black and no syncs until the PLL is locked and the firmware ends the INIT of the core, then 32
+// frames more, the picture from the start of a vsync pulse (a clean 576p after boot.kg, backlog
+// 2026-11-17: a TV shifted the picture after every core start); before the overlay, the IOB
+// registers of the pins stay as they are
+wire [23:0] start_rgb;
+wire start_hs, start_vs, start_de;
+vga_start_hold #(.FRAMES(32)) vga_start_hold(
+	.clk				(clk_bus),
+	.hold				(areset | mcu_busy),
+	.rgb_i			({video_r[7:0], video_g[7:0], video_b[7:0]}),
+	.hs_i				(video_hsync),
+	.vs_i				(video_vsync),
+	.de_i				(~video_blank),
+	.rgb_o			(start_rgb),
+	.hs_o				(start_hs),
+	.vs_o				(start_vs),
+	.de_o				(start_de),
+	.run				()
+);
+
 //--------- OSD --------------
 
 kg_l2_osd_overlay overlay(
@@ -745,10 +768,10 @@ kg_l2_osd_overlay overlay(
 	.icon_act		(8'd0),
 
 	.clk				(clk_bus),
-	.rgb_i			({video_r[7:0], video_g[7:0], video_b[7:0]}),
-	.hs_i				(video_hsync),
-	.vs_i				(video_vsync),
-	.de_i				(~video_blank),
+	.rgb_i			(start_rgb),
+	.hs_i				(start_hs),
+	.vs_i				(start_vs),
+	.de_i				(start_de),
 	.rgb_o			({osd_r[7:0], osd_g[7:0], osd_b[7:0]}),
 	.hs_o				(osd_hs),
 	.vs_o				(osd_vs),

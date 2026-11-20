@@ -45,6 +45,7 @@ module gs_top (
 
 	// interface to the MT48LC16M16 chip
 	output wire 			 sdram_clk,
+	output wire           sdram_ready, // the SDRAM initialised: LD_READY (the ROM / FL bytes have no queue for it)
 	inout  wire [15:0]    sdram_dq,
 	output wire [12:0]    sdram_a,
 	output wire [1:0]     sdram_dqm,
@@ -310,6 +311,7 @@ sdram2p sdram
 
 	.init_n(~areset),
 	.clk(clk_sys),
+	.ready(sdram_ready),
 
 	.port1_req(p1_req),
 	.port1_ack(p1_ack),

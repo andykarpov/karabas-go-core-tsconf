@@ -43,7 +43,14 @@ sdram2p dut (
 	.port2_d(p2_d), .port2_q(p2_q)
 );
 
-sdram_model #(.CLK_NS(T), .CL(3)) sdr (
+// the read window at the DQ flip-flops (sdram_model): -DSKEW=.. -DTAC=.. -DTOH=.. (ns); the default is
+// a typical Go (SDR_CLK pin + traces + DQ pad 6 ns), run_sdram_sim.sh adds the corners 4 / 8.5 ns
+`ifndef SKEW
+`define SKEW 6.0
+`define TAC 5.4
+`define TOH 3.0
+`endif
+sdram_model #(.CLK_NS(T), .CL(3), .SKEW(`SKEW), .TAC(`TAC), .TOH(`TOH)) sdr (
 	.clk(clk), .ba(ba), .a(sa), .dqm({dqmh, dqml}), .ras_n(nras), .cas_n(ncas), .we_n(nwe), .dq(dq)
 );
 

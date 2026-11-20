@@ -60,7 +60,7 @@ gs_top dut (
 	.out_l(gs_l), .out_r(gs_r)
 );
 
-sdram_model #(.CLK_NS(T), .CL(3), .ROW_BITS(8)) sdr (
+sdram_model #(.CLK_NS(T), .CL(3), .ROW_BITS(8), .SKEW(6.0), .TAC(5.4), .TOH(3.0)) sdr (
 	.clk(clk_sys), .ba(ba), .a(sa), .dqm(dqm), .ras_n(nras), .cas_n(ncas), .we_n(nwe), .dq(dq)
 );
 
