@@ -517,7 +517,12 @@ module zports_ref
   assign dmaport_wr[9] = portxt_wr && (hoa == DMANUMH);
 `endif
 
-  assign zborder_wr    = portfe_wr;
+  // the border on A0 = 0 (taken over from zports.v, the timing work did not touch it)
+  assign zborder_wr    = !loa[0] && !((loa==8'hC4) || (loa==8'hC6) || (loa==8'h7E))
+`ifdef IDE_HDD
+                         && !ide_all
+`endif
+                         && iowr_s;
   assign border_wr     = (portxt_wr && (hoa == XBORDER));
   assign zvpage_wr     = p7ffd_wr;
   assign vpage_wr      = (portxt_wr && (hoa == VPAGE ));
