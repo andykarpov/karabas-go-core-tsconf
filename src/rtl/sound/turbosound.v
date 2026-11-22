@@ -99,7 +99,7 @@ always @(posedge CLK or posedge RESET_s) begin
 	end
 end
 
-// the write of a chip as jt12_top gave it to its ym2149: BDIR = the write, BC = 1 for the address
+// the write of a chip as jt12_top gave it to its ym2149 (kg_ym2149 of modules now: ay38910_silicon): BDIR = the write, BC = 1 for the address
 wire wr0 = ym_wr & ay_select;
 wire wr1 = ym_wr & ~ay_select;
 wire wr_bc = BC_s;   // ym_wr comes one clock after the BDIR edge, BC_s is still the BC of that write
@@ -108,7 +108,7 @@ wire [7:0] DO_0, DO_1;
 wire [7:0] port_a;
 assign MIDI_TX = port_a[2];
 
-ym2149 psg_0
+kg_ym2149 psg_0
 (
 	.CLK(CLK),
 	.CE(CE),
@@ -129,7 +129,7 @@ ym2149 psg_0
 	.CHANNEL_C(SSG0_AUDIO_C)
 );
 
-ym2149 psg_1
+kg_ym2149 psg_1
 (
 	.CLK(CLK),
 	.CE(CE),
