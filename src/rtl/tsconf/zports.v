@@ -309,6 +309,14 @@ module zports
   reg esp_ft_spi_dis_r = 1'b0;
   assign esp_ft_spi_dis = esp_ft_spi_dis_r;
   assign espcs_n = spi_cs_n[3];
+
+  // The ESP signals the end of its work with a low pulse (~2 us) on ESP_CS. On the handover (#77 with D0 = 0,
+  // D7 = 1) the pin goes from 0 (ESP selected by #13) to Z, and on the Mini G only the pull-up of the pad lifts
+  // the line, slowly: a latch on the level saw it still low and gave a false completion. espcs_in goes through
+  // two flip-flops; the latch is armed after the line has been high for 15 clocks (~0.5 us) since the handover.
+  reg [1:0] espcs_s;
+  reg [3:0] espcs_hi;
+  wire espcs_armed = &espcs_hi;
 `endif
 
   wire open_vg;
@@ -685,6 +693,8 @@ module zports
 `ifdef ESP32_SPI
       esp_ft_spi_dis_r <= 1'b0;
       espcs_int <= 1'b0;
+      espcs_s <= 2'b11;
+      espcs_hi <= 4'd0;
 `endif
 
     end
@@ -692,7 +702,12 @@ module zports
     else
     begin
 `ifdef ESP32_SPI
-      if (esp_ft_spi_dis && !espcs_in)
+      espcs_s <= {espcs_s[0], espcs_in};
+      if (!esp_ft_spi_dis || !espcs_s[1])
+        espcs_hi <= 4'd0;
+      else if (!espcs_armed)
+        espcs_hi <= espcs_hi + 4'd1;
+      if (esp_ft_spi_dis && espcs_armed && !espcs_s[1])
         espcs_int <= 1'b1;
 `endif
 
@@ -714,6 +729,7 @@ module zports
         begin
           esp_ft_spi_dis_r <= din[7];  // 1 - FT/ESP SPI dis, 0 - en
           espcs_int <= 1'b0;           // reset int
+          espcs_hi <= 4'd0;            // wait for the line to be high again
         end
 `endif
       end

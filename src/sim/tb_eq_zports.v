@@ -484,9 +484,41 @@ task automatic check;
 	end
 endtask
 
+// #77 bit 7 (espcs_int) differs from the old code on purpose: the old latch took espcs_in as it was, the new one
+// synchronizes it and arms after 15 clocks high since the handover (#77 with D0 = 0). It is taken out of the
+// compare when #77 is read and checked against this model instead.
+reg [1:0] m_s = 2'b11;
+integer m_hi = 0;
+reg m_int = 1'b0;
+always @(posedge clk) begin
+	if (rst) begin m_s <= 2'b11; m_hi = 0; m_int <= 1'b0; end
+	else begin
+		if (n_esp_ft_spi_dis && m_hi >= 15 && !m_s[1]) m_int <= 1'b1;
+		if (!n_esp_ft_spi_dis || !m_s[1]) m_hi = 0; else if (m_hi < 15) m_hi = m_hi + 1;
+		if (n_dut.sdcfg_wr && !din[0]) begin m_int <= 1'b0; m_hi = 0; end
+		m_s <= {m_s[0], espcs_in};
+	end
+end
+integer esp_sets = 0, esp_reads = 0;
+always @(posedge m_int) esp_sets = esp_sets + 1;
+wire rd77 = (a[7:0] == 8'h77);
+wire [199:0] mask77 = rd77 ? ~(200'd1 << 199) : ~200'd0;
+task check77;
+	begin
+		check(o_all & mask77, n_all & mask77);
+		if (rd77 && n_dut.iord_s) begin
+			esp_reads = esp_reads + 1;
+			if (n_dout[7] !== m_int) begin
+				errors = errors + 1;
+				if (errors <= 10) $display("%t ERROR: #77 bit 7 %b, model %b", $time, n_dout[7], m_int);
+			end
+		end
+	end
+endtask
+
 // every output after both edges (zclk changes at the falling one)
-always @(negedge clk) #1 check(o_all, n_all);
-always @(posedge clk) #1 check(o_all, n_all);
+always @(negedge clk) #1 check77;
+always @(posedge clk) #1 check77;
 always @(negedge clk) if (zpos) begin
 	if (n_dut.port_wr) port_wrs = port_wrs + 1;
 	if (n_dut.port_wr && (a[7:0] == 8'h10 || a[7:0] == 8'h11)) ide_wrs = ide_wrs + 1;
@@ -494,7 +526,12 @@ end
 
 initial begin
 	repeat (CLOCKS) @(negedge clk);
-	$display("tb_eq_zports: %0d checks, %0d port writes (%0d to #10 / #11)", checks, port_wrs, ide_wrs);
+	$display("tb_eq_zports: %0d checks, %0d port writes (%0d to #10 / #11), espcs_int set %0d times, %0d reads of #77",
+		checks, port_wrs, ide_wrs, esp_sets, esp_reads);
+	if (esp_sets < 10) begin
+		errors = errors + 1;
+		$display("ERROR: espcs_int set too seldom");
+	end
 	if (port_wrs < 1000 || ide_wrs < 100) begin
 		errors = errors + 1;
 		$display("ERROR: too few port writes, the test does not test");

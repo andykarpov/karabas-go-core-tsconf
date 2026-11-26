@@ -13,15 +13,35 @@
 # A step runs again when one of its inputs is newer than its output.
 # The boards share xst/ and _ngo/, so they are built one after the other.
 
-ISE_SETTINGS ?= /opt/Xilinx/14.7/ISE_DS/settings64.sh
 PART = xc6slx25-ftg256-2
 BOARDS = go mini minig
 
 SHELL = /bin/bash
 .SHELLFLAGS = -e -o pipefail -c
 .NOTPARALLEL:
+
+ifneq ($(filter MINGW% MSYS% CYGWIN%,$(shell uname -s)),)
+# Windows (as the other Karabas Go cores): ISE nt64, the 32-bit bitgen (nt64 fails on Windows 10); msys make
+# passes no TEMP / TMP / XILINXD_LICENSE_FILE / LOCALAPPDATA / USERPROFILE to its recipes
+XILINX_DIR ?= /c/Xilinx/14.7/ISE_DS
+ISE_BIN ?= $(XILINX_DIR)/ISE/bin/nt64
+BITGEN_BIN ?= $(XILINX_DIR)/ISE/bin/nt
+ISE_TMP := $(shell cygpath -m "$(CURDIR)")/xst/tmp
+ISE_LIC ?= $(shell cygpath -m "$(XILINX_DIR)")/.xinstall/xilinx_ise.lic
+ISE_ENV = mkdir -p xst/tmp; export TEMP="$(ISE_TMP)" TMP="$(ISE_TMP)" XILINXD_LICENSE_FILE="$(ISE_LIC)"
+XIL = $(ISE_ENV) XILINX="$(XILINX_DIR)/ISE" PATH="$(ISE_BIN):$(XILINX_DIR)/ISE/lib/nt64:$(XILINX_DIR)/common/bin/nt64:$(XILINX_DIR)/common/lib/nt64:$$$$PATH";
+XIL_BITGEN = $(ISE_ENV) XILINX="$(XILINX_DIR)/ISE" PATH="$(BITGEN_BIN):$(XILINX_DIR)/ISE/lib/nt:$(XILINX_DIR)/common/bin/nt:$(XILINX_DIR)/common/lib/nt:$$$$PATH";
+export LOCALAPPDATA := $(shell cygpath -w -F 0x1c)
+export USERPROFILE := $(shell cygpath -w -F 0x28)
+else
+ISE_SETTINGS ?= /opt/Xilinx/14.7/ISE_DS/settings64.sh
 # settings64.sh takes the arguments of the shell that sources it: none here
 XIL = source $(ISE_SETTINGS) > /dev/null;
+XIL_BITGEN = $(XIL)
+endif
+PYTHON ?= python3
+# make_core.py of karabas-go-tools (the sibling repo), or a local copy / symlink
+MAKE_CORE ?= $(if $(wildcard make_core.py),make_core.py,../../karabas-go-tools/make_core/make_core.py)
 
 # all boards in one file: a board build puts its bitstream in (make_core --boards)
 KG = tsconf.kg
@@ -33,9 +53,10 @@ JSON = core.json
 # Mini G 4 since 26112001: with 2 an OPL4 path of clk_sys (e_ch -> e_addr, 9 levels) missed by 0.39 ns, 3 far worse.
 # Mini 4 since 26112002: with 2 the OPL4 path e_ch -> nexts (8 levels) missed by 2.55 ns.
 # Mini 5 since 26112201: with 4 the OPL4 path e_ch -> e_addr missed by 0.24 ns, 3 stuck in the router.
+# Mini G 5 since 26112601 (par_multi 4 5: 5 met first, 11.696 ns).
 MAP_T_go = 2
 MAP_T_mini = 5
-MAP_T_minig = 4
+MAP_T_minig = 5
 MAP_OPT = -logic_opt off -ol high -xe n -xt 0 -register_duplication off -r 4 -global_opt off -mt 2 -detail -ir off -pr b -lc off -power off
 PAR_OPT = -ol high -xe n -mt 4
 
@@ -63,10 +84,10 @@ karabas_$(1).bin: karabas_$(1).ngc karabas_$(1).ucf karabas_$(1).ut
 	$(XIL) map -intstyle ise -p $(PART) -w $(MAP_OPT) -t $(MAP_T_$(1)) -o karabas_$(1)_map.ncd karabas_$(1).ngd karabas_$(1).pcf
 	$(XIL) par -w -intstyle ise $(PAR_OPT) karabas_$(1)_map.ncd karabas_$(1).ncd karabas_$(1).pcf
 	$(XIL) trce -intstyle ise -v 3 -s 2 -n 3 -fastpaths -xml karabas_$(1).twx karabas_$(1).ncd -o karabas_$(1).twr karabas_$(1).pcf -ucf karabas_$(1).ucf
-	$(XIL) bitgen -intstyle ise -f karabas_$(1).ut karabas_$(1).ncd
+	$(XIL_BITGEN) bitgen -intstyle ise -f karabas_$(1).ut karabas_$(1).ncd
 
 kg_$(1).stamp: karabas_$(1).bin $(JSON) $$(wildcard roms/*)
-	python3 make_core.py $(JSON) $(KG) --boards $(1)
+	$(PYTHON) $(MAKE_CORE) $(JSON) $(KG) --boards $(1)
 	touch $$@
 
 $(1): kg_$(1).stamp
@@ -85,7 +106,7 @@ $(foreach b,$(BOARDS),$(eval $(call board,$(b))))
 define core_mode
 $(1)-coremode: karabas_$(1)_core.twr
 karabas_$(1)_core.twr: karabas_$(1).bin pcf_core.py
-	python3 pcf_core.py karabas_$(1).pcf karabas_$(1)_core.pcf
+	$(PYTHON) pcf_core.py karabas_$(1).pcf karabas_$(1)_core.pcf
 	$(XIL) trce -intstyle ise -v 3 -s 2 -n 3 -fastpaths karabas_$(1).ncd -o karabas_$(1)_core.twr karabas_$(1)_core.pcf \
 		| tee karabas_$(1)_core.log | grep -E "ERROR|WARNING" || true
 	@! grep -q "No timing constraints found" karabas_$(1)_core.twr || { echo "trce did not read karabas_$(1)_core.pcf"; \
