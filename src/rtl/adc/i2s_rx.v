@@ -35,7 +35,9 @@ module i2s_rx #(
 
 	// Parallel datastreams
 	output reg [AUDIO_DW-1:0]	left_chan,
-	output reg [AUDIO_DW-1:0]	right_chan
+	output reg [AUDIO_DW-1:0]	right_chan,
+	// toggles with each new sample in clk (for audio_interp; the data is stable from then on)
+	output reg			sample_t = 1'b0
 );
 
 reg [AUDIO_DW-1:0]	left;
@@ -79,6 +81,7 @@ always @(posedge clk) begin
 	if (rdy_r == 2'b10) begin // falling edge
 	    left_chan <= left_chan_r;
 	    right_chan <= right_chan_r;
+	    sample_t <= ~sample_t;
 	end
 end
 

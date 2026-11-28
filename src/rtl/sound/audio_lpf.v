@@ -1,7 +1,8 @@
 `timescale 1ns / 1ps
 // ============================================================================
 // The sources of a low sample rate into the mixer of clk_bus, interpolated and filtered: the OPL4
-// (44.1 kHz) and the GS (a sample per INT of the GS, 14 MHz / 374 = 37.47 kHz).
+// (44.1 kHz), the GS (a sample per INT of the GS, 14 MHz / 374 = 37.47 kHz) and on the Mini G the
+// ESP32 (I2S, 44.1 kHz of its own clock: mp3 / aac / the radio of ZiFi32).
 //
 // The mixer and the DACs take the sum of all sources at their own rate (PCM5102 54.7 kHz, HDMI
 // 48 kHz) by plain sampling. A 44.1 kHz signal held as steps has images at 44.1 kHz +- f, which
@@ -70,14 +71,17 @@ assign out_r = lin ? y_r[F + 15:F] : tgt_r;
 
 endmodule
 
-// audio_lpf: the low-pass of mode 2 on a 17-bit signed sum; en = 0: the input as it is.
-module audio_lpf (
+// audio_lpf: the low-pass of mode 2 on a W-bit signed sum (17: the GS + the OPL4 / 2, 18 on the
+// Mini G with the ESP32 too); en = 0: the input as it is.
+module audio_lpf #(
+	parameter integer W = 17
+) (
 	input  wire        clk,
 	input  wire        en,
-	input  wire signed [16:0] in_l,
-	input  wire signed [16:0] in_r,
-	output reg  signed [16:0] out_l = 17'sd0,
-	output reg  signed [16:0] out_r = 17'sd0
+	input  wire signed [W - 1:0] in_l,
+	input  wire signed [W - 1:0] in_r,
+	output reg  signed [W - 1:0] out_l = 0,
+	output reg  signed [W - 1:0] out_r = 0
 );
 
 // 876 kHz: clk / 32, a divisor of the PCM5102 rate (clk / 512) and the HDMI sample period: a rate
@@ -86,11 +90,11 @@ reg [4:0] div = 5'd0;
 always @(posedge clk) div <= div + 1'd1;
 wire ce = (div == 5'd0);
 localparam integer G = 4;
-reg signed [16 + G:0] s1_l = 0, s1_r = 0, s2_l = 0, s2_r = 0;
-wire signed [16 + G:0] x_l = {in_l, {G{1'b0}}};
-wire signed [16 + G:0] x_r = {in_r, {G{1'b0}}};
-wire signed [16 + G:0] e1_l = x_l - s1_l, e1_r = x_r - s1_r;
-wire signed [16 + G:0] e2_l = s1_l - s2_l, e2_r = s1_r - s2_r;
+reg signed [W - 1 + G:0] s1_l = 0, s1_r = 0, s2_l = 0, s2_r = 0;
+wire signed [W - 1 + G:0] x_l = {in_l, {G{1'b0}}};
+wire signed [W - 1 + G:0] x_r = {in_r, {G{1'b0}}};
+wire signed [W - 1 + G:0] e1_l = x_l - s1_l, e1_r = x_r - s1_r;
+wire signed [W - 1 + G:0] e2_l = s1_l - s2_l, e2_r = s1_r - s2_r;
 always @(posedge clk) if (ce) begin
 	s1_l <= s1_l + (e1_l >>> 2);
 	s1_r <= s1_r + (e1_r >>> 2);
@@ -99,8 +103,8 @@ always @(posedge clk) if (ce) begin
 end
 
 always @(posedge clk) begin
-	out_l <= en ? s2_l[16 + G:G] : in_l;
-	out_r <= en ? s2_r[16 + G:G] : in_r;
+	out_l <= en ? s2_l[W - 1 + G:G] : in_l;
+	out_r <= en ? s2_r[W - 1 + G:G] : in_r;
 end
 
 endmodule

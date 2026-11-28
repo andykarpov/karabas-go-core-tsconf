@@ -256,6 +256,7 @@ tsconf tsconf (
 `ifdef HW_ID3
 	.esp_in_l         (esp_l[15:0]),
 	.esp_in_r         (esp_r[15:0]),
+	.esp_in_t         (esp_t),
 `endif
 
 	.sdcs_n				(SD_CS_N),
@@ -442,6 +443,7 @@ i2s_transceiver adc(
 
 // ------- ESP i2s receiver ----
 wire signed [15:0] esp_l, esp_r;
+wire esp_t;
 i2s_rx i2s_rx(
 	.clk				(clk_bus),
 	.sclk				(ESP32_PCM_BCK),
@@ -449,7 +451,8 @@ i2s_rx i2s_rx(
 	.lrclk			(ESP32_PCM_RLCK),
 	.sdata			(ESP32_PCM_DAT),
 	.left_chan		(esp_l),
-	.right_chan		(esp_r)
+	.right_chan		(esp_r),
+	.sample_t		(esp_t)
 );
 
 // ------- ADC_CLK output buf
