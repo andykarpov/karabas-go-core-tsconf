@@ -4,7 +4,7 @@
 # The FM part is a stub here (opl3_fpga as it is, checked in u16_tsconf_gs_v24).
 # Then tb_opl4_lpf: audio_lpf with a 5 / 15 kHz tone at 44.1 kHz (the OPL4) and at 37.47 kHz (the GS),
 # taken at the PCM5102 rate (54.7 kHz); opl4_lpf.py prints the tone and the worst other component, the
-# script wants the low-pass mode (2) at least the given dB below the tone.
+# script wants the low-pass mode (2) at least the given dB below the tone (components below 20 kHz).
 # Usage: src/sim/run_opl4_sim.sh
 # Prints "tb_opl4: 0 errors"; the script fails on any other count.
 set -e
@@ -22,13 +22,15 @@ iverilog -g2012 -o tb_opl4 "$SIM/opl4/tb_opl4.v" "$SIM/opl4/t80s_stub.v" "$SIM/o
 	"$R/sound/opl4/opl4_kg.v" "$R/sound/opl4/opl4.v" "$R/sound/opl4/opl4_powtab.v" "$R/sound/opl4/opl4_inctab.v"
 vvp -n tb_opl4 | tee tb_opl4.log | grep "tb_opl4: "
 grep -q "tb_opl4: 0 errors" tb_opl4.log || { echo "tb_opl4 FAILED"; exit 1; }
-for P in "0 5000 50" "0 15000 30" "1 5000 38" "1 15000 12"; do
+# the dB wanted in mode 2 below 20 kHz (measured 41.7 / 32.2 / 44.5 / 28.0; the thresholds before, 50 / 30 / 38 / 12,
+# were taken with a DFT of every 4th bin that missed the peaks between them)
+for P in "0 5000 39" "0 15000 30" "1 5000 42" "1 15000 26"; do
 	set -- $P
 	for M in 0 1 2; do
 		iverilog -g2012 -P tb_opl4_lpf.GS=$1 -P tb_opl4_lpf.FREQ=$2 -P tb_opl4_lpf.MODE=$M -o tb_opl4_lpf \
 			"$SIM/opl4/tb_opl4_lpf.v" "$R/sound/audio_lpf.v"
 		vvp -n tb_opl4_lpf > /dev/null
-		L=$(python3 "$SIM/opl4/opl4_lpf.py" opl4_lpf.txt $2)
+		L=$(python3 "$SIM/opl4/opl4_lpf.py" opl4_lpf.txt $2 54746 20000)
 		echo "tb_opl4_lpf $([ $1 = 1 ] && echo GS || echo OPL4) mode $M: $L"
 	done
 	python3 -c "import sys; sys.exit(0 if float('$L'.split('(')[1].split(' dB')[0]) >= $3 else 1)" || \

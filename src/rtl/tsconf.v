@@ -59,6 +59,7 @@ module tsconf
 `ifdef HW_ID3
     input wire [15:0] esp_in_l,
 	 input wire [15:0] esp_in_r,
+	 input wire esp_in_t,            // toggles with each new sample of esp_in_l / esp_in_r (i2s_rx)
 `endif
 
 	// joystick
@@ -1452,7 +1453,8 @@ opl4_kg opl4
 );
 
 // the OPL4 (clk, 44.1 kHz) and the GS (clk_bus, a sample of its players each INT: 748 clk_bus)
-// interpolated, then their sum (the OPL4 at half) through one low-pass (see audio_lpf.v)
+// interpolated, then their sum (the OPL4 at half) through one low-pass (see audio_lpf.v); on the
+// Mini G the ESP32 (I2S, 44.1 kHz of its clock) too, in the same sum (18 bits)
 wire [15:0] opl4_li, opl4_ri, gs_li, gs_ri;
 audio_interp #(.STEP(1648), .STEPS(636)) opl4_out_interp
 (
@@ -1474,16 +1476,40 @@ audio_interp #(.STEP(1401), .STEPS(748)) gs_interp
 	.out_l(gs_li),
 	.out_r(gs_ri)
 );
-wire [16:0] gs_opl4_l, gs_opl4_r;
-audio_lpf audio_lpf
+wire signed [17:0] gs_opl4_sum_l = $signed({{2{gs_li[15]}}, gs_li}) + $signed({{3{opl4_li[15]}}, opl4_li[15:1]});
+wire signed [17:0] gs_opl4_sum_r = $signed({{2{gs_ri[15]}}, gs_ri}) + $signed({{3{opl4_ri[15]}}, opl4_ri[15:1]});
+`ifdef HW_ID3
+wire [15:0] esp_li, esp_ri;
+audio_interp #(.STEP(1648), .STEPS(636)) esp_interp
+(
+	.clk(clk_bus),
+	.lin(opl4_filter != 2'd0),
+	.sample_t(esp_in_t),
+	.in_l(esp_in_l),
+	.in_r(esp_in_r),
+	.out_l(esp_li),
+	.out_r(esp_ri)
+);
+localparam integer LPF_W = 18;
+wire signed [17:0] lpf_in_l = gs_opl4_sum_l + $signed({{2{esp_li[15]}}, esp_li});
+wire signed [17:0] lpf_in_r = gs_opl4_sum_r + $signed({{2{esp_ri[15]}}, esp_ri});
+`else
+localparam integer LPF_W = 17;   // the GS + the OPL4 / 2 fit in 17 bits
+wire signed [17:0] lpf_in_l = gs_opl4_sum_l;
+wire signed [17:0] lpf_in_r = gs_opl4_sum_r;
+`endif
+wire signed [LPF_W - 1:0] lpf_out_l, lpf_out_r;
+audio_lpf #(.W(LPF_W)) audio_lpf
 (
 	.clk(clk_bus),
 	.en(opl4_filter[1]),
-	.in_l($signed({gs_li[15], gs_li}) + $signed({{2{opl4_li[15]}}, opl4_li[15:1]})),
-	.in_r($signed({gs_ri[15], gs_ri}) + $signed({{2{opl4_ri[15]}}, opl4_ri[15:1]})),
-	.out_l(gs_opl4_l),
-	.out_r(gs_opl4_r)
+	.in_l(lpf_in_l[LPF_W - 1:0]),
+	.in_r(lpf_in_r[LPF_W - 1:0]),
+	.out_l(lpf_out_l),
+	.out_r(lpf_out_r)
 );
+wire signed [17:0] gs_opl4_l = lpf_out_l;   // sign-extended
+wire signed [17:0] gs_opl4_r = lpf_out_r;
 
 // audio mixer
 
@@ -1520,11 +1546,6 @@ audio_mixer audio_mixer
 	.adc_r(adc_in_r),
 `endif
 	
-`ifdef HW_ID3
-	.esp_l(esp_in_l),
-	.esp_r(esp_in_r),
-`endif
-
 
 	
 	.audio_l(audio_out_l),
